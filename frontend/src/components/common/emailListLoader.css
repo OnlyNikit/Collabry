@@ -1,0 +1,81 @@
+/* Uses tokens from tokens.css (--clb-surface, --clb-border, --clb-pink, etc).
+   Make sure tokens.css is imported once at the app root before this file. */
+
+/* Skeleton row — same box shape as .clb-email-item, no click affordance */
+.clb-email-item--skeleton {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--clb-space-xs);
+  padding: var(--clb-space-xs) var(--clb-space-sm);
+  cursor: default;
+  pointer-events: none;
+  border-bottom: 1px solid var(--clb-border);
+}
+
+/* Base skeleton block — pink→gold shimmer sweeps left to right */
+.clb-skeleton {
+  position: relative;
+  display: block;
+  border-radius: 6px;
+  background: var(--clb-surface-2);
+  overflow: hidden;
+}
+
+.clb-skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    115deg,
+    transparent 0%,
+    var(--clb-pink-dim) 45%,
+    var(--clb-gold-dim) 55%,
+    transparent 100%
+  );
+  animation: clb-shimmer 1.6s ease-in-out infinite;
+}
+
+@keyframes clb-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Individual piece shapes, mirroring EmailListItem's layout */
+.clb-skeleton--avatar {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  border-radius: 50%;
+}
+
+.clb-skeleton--name {
+  width: 40%;
+  height: 12px;
+}
+
+.clb-skeleton--time {
+  width: 32px;
+  height: 10px;
+  margin-left: auto;
+}
+
+.clb-skeleton--subject {
+  width: 70%;
+  height: 12px;
+  margin-top: var(--clb-space-xs);
+}
+
+.clb-skeleton--snippet {
+  width: 90%;
+  height: 10px;
+  margin-top: var(--clb-space-xs);
+}
+
+/* Respect reduced motion preference (tokens.css also sets a global override) */
+@media (prefers-reduced-motion: reduce) {
+  .clb-skeleton::after {
+    animation: none;
+  }
+}   

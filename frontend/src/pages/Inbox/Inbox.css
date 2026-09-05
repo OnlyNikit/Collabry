@@ -1,0 +1,167 @@
+@import "../../style/token.css";
+
+/* =========================================================
+   INBOX BASE
+========================================================= */
+
+.clb-inbox {
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  min-height: 0;
+  background: var(--clb-bg);
+}
+
+/* =========================================================
+   DESKTOP
+========================================================= */
+
+.clb-inbox--desktop {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(340px, 0.75fr);
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* =========================================================
+   PANES
+========================================================= */
+
+.clb-inbox__preview-pane,
+.clb-inbox__list-pane {
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--clb-surface);
+}
+
+/* =========================================================
+   PREVIEW
+========================================================= */
+
+.clb-inbox__preview-pane {
+  border-right: 1px solid var(--clb-border);
+}
+
+/* Important:
+   EmailPreview khud scroll karega
+*/
+
+.clb-inbox__preview-pane .clb-email-preview {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+/* =========================================================
+   EMAIL LIST
+========================================================= */
+
+.clb-inbox__list-pane .clb-email-list {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+.clb-inbox--mobile {
+  width: 100%;
+  min-height: calc(100dvh - 80px);
+}
+
+/* Mobile list */
+
+.clb-inbox--mobile .clb-inbox__list-pane {
+  width: 100%;
+  height: auto;
+  min-height: calc(100dvh - 80px);
+  overflow: visible;
+  background: transparent;
+}
+
+/* =========================================================
+   MOBILE PREVIEW HEADER
+========================================================= */
+
+.clb-inbox__mobile-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+
+  width: 100%;
+  min-height: 58px;
+
+  display: flex;
+  align-items: center;
+
+  padding: var(--clb-space-sm);
+  box-sizing: border-box;
+
+  background: var(--clb-surface);
+  border-bottom: 1px solid var(--clb-border);
+}
+
+.clb-inbox__back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+
+  min-height: 42px;
+  padding: 0.6rem 0.9rem;
+
+  border: 1px solid var(--clb-border);
+  border-radius: 10px;
+
+  background: var(--clb-surface-2);
+  color: var(--clb-text);
+
+  font-family: var(--clb-font-body);
+  font-size: 0.88rem;
+
+  cursor: pointer;
+}
+
+/* =========================================================
+   MOBILE PREVIEW
+========================================================= */
+
+.clb-inbox__mobile-preview {
+  width: 100%;
+  min-width: 0;
+  background: var(--clb-surface);
+}
+
+/* =========================================================
+   TABLET / MOBILE
+========================================================= */
+
+@media (max-width: 959px) {
+  .clb-inbox {
+    display: block;
+    height: auto;
+    min-height: calc(100dvh - 80px);
+    overflow: visible;
+  }
+
+  .clb-inbox__mobile-preview .clb-email-preview {
+    height: auto;
+    min-height: calc(100dvh - 138px);
+    overflow: visible;
+  }
+}
+
+@media (max-width: 600px) {
+  .clb-inbox__mobile-header {
+    min-height: 56px;
+  }
+
+  .clb-inbox__back-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}

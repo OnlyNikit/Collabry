@@ -1,0 +1,109 @@
+@import '../../style/token.css';
+
+.clb-track-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 11, 30, 0.7);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--clb-space-lg);
+  z-index: 100;
+  animation: clb-fade-in 0.2s var(--clb-ease) both;
+}
+
+.clb-track-modal {
+  width: 100%;
+  max-width: 400px;
+  background: var(--clb-surface);
+  border: 1px solid var(--clb-border);
+  border-radius: 16px;
+  box-shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.6);
+  animation: clb-pop-scale 0.2s var(--clb-ease) both;
+}
+
+.clb-track-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--clb-space-md);
+  border-bottom: 1px solid var(--clb-border);
+}
+
+.clb-track-modal__header h2 {
+  font-family: var(--clb-font-display);
+  font-size: 1rem;
+  margin: 0;
+}
+
+.clb-track-modal__close {
+  background: transparent;
+  border: none;
+  color: var(--clb-text-muted);
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.clb-track-modal__close:hover {
+  color: var(--clb-text);
+}
+
+.clb-track-modal__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--clb-space-sm);
+  padding: var(--clb-space-md);
+}
+
+.clb-track-modal__form label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.78rem;
+  color: var(--clb-text-muted);
+}
+
+.clb-track-modal__form input,
+.clb-track-modal__form select {
+  background: var(--clb-surface-2);
+  border: 1px solid var(--clb-border);
+  border-radius: 10px;
+  padding: 0.6em var(--clb-space-sm);
+  color: var(--clb-text);
+  font-family: var(--clb-font-body);
+  font-size: 0.9rem;
+  outline: none;
+}
+
+.clb-track-modal__form input:focus,
+.clb-track-modal__form select:focus {
+  border-color: var(--clb-pink);
+}
+
+.clb-track-modal__actions {
+  display: flex;
+  gap: var(--clb-space-sm);
+  padding-top: var(--clb-space-xs);
+}
+
+@keyframes clb-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes clb-pop-scale {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}

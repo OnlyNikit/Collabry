@@ -1,0 +1,63 @@
+@import '../../style/token.css';
+
+.clb-attachments {
+  display: flex;
+  flex-direction: column;
+  gap: var(--clb-space-xs);
+}
+
+.clb-attachments__label {
+  font-size: 0.78rem;
+  color: var(--clb-text-muted);
+  margin: 0;
+}
+
+.clb-attachments__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--clb-space-xs);
+}
+
+.clb-attachment-chip {
+  display: flex;
+  align-items: center;
+  gap: var(--clb-space-xs);
+  background: var(--clb-surface-2);
+  border: 1px solid var(--clb-border);
+  border-radius: 10px;
+  padding: 0.5em 0.8em;
+  cursor: pointer;
+  transition: transform 0.15s var(--clb-ease), border-color 0.15s var(--clb-ease);
+  max-width: 220px;
+}
+
+.clb-attachment-chip:hover {
+  transform: translateY(-2px);
+  border-color: var(--clb-pink-dim);
+}
+
+.clb-attachment-chip__icon {
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+.clb-attachment-chip__body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.clb-attachment-chip__name {
+  font-size: 0.82rem;
+  color: var(--clb-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 150px;
+}
+
+.clb-attachment-chip__size {
+  font-size: 0.72rem;
+  color: var(--clb-text-muted);
+}

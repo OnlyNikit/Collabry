@@ -1,0 +1,483 @@
+@import "../../style/token.css";
+
+/* =========================================================
+   LABEL PICKER - BASE / DESKTOP
+========================================================= */
+
+.clb-label-picker {
+  position: absolute;
+
+  /* Button ke upar open hoga */
+  bottom: calc(100% + 10px);
+  left: 0;
+
+  width: min(30rem, calc(100vw - 32px));
+  max-width: calc(100vw - 32px);
+
+  box-sizing: border-box;
+
+  background: var(--clb-surface-2);
+
+  border: 1px solid var(--clb-border);
+  border-radius: 12px;
+
+  box-shadow:
+    0 16px 40px -12px rgba(0, 0, 0, 0.6);
+
+  padding: var(--clb-space-xs);
+
+  z-index: 9999;
+
+  animation:
+    clb-pop-in 0.15s var(--clb-ease) both;
+}
+
+/* =========================================================
+   HEADER
+========================================================= */
+
+.clb-label-picker__header {
+  display: flex;
+
+  align-items: center;
+  justify-content: space-between;
+
+  gap: var(--clb-space-sm);
+
+  font-size: 0.75rem;
+
+  color: var(--clb-text-muted);
+
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+
+  padding: 0.6em 0.75em;
+}
+
+/* =========================================================
+   CLOSE BUTTON
+========================================================= */
+
+.clb-label-picker__close {
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  width: 30px;
+  height: 30px;
+
+  flex-shrink: 0;
+
+  background: transparent;
+
+  border: none;
+  border-radius: 7px;
+
+  color: var(--clb-text-muted);
+
+  cursor: pointer;
+
+  font-size: 1rem;
+  line-height: 1;
+
+  transition:
+    background 0.15s var(--clb-ease),
+    color 0.15s var(--clb-ease);
+}
+
+.clb-label-picker__close:hover {
+  background: var(--clb-surface);
+
+  color: var(--clb-text);
+}
+
+/* =========================================================
+   LABEL LIST
+========================================================= */
+
+.clb-label-picker__list {
+  list-style: none;
+
+  margin: 0;
+  padding: 0;
+
+  display: grid;
+
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+
+  gap: 8px;
+
+  max-height: 300px;
+
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* =========================================================
+   LABEL OPTION
+========================================================= */
+
+.clb-label-picker__option {
+  width: 100%;
+  min-width: 0;
+
+  box-sizing: border-box;
+
+  display: flex;
+
+  align-items: center;
+
+  gap: var(--clb-space-xs);
+
+  background: transparent;
+
+  border: none;
+  border-radius: 8px;
+
+  padding: 0.65em 0.7em;
+
+  color: var(--clb-text);
+
+  font-family: var(--clb-font-body);
+  font-size: 0.85rem;
+
+  text-align: left;
+
+  cursor: pointer;
+
+  transition:
+    background 0.15s var(--clb-ease),
+    color 0.15s var(--clb-ease);
+}
+
+.clb-label-picker__option:hover {
+  background: var(--clb-surface);
+}
+
+/* =========================================================
+   SELECTED OPTION
+========================================================= */
+
+.clb-label-picker__option--selected {
+  color: var(--clb-gold);
+}
+
+/* =========================================================
+   CHECKBOX
+========================================================= */
+
+.clb-label-picker__checkbox {
+  width: 16px;
+  height: 16px;
+
+  flex-shrink: 0;
+
+  border-radius: 4px;
+
+  border:
+    1px solid var(--clb-border);
+
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  font-size: 0.65rem;
+}
+
+.clb-label-picker__option--selected
+.clb-label-picker__checkbox {
+  border-color: var(--clb-gold);
+
+  background: var(--clb-gold-dim);
+}
+
+/* =========================================================
+   TABLET
+   601px - 959px
+========================================================= */
+
+@media (max-width: 959px) and (min-width: 601px) {
+
+  .clb-label-picker {
+    position: fixed;
+
+    top: auto;
+    right: 16px;
+    bottom: 16px;
+    left: 16px;
+
+    width: auto;
+    max-width: none;
+
+    max-height:
+      calc(100dvh - 32px);
+
+    overflow: hidden;
+
+    border-radius: 16px;
+
+    padding: var(--clb-space-md);
+
+    z-index: 9999;
+
+    animation:
+      clb-label-picker-tablet
+      0.25s
+      var(--clb-ease)
+      both;
+  }
+
+  .clb-label-picker__list {
+    max-height:
+      calc(100dvh - 140px);
+
+    overflow-y: auto;
+  }
+}
+
+/* =========================================================
+   MOBILE
+   600px AND BELOW
+========================================================= */
+
+@media (max-width: 600px) {
+
+  .clb-label-picker {
+    position: fixed;
+
+    top: auto;
+    right: 0;
+    bottom: 0;
+    left: 0;
+
+    width: 100%;
+    max-width: 100%;
+
+    box-sizing: border-box;
+
+    max-height: 75dvh;
+
+    display: flex;
+    flex-direction: column;
+
+    background: var(--clb-surface-2);
+
+    border:
+      1px solid var(--clb-border);
+
+    border-bottom: none;
+
+    border-radius:
+      20px 20px 0 0;
+
+    padding:
+      var(--clb-space-md);
+
+    padding-bottom:
+      calc(
+        var(--clb-space-md) +
+        env(safe-area-inset-bottom)
+      );
+
+    overflow: hidden;
+
+    z-index: 9999;
+
+    animation:
+      clb-label-picker-slide-up
+      0.25s
+      var(--clb-ease)
+      both;
+  }
+
+  /* Header fixed rahega */
+  .clb-label-picker__header {
+    flex-shrink: 0;
+
+    padding:
+      0.25rem
+      0.25rem
+      0.75rem;
+  }
+
+  /* List scroll hogi */
+  .clb-label-picker__list {
+    flex: 1;
+
+    min-height: 0;
+
+    grid-template-columns: 1fr;
+
+    max-height: none;
+
+    overflow-y: auto;
+    overflow-x: hidden;
+
+    padding-bottom: 4px;
+  }
+
+  .clb-label-picker__option {
+    min-height: 48px;
+
+    padding:
+      0.75rem;
+
+    font-size: 0.88rem;
+  }
+}
+
+/* =========================================================
+   SMALL MOBILE
+========================================================= */
+
+@media (max-width: 420px) {
+
+  .clb-label-picker {
+    max-height: 80dvh;
+
+    padding:
+      var(--clb-space-sm);
+
+    padding-bottom:
+      calc(
+        var(--clb-space-sm) +
+        env(safe-area-inset-bottom)
+      );
+  }
+
+  .clb-label-picker__header {
+    font-size: 0.7rem;
+  }
+
+  .clb-label-picker__option {
+    min-height: 46px;
+
+    padding:
+      0.7rem;
+
+    font-size: 0.82rem;
+  }
+
+  .clb-label-picker__close {
+    width: 28px;
+    height: 28px;
+  }
+}
+
+/* =========================================================
+   ANIMATIONS
+========================================================= */
+
+@keyframes clb-pop-in {
+
+  from {
+    opacity: 0;
+
+    transform:
+      translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+
+    transform:
+      translateY(0);
+  }
+}
+
+@keyframes clb-label-picker-tablet {
+
+  from {
+    opacity: 0;
+
+    transform:
+      translateY(40px);
+  }
+
+  to {
+    opacity: 1;
+
+    transform:
+      translateY(0);
+  }
+}
+
+@keyframes clb-label-picker-slide-up {
+
+  from {
+    opacity: 0;
+
+    transform:
+      translateY(100%);
+  }
+
+  to {
+    opacity: 1;
+
+    transform:
+      translateY(0);
+  }
+}.clb-label-picker__footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+
+  padding: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.clb-label-picker__cancel,
+.clb-label-picker__save {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  min-height: 38px;
+  padding: 0 14px;
+
+  border-radius: 8px;
+
+  cursor: pointer;
+}
+
+.clb-label-picker__save {
+  border: none;
+}
+
+.clb-label-picker__save:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.clb-label-picker__loader {
+  width: 15px;
+  height: 15px;
+
+  border: 2px solid
+    rgba(255, 255, 255, 0.35);
+
+  border-top-color:
+    currentColor;
+
+  border-radius: 50%;
+
+  animation:
+    clb-label-spin
+    0.7s
+    linear
+    infinite;
+}
+
+@keyframes clb-label-spin {
+
+  to {
+    transform:
+      rotate(360deg);
+  }
+
+}

@@ -1,0 +1,205 @@
+@import './token.css';
+
+/* ==========================================================================
+   LOGIN PAGE
+   Two-panel layout: brand story on the left, Google sign-in on the right.
+   ========================================================================== */
+
+.clb-login {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+}
+
+/* ---------------------------------------------------------- Brand panel */
+.clb-login__brand {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--clb-space-md);
+  padding: var(--clb-space-2xl);
+  background: radial-gradient(
+    circle at 20% 20%,
+    var(--clb-surface) 0%,
+    var(--clb-bg) 70%
+  );
+}
+
+.clb-login__brand h1 {
+  font-family: var(--clb-font-display);
+  font-size: clamp(1.8rem, 3vw, 2.6rem);
+  line-height: 1.15;
+  max-width: 14ch;
+  margin: var(--clb-space-sm) 0 0;
+}
+
+.clb-login__brand p {
+  color: var(--clb-text-muted);
+  font-size: 1.05rem;
+  line-height: 1.6;
+  max-width: 36ch;
+  margin: 0;
+}
+
+/* Floating decorative cards — purely atmospheric, echoes the landing hero */
+.clb-login__orbit {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.clb-orbit-card {
+  position: absolute;
+  width: 120px;
+  height: 76px;
+  border-radius: 12px;
+  background: var(--clb-surface-2);
+  border: 1px solid var(--clb-border);
+  opacity: 0.6;
+  animation: clb-float 8s var(--clb-ease) infinite;
+}
+
+.clb-orbit-card--1 {
+  top: 12%;
+  right: 12%;
+  animation-delay: 0s;
+}
+.clb-orbit-card--2 {
+  bottom: 20%;
+  right: 26%;
+  animation-delay: 1.4s;
+}
+.clb-orbit-card--3 {
+  top: 55%;
+  right: -2%;
+  animation-delay: 2.8s;
+}
+
+/* -------------------------------------------------------- Sign-in panel */
+.clb-login__panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--clb-space-xl);
+}
+
+.clb-login__card {
+  width: 100%;
+  
+  max-width: 80rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--clb-space-sm);
+  background: var(--clb-surface);
+  border: 1px solid var(--clb-border);
+  border-radius: 20px;
+  padding: var(--clb-space-xl) var(--clb-space-lg);
+  animation: clb-fade-up 0.6s var(--clb-ease) both;
+}
+
+.clb-login__card h2 {
+  font-family: var(--clb-font-display);
+  font-size: 1.5rem;
+  margin: var(--clb-space-xs) 0 0;
+}
+
+.clb-login__card > p {
+  color: var(--clb-text-muted);
+  margin: 0 0 var(--clb-space-sm);
+}
+
+.clb-google-btn {
+  position: relative;
+  overflow: hidden;
+  width: auto;
+  min-width: 220px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--clb-space-sm);
+  background: #ffffff;
+  color: #1f1f1f;
+  font-family: var(--clb-font-body);
+  font-weight: 600;
+  font-size: 0.95rem;
+  border: none;
+  border-radius: 10px;
+  padding: 0.85em 1.2em;
+  cursor: pointer;
+  transition: transform 0.2s var(--clb-ease), box-shadow 0.2s var(--clb-ease);
+}
+
+.clb-google-btn::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -60%;
+  width: 40%;
+  height: 100%;
+  background: linear-gradient(
+    115deg,
+    transparent 0%,
+    rgba(0, 0, 0, 0.08) 50%,
+    transparent 100%
+  );
+  transform: skewX(-20deg);
+  transition: left 0.6s var(--clb-ease);
+}
+
+.clb-google-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px -10px rgba(0, 0, 0, 0.5);
+}
+.clb-google-btn:hover::after {
+  left: 130%;
+}
+.clb-google-btn:active {
+  transform: translateY(0) scale(0.97);
+}
+
+.clb-login__fine-print {
+  font-size: 0.8rem;
+  color: var(--clb-text-muted);
+  line-height: 1.5;
+  margin: var(--clb-space-xs) 0 0;
+}
+
+/* ------------------------------------------------------------- Motion -- */
+@keyframes clb-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes clb-float {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-18px) rotate(-3deg);
+  }
+}
+
+/* ----------------------------------------------------------- Responsive */
+@media (max-width: 860px) {
+  .clb-login {
+    grid-template-columns: 1fr;
+  }
+  .clb-login__brand {
+    padding: var(--clb-space-xl);
+    min-height: 40vh;
+  }
+  .clb-orbit-card {
+    display: none;
+  }
+}

@@ -1,0 +1,1538 @@
+@import "../../style/token.css";
+
+/* =========================================================
+   EMAIL PREVIEW
+========================================================= */
+
+.clb-email-preview {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+
+  display: flex;
+  flex-direction: column;
+
+  box-sizing: border-box;
+
+  background: var(--clb-surface);
+  color: var(--clb-text);
+  font-family: var(--clb-font-body);
+
+  overflow: hidden;
+}
+
+/* =========================================================
+   EMPTY STATE
+========================================================= */
+
+.clb-email-preview--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: var(--clb-space-lg);
+
+  color: var(--clb-text-muted);
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+/* =========================================================
+   HEADER
+   Fixed inside preview
+========================================================= */
+
+.clb-email-preview__header {
+  flex-shrink: 0;
+
+  display: flex;
+  align-items: flex-start;
+  gap: var(--clb-space-sm);
+
+  padding:
+    var(--clb-space-md)
+    var(--clb-space-lg);
+
+  border-bottom:
+    1px solid var(--clb-border);
+
+  background: var(--clb-surface);
+}
+
+/* =========================================================
+   AVATAR
+========================================================= */
+
+.clb-email-preview__avatar {
+  width: 46px;
+  height: 46px;
+  min-width: 46px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 50%;
+
+  background: var(--clb-gradient);
+
+  color: var(--clb-bg);
+
+  font-family: var(--clb-font-display);
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+/* =========================================================
+   HEADER CONTENT
+========================================================= */
+
+.clb-email-preview__header-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.clb-email-preview__sender-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+
+  gap: var(--clb-space-md);
+}
+
+.clb-email-preview__header h2 {
+  margin: 0;
+
+  color: var(--clb-text);
+
+  font-family: var(--clb-font-display);
+  font-size: 1.05rem;
+  font-weight: 600;
+
+  overflow-wrap: anywhere;
+}
+
+.clb-email-preview__sender-email {
+  margin: 0.2rem 0 0;
+
+  color: var(--clb-text-muted);
+  font-size: 0.82rem;
+
+  overflow-wrap: anywhere;
+}
+
+.clb-email-preview__time {
+  flex-shrink: 0;
+
+  color: var(--clb-text-muted);
+  font-size: 0.78rem;
+
+  white-space: nowrap;
+}
+
+/* =========================================================
+   SUBJECT
+========================================================= */
+
+.clb-email-preview__subject {
+  margin:
+    var(--clb-space-sm)
+    0
+    0;
+
+  color: var(--clb-text);
+
+  font-family: var(--clb-font-display);
+  font-size: 1.1rem;
+  font-weight: 600;
+  line-height: 1.4;
+
+  overflow-wrap: anywhere;
+}
+
+/* =========================================================
+   SCROLLABLE BODY
+
+   IMPORTANT:
+   Desktop par sirf ye section scroll karega.
+========================================================= */
+
+.clb-email-preview__body {
+  flex: 1;
+  min-height: 0;
+
+  width: 100%;
+
+  display: flex;
+  flex-direction: column;
+
+  padding:
+    var(--clb-space-md)
+    var(--clb-space-lg);
+
+  box-sizing: border-box;
+
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  overscroll-behavior: contain;
+
+  color: var(--clb-text);
+  font-size: 0.92rem;
+  line-height: 1.7;
+
+  scrollbar-width: thin;
+  scrollbar-color:
+    rgba(167, 159, 199, 0.35)
+    transparent;
+}
+
+/* =========================================================
+   THREAD
+========================================================= */
+
+.clb-email-thread {
+  width: 100%;
+
+  display: flex;
+  flex-direction: column;
+
+  gap: var(--clb-space-sm);
+}
+
+/* =========================================================
+   THREAD MESSAGE CARD
+========================================================= */
+
+.clb-thread-message {
+  width: 100%;
+
+  box-sizing: border-box;
+
+  background: var(--clb-surface);
+
+  border:
+    1px solid var(--clb-border);
+
+  border-radius: 16px;
+
+  overflow: hidden;
+
+  transition:
+    border-color 0.25s var(--clb-ease),
+    background 0.25s var(--clb-ease),
+    box-shadow 0.25s var(--clb-ease);
+}
+
+.clb-thread-message:hover {
+  border-color:
+    rgba(255, 107, 157, 0.35);
+
+  background:
+    var(--clb-surface-2);
+}
+
+.clb-thread-message--expanded {
+  border-color:
+    rgba(255, 107, 157, 0.45);
+
+  box-shadow:
+    0 10px 30px
+    rgba(0, 0, 0, 0.18);
+}
+
+.clb-thread-message--latest {
+  border-color:
+    rgba(255, 200, 87, 0.35);
+}
+
+/* =========================================================
+   THREAD TOGGLE
+========================================================= */
+
+.clb-thread-message__toggle {
+  width: 100%;
+
+  display: flex;
+  align-items: center;
+
+  gap: var(--clb-space-sm);
+
+  padding: var(--clb-space-sm);
+
+  border: none;
+
+  background: transparent;
+
+  color: var(--clb-text);
+
+  font-family: var(--clb-font-body);
+
+  text-align: left;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s var(--clb-ease);
+}
+
+.clb-thread-message__toggle:hover {
+  background:
+    rgba(255, 255, 255, 0.025);
+}
+
+.clb-thread-message__toggle:focus-visible {
+  outline:
+    2px solid var(--clb-pink);
+
+  outline-offset: -2px;
+}
+
+/* =========================================================
+   THREAD AVATAR
+========================================================= */
+
+.clb-thread-message__avatar {
+  width: 42px;
+  height: 42px;
+  min-width: 42px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 50%;
+
+  background:
+    linear-gradient(
+      135deg,
+      var(--clb-pink-dim),
+      var(--clb-gold-dim)
+    );
+
+  border:
+    1px solid
+    rgba(255, 255, 255, 0.08);
+
+  color: var(--clb-pink);
+
+  font-family:
+    var(--clb-font-display);
+
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.clb-thread-message--latest
+.clb-thread-message__avatar {
+  color: var(--clb-gold);
+
+  background:
+    linear-gradient(
+      135deg,
+      var(--clb-gold-dim),
+      var(--clb-pink-dim)
+    );
+}
+
+/* =========================================================
+   MESSAGE SUMMARY
+========================================================= */
+
+.clb-thread-message__summary {
+  flex: 1;
+  min-width: 0;
+}
+
+.clb-thread-message__summary-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: var(--clb-space-sm);
+}
+
+.clb-thread-message__sender-name {
+  display: block;
+
+  overflow: hidden;
+
+  color: var(--clb-text);
+
+  font-family:
+    var(--clb-font-display);
+
+  font-size: 0.95rem;
+  font-weight: 600;
+
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.clb-thread-message__time {
+  flex-shrink: 0;
+
+  color: var(--clb-text-muted);
+  font-size: 0.75rem;
+
+  white-space: nowrap;
+}
+
+.clb-thread-message__email {
+  margin-top: 0.25rem;
+
+  overflow: hidden;
+
+  color: var(--clb-text-muted);
+  font-size: 0.78rem;
+
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.clb-thread-message__snippet {
+  margin-top: 0.35rem;
+
+  overflow: hidden;
+
+  color: var(--clb-text-muted);
+  font-size: 0.82rem;
+  line-height: 1.5;
+
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* =========================================================
+   ARROW
+========================================================= */
+
+.clb-thread-message__arrow {
+  flex-shrink: 0;
+
+  width: 28px;
+  height: 28px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 50%;
+
+  color: var(--clb-text-muted);
+
+  transition:
+    transform 0.25s var(--clb-ease),
+    background 0.25s var(--clb-ease),
+    color 0.25s var(--clb-ease);
+}
+
+.clb-thread-message__toggle:hover
+.clb-thread-message__arrow {
+  background:
+    var(--clb-pink-dim);
+
+  color:
+    var(--clb-pink);
+}
+
+.clb-thread-message__arrow--open {
+  transform: rotate(180deg);
+}
+
+/* =========================================================
+   EXPANDED CONTENT
+========================================================= */
+
+.clb-thread-message__content {
+  padding:
+    var(--clb-space-sm)
+    var(--clb-space-md)
+    var(--clb-space-md);
+
+  border-top:
+    1px solid var(--clb-border);
+
+  animation:
+    clb-thread-expand
+    0.25s
+    var(--clb-ease);
+}
+
+@keyframes clb-thread-expand {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* =========================================================
+   MESSAGE BODY
+========================================================= */
+
+.clb-thread-message__body {
+  width: 100%;
+
+  box-sizing: border-box;
+
+  color: var(--clb-text);
+
+  font-family:
+    var(--clb-font-body);
+
+  font-size: 0.92rem;
+  line-height: 1.7;
+
+  overflow-x: auto;
+
+  scrollbar-width: thin;
+}
+
+/* =========================================================
+   PLAIN TEXT
+========================================================= */
+
+.clb-email-preview__text {
+  color: var(--clb-text);
+
+  white-space: pre-wrap;
+
+  overflow-wrap: anywhere;
+  word-break: break-word;
+
+  line-height: 1.7;
+}
+
+/* =========================================================
+   HTML EMAIL
+========================================================= */
+
+.clb-email-preview__html {
+  width: 100%;
+  max-width: 100%;
+
+  box-sizing: border-box;
+
+  color: var(--clb-text);
+
+  overflow-x: auto;
+
+  overflow-wrap: anywhere;
+  word-break: break-word;
+
+  line-height: 1.7;
+
+  scrollbar-width: thin;
+}
+
+.clb-email-preview__html p {
+  margin: 0 0 1rem;
+}
+
+.clb-email-preview__html h1,
+.clb-email-preview__html h2,
+.clb-email-preview__html h3,
+.clb-email-preview__html h4,
+.clb-email-preview__html h5,
+.clb-email-preview__html h6 {
+  color: var(--clb-text);
+
+  line-height: 1.35;
+
+  overflow-wrap: anywhere;
+}
+
+.clb-email-preview__html h1 {
+  font-size: 1.5rem;
+}
+
+.clb-email-preview__html h2 {
+  font-size: 1.3rem;
+}
+
+.clb-email-preview__html h3 {
+  font-size: 1.1rem;
+}
+
+.clb-email-preview__html ul,
+.clb-email-preview__html ol {
+  padding-left: 1.5rem;
+}
+
+.clb-email-preview__html li {
+  margin-bottom: 0.35rem;
+}
+
+/* =========================================================
+   LINKS
+========================================================= */
+
+.clb-email-preview__html a {
+  color: var(--clb-primary);
+
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* =========================================================
+   IMAGES
+========================================================= */
+
+.clb-email-preview__html img {
+  display: block;
+
+  max-width: 100% !important;
+
+  height: auto !important;
+
+  margin: 0.75rem 0;
+
+  object-fit: contain;
+}
+
+/* =========================================================
+   TABLES
+========================================================= */
+
+.clb-email-preview__html table {
+  max-width: 100% !important;
+
+  height: auto;
+
+  border-collapse: collapse;
+}
+
+.clb-email-preview__html td,
+.clb-email-preview__html th {
+  max-width: 100%;
+
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* =========================================================
+   BLOCKQUOTE
+========================================================= */
+
+.clb-email-preview__html blockquote {
+  margin: 1rem 0;
+
+  padding: 0.75rem 1rem;
+
+  border-left:
+    3px solid var(--clb-border);
+
+  color: var(--clb-text-muted);
+}
+
+/* =========================================================
+   HR
+========================================================= */
+
+.clb-email-preview__html hr {
+  border: none;
+
+  border-top:
+    1px solid var(--clb-border);
+
+  margin: 1.25rem 0;
+}
+
+/* =========================================================
+   CODE
+========================================================= */
+
+.clb-email-preview__html pre {
+  max-width: 100%;
+
+  padding: 0.75rem;
+
+  overflow-x: auto;
+
+  border-radius: 8px;
+
+  background:
+    rgba(0, 0, 0, 0.08);
+}
+
+.clb-email-preview__html code {
+  overflow-wrap: anywhere;
+}
+
+/* =========================================================
+   ATTACHMENTS
+========================================================= */
+
+.clb-thread-message__attachments {
+  margin-top:
+    var(--clb-space-md);
+
+  padding-top:
+    var(--clb-space-sm);
+
+  border-top:
+    1px solid var(--clb-border);
+}
+
+/* =========================================================
+   QUOTED EMAIL
+========================================================= */
+
+.clb-thread-message__quoted-section {
+  margin-top:
+    var(--clb-space-sm);
+
+  padding-top:
+    var(--clb-space-sm);
+
+  border-top:
+    1px solid var(--clb-border);
+}
+
+.clb-thread-message__quoted-toggle {
+  display: inline-flex;
+  align-items: center;
+
+  gap: 0.5rem;
+
+  padding: 0.35rem 0;
+
+  border: none;
+
+  background: transparent;
+
+  color: var(--clb-text-muted);
+
+  font-family:
+    var(--clb-font-body);
+
+  font-size: 0.82rem;
+  font-weight: 500;
+
+  cursor: pointer;
+}
+
+.clb-thread-message__quoted-toggle:hover {
+  color: var(--clb-pink);
+}
+
+.clb-thread-message__quoted-arrow {
+  display: inline-block;
+
+  transition:
+    transform 0.2s var(--clb-ease);
+}
+
+.clb-thread-message__quoted-arrow--open {
+  transform: rotate(180deg);
+}
+
+.clb-thread-message__quoted-content {
+  margin-top:
+    var(--clb-space-sm);
+
+  padding:
+    var(--clb-space-sm);
+
+  border-left:
+    3px solid var(--clb-pink-dim);
+
+  border-radius:
+    0 10px 10px 0;
+
+  background:
+    rgba(255, 255, 255, 0.025);
+
+  overflow-x: auto;
+}
+
+.clb-email-preview__quoted-html,
+.clb-email-preview__quoted-text {
+  color: var(--clb-text-muted);
+
+  font-size: 0.9rem;
+}
+
+.clb-email-preview__quoted-text {
+  white-space: pre-wrap;
+}
+
+/* =========================================================
+   ACTIONS
+   Fixed at bottom
+========================================================= */
+
+.clb-email-preview__actions {
+  flex-shrink: 0;
+
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+
+  gap: 0.65rem;
+
+  padding:
+    var(--clb-space-md)
+    var(--clb-space-lg);
+
+  border-top:
+    1px solid var(--clb-border);
+
+  background:
+    var(--clb-surface);
+}
+
+.clb-email-preview__actions
+.clb-btn {
+  min-height: 40px;
+}
+
+.clb-email-preview__label-anchor {
+  position: relative;
+
+  flex-shrink: 0;
+}
+
+/* =========================================================
+   ERROR
+========================================================= */
+
+.clb-email-preview__error {
+  flex-shrink: 0;
+
+  margin:
+    0
+    var(--clb-space-lg)
+    var(--clb-space-md);
+
+  padding:
+    0.75rem
+    1rem;
+
+  border:
+    1px solid
+    rgba(220, 38, 38, 0.35);
+
+  border-radius: 10px;
+
+  background:
+    rgba(220, 38, 38, 0.08);
+
+  color: #dc2626;
+
+  font-size: 0.88rem;
+
+  overflow-wrap: anywhere;
+}
+
+/* =========================================================
+   THREAD ERROR
+========================================================= */
+
+.clb-thread-error {
+  padding:
+    var(--clb-space-sm)
+    var(--clb-space-md);
+
+  background:
+    rgba(255, 107, 157, 0.08);
+
+  border:
+    1px solid
+    rgba(255, 107, 157, 0.3);
+
+  border-radius: 12px;
+
+  color: var(--clb-pink);
+
+  font-size: 0.85rem;
+}
+
+/* =========================================================
+   WEBKIT SCROLLBAR
+========================================================= */
+
+.clb-email-preview__body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.clb-email-preview__body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.clb-email-preview__body::-webkit-scrollbar-thumb {
+  background:
+    rgba(167, 159, 199, 0.35);
+
+  border-radius: 999px;
+}
+
+/* =========================================================
+   TABLET + MOBILE
+========================================================= */
+
+@media (max-width: 959px) {
+  .clb-email-preview {
+    height: auto;
+    min-height:
+      calc(100dvh - 138px);
+
+    overflow: visible;
+  }
+
+  .clb-email-preview__header {
+    padding:
+      var(--clb-space-md);
+  }
+
+  .clb-email-preview__body {
+    flex: initial;
+
+    min-height: auto;
+
+    padding:
+      var(--clb-space-md);
+
+    overflow: visible;
+  }
+
+  .clb-email-preview__actions {
+    padding:
+      var(--clb-space-md);
+
+    display: grid;
+
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+
+  .clb-email-preview__actions
+  > .clb-btn {
+    width: 100%;
+
+    justify-content: center;
+  }
+
+  .clb-email-preview__label-anchor {
+    width: 100%;
+  }
+
+  .clb-email-preview__label-anchor
+  .clb-btn {
+    width: 100%;
+
+    justify-content: center;
+  }
+}
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media (max-width: 600px) {
+  .clb-email-preview {
+    min-height:
+      calc(100dvh - 136px);
+  }
+
+  .clb-email-preview__header {
+    padding:
+      var(--clb-space-sm);
+
+    align-items: flex-start;
+  }
+
+  .clb-email-preview__avatar {
+    width: 42px;
+    height: 42px;
+    min-width: 42px;
+
+    font-size: 1rem;
+  }
+
+  .clb-email-preview__sender-row {
+    flex-direction: column;
+
+    gap: 0.25rem;
+  }
+
+  .clb-email-preview__header h2 {
+    font-size: 1rem;
+  }
+
+  .clb-email-preview__sender-email {
+    font-size: 0.78rem;
+  }
+
+  .clb-email-preview__time {
+    white-space: normal;
+
+    font-size: 0.75rem;
+  }
+
+  .clb-email-preview__body {
+    padding:
+      var(--clb-space-sm);
+
+    font-size: 0.88rem;
+  }
+
+  .clb-thread-message__content {
+    padding:
+      var(--clb-space-sm);
+  }
+
+  .clb-thread-message__toggle {
+    align-items: flex-start;
+  }
+
+  .clb-thread-message__summary-top {
+    flex-direction: column;
+    align-items: flex-start;
+
+    gap: 0.2rem;
+  }
+
+  .clb-thread-message__time {
+    font-size: 0.7rem;
+  }
+
+  .clb-email-preview__actions {
+    grid-template-columns: 1fr;
+
+    padding:
+      var(--clb-space-sm);
+  }
+
+  .clb-email-preview__actions
+  > .clb-btn,
+
+  .clb-email-preview__actions
+  > .clb-email-preview__label-anchor
+  > .clb-btn {
+    width: 100%;
+    min-height: 46px;
+
+    justify-content: center;
+  }
+
+  .clb-email-preview__html h1 {
+    font-size: 1.3rem;
+  }
+
+  .clb-email-preview__html h2 {
+    font-size: 1.15rem;
+  }
+
+  .clb-email-preview__html h3 {
+    font-size: 1.05rem;
+  }
+}
+
+/* =========================================================
+   REDUCED MOTION
+========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  .clb-thread-message,
+  .clb-thread-message__arrow,
+  .clb-thread-message__content {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+
+
+/* ========================================
+DELETE BUTTON
+======================================== */
+
+.clb-btn--danger {
+display: inline-flex;
+align-items: center;
+justify-content: center;
+gap: 8px;
+
+border: 1px solid
+rgba(220, 38, 38, 0.25);
+
+background:
+rgba(220, 38, 38, 0.08);
+
+color:
+#dc2626;
+
+white-space:
+nowrap;
+
+transition:
+background 0.2s ease,
+border-color 0.2s ease,
+transform 0.2s ease;
+}
+
+.clb-btn--danger:hover:not(:disabled) {
+background:
+rgba(220, 38, 38, 0.14);
+
+border-color:
+rgba(220, 38, 38, 0.45);
+}
+
+.clb-btn--danger:active:not(:disabled) {
+transform:
+scale(0.98);
+}
+
+.clb-btn--danger:disabled {
+opacity:
+0.6;
+
+cursor:
+not-allowed;
+}
+/* ========================================
+   DELETE MODAL
+======================================== */
+
+.clb-delete-modal {
+  position: fixed;
+  inset: 0;
+
+  z-index: 9999;
+
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  padding: 20px;
+}
+
+
+/* ========================================
+   BACKDROP
+======================================== */
+
+.clb-delete-modal__backdrop {
+  position: absolute;
+  inset: 0;
+
+  background:
+    rgba(8, 5, 20, 0.72);
+
+  backdrop-filter:
+    blur(6px);
+}
+
+
+/* ========================================
+   MODAL CONTENT
+======================================== */
+
+.clb-delete-modal__content {
+  position: relative;
+  z-index: 1;
+
+  width: min(100%, 420px);
+
+  box-sizing: border-box;
+
+  padding: 24px;
+
+  border:
+    1px solid var(--clb-border-strong);
+
+  border-radius:
+    var(--clb-radius-xl);
+
+  background:
+    var(--clb-surface);
+
+  color:
+    var(--clb-text);
+
+  box-shadow:
+    var(--clb-shadow-lg),
+    0 0 40px
+      rgba(255, 107, 157, 0.08);
+
+  animation:
+    clbDeleteModalIn
+    0.25s
+    var(--clb-ease);
+}
+
+
+/* ========================================
+   TITLE
+======================================== */
+
+.clb-delete-modal__title {
+  margin:
+    0 0 10px;
+
+  font-family:
+    var(--clb-font-display);
+
+  font-size:
+    1.2rem;
+
+  font-weight:
+    700;
+
+  color:
+    var(--clb-text);
+}
+
+
+/* ========================================
+   DESCRIPTION
+======================================== */
+
+.clb-delete-modal__text {
+  margin:
+    0;
+
+  line-height:
+    1.65;
+
+  color:
+    var(--clb-text-muted);
+}
+
+
+/* ========================================
+   ERROR
+======================================== */
+
+.clb-delete-modal__error {
+  margin-top:
+    16px;
+
+  padding:
+    10px 12px;
+
+  border:
+    1px solid
+    rgba(255, 95, 109, 0.3);
+
+  border-radius:
+    var(--clb-radius-sm);
+
+  background:
+    var(--clb-danger-dim);
+
+  color:
+    #ff8c96;
+
+  font-size:
+    0.875rem;
+}
+
+
+/* ========================================
+   ACTIONS
+======================================== */
+
+.clb-delete-modal__actions {
+  display:
+    flex;
+
+  justify-content:
+    flex-end;
+
+  gap:
+    10px;
+
+  margin-top:
+    24px;
+}
+
+
+/* ========================================
+   BUTTON BASE
+======================================== */
+
+.clb-delete-modal__cancel,
+.clb-delete-modal__confirm {
+  min-height:
+    42px;
+
+  padding:
+    0 18px;
+
+  border-radius:
+    var(--clb-radius-md);
+
+  font-family:
+    var(--clb-font-body);
+
+  font-weight:
+    600;
+
+  cursor:
+    pointer;
+
+  transition:
+    transform
+      var(--clb-duration-fast)
+      var(--clb-ease),
+    opacity
+      var(--clb-duration-fast)
+      var(--clb-ease),
+    box-shadow
+      var(--clb-duration-fast)
+      var(--clb-ease);
+}
+
+
+/* ========================================
+   CANCEL BUTTON
+======================================== */
+
+.clb-delete-modal__cancel {
+  border:
+    1px solid
+    var(--clb-border-strong);
+
+  background:
+    transparent;
+
+  color:
+    var(--clb-text);
+}
+
+.clb-delete-modal__cancel:hover:not(:disabled) {
+  background:
+    var(--clb-surface-2);
+
+  border-color:
+    var(--clb-border-strong);
+
+  transform:
+    translateY(-1px);
+}
+
+
+/* ========================================
+   DELETE BUTTON
+======================================== */
+
+.clb-delete-modal__confirm {
+  border:
+    1px solid
+    var(--clb-danger);
+
+  background:
+    var(--clb-danger-gradient);
+
+  color:
+    #ffffff;
+
+  box-shadow:
+    0 8px 22px
+    rgba(255, 95, 109, 0.18);
+}
+
+.clb-delete-modal__confirm:hover:not(:disabled) {
+  transform:
+    translateY(-1px);
+
+  box-shadow:
+    0 12px 28px
+    rgba(255, 95, 109, 0.3);
+}
+
+
+/* ========================================
+   DISABLED
+======================================== */
+
+.clb-delete-modal__cancel:disabled,
+.clb-delete-modal__confirm:disabled {
+  opacity:
+    0.55;
+
+  cursor:
+    not-allowed;
+
+  transform:
+    none;
+
+  box-shadow:
+    none;
+}
+
+
+/* ========================================
+   DANGER BUTTON
+   Email action section ke liye
+======================================== */
+
+.clb-btn--danger {
+  border:
+    1px solid
+    rgba(255, 95, 109, 0.35);
+
+  background:
+    var(--clb-danger-dim);
+
+  color:
+    #ff8c96;
+}
+
+.clb-btn--danger:hover:not(:disabled) {
+  background:
+    rgba(255, 95, 109, 0.24);
+
+  border-color:
+    var(--clb-danger);
+
+  color:
+    #ffffff;
+}
+
+
+/* ========================================
+   ANIMATION
+======================================== */
+
+@keyframes clbDeleteModalIn {
+  from {
+    opacity: 0;
+
+    transform:
+      translateY(12px)
+      scale(0.97);
+  }
+
+  to {
+    opacity: 1;
+
+    transform:
+      translateY(0)
+      scale(1);
+  }
+}
+
+
+/* ========================================
+   RESPONSIVE
+======================================== */
+
+@media (
+  max-width: 640px
+) {
+  .clb-email-preview__actions {
+    width:
+      100%;
+
+    flex-wrap:
+      wrap;
+  }
+
+  .clb-email-preview__actions
+  .clb-btn {
+    flex:
+      1 1 auto;
+  }
+
+  .clb-btn--danger {
+    flex:
+      1 1 100%;
+  }
+
+
+  /* MOBILE BOTTOM SHEET */
+
+  .clb-delete-modal {
+    align-items:
+      flex-end;
+
+    padding:
+      12px;
+  }
+
+  .clb-delete-modal__content {
+    width:
+      100%;
+
+    padding:
+      20px;
+
+    border-radius:
+      var(--clb-radius-xl)
+      var(--clb-radius-xl)
+      var(--clb-radius-md)
+      var(--clb-radius-md);
+
+    animation:
+      clbDeleteModalMobileIn
+      0.3s
+      var(--clb-ease);
+  }
+
+  .clb-delete-modal__actions {
+    flex-direction:
+      column-reverse;
+
+    gap:
+      10px;
+  }
+
+  .clb-delete-modal__cancel,
+  .clb-delete-modal__confirm {
+    width:
+      100%;
+
+    min-height:
+      48px;
+  }
+}
+
+
+/* ========================================
+   MOBILE ANIMATION
+======================================== */
+
+@keyframes clbDeleteModalMobileIn {
+  from {
+    opacity: 0;
+
+    transform:
+      translateY(30px);
+  }
+
+  to {
+    opacity: 1;
+
+    transform:
+      translateY(0);
+  }
+}
+
+
+/* ========================================
+   REDUCED MOTION
+======================================== */
+
+@media (
+  prefers-reduced-motion: reduce
+) {
+  .clb-delete-modal__content,
+  .clb-delete-modal__cancel,
+  .clb-delete-modal__confirm {
+    animation:
+      none !important;
+
+    transition:
+      none !important;
+  }
+}

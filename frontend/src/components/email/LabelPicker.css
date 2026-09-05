@@ -1,0 +1,180 @@
+@import "../../style/token.css";
+
+.clb-label-picker {
+  position: absolute;
+
+  top: calc(100% - 450px);
+  left: 0;
+
+  width: min(260px, 80vw);
+
+  background: var(--clb-surface);
+
+  border: 1px solid var(--clb-border);
+
+  border-radius: 12px;
+
+  box-shadow:
+    0 12px 32px rgba(0, 0, 0, 0.18);
+
+  overflow: hidden;
+
+  z-index: 100;
+}
+
+.clb-label-picker__header {
+  display: flex;
+
+  align-items: center;
+  justify-content: space-between;
+
+  gap: var(--clb-space-sm);
+
+  padding:
+    var(--clb-space-sm)
+    var(--clb-space-md);
+
+  border-bottom:
+    1px solid var(--clb-border);
+}
+
+.clb-label-picker__header h3 {
+  margin: 0;
+
+  font-family: var(--clb-font-display);
+
+  font-size: 0.9rem;
+
+  color: var(--clb-text);
+}
+
+.clb-label-picker__close {
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  width: 28px;
+  height: 28px;
+
+  padding: 0;
+
+  border: none;
+
+  border-radius: 8px;
+
+  background: transparent;
+
+  color: var(--clb-text-muted);
+
+  cursor: pointer;
+}
+
+.clb-label-picker__close:hover {
+  background: var(--clb-surface-2);
+
+  color: var(--clb-text);
+}
+
+.clb-label-picker__list {
+  display: flex;
+
+  flex-direction: column;
+
+  padding: 6px;
+
+  max-height: 280px;
+
+  overflow-y: auto;
+}
+
+.clb-label-picker__item {
+  width: 100%;
+
+  display: flex;
+
+  align-items: center;
+  justify-content: space-between;
+
+  gap: var(--clb-space-sm);
+
+  padding:
+    0.65rem
+    0.75rem;
+
+  border: none;
+
+  border-radius: 8px;
+
+  background: transparent;
+
+  color: var(--clb-text);
+
+  font-family: var(--clb-font-body);
+
+  font-size: 0.88rem;
+
+  text-align: left;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s var(--clb-ease),
+    color 0.2s var(--clb-ease);
+}
+
+.clb-label-picker__item:hover {
+  background: var(--clb-surface-2);
+}
+
+.clb-label-picker__item--selected {
+  background: var(--clb-surface-2);
+}
+
+.clb-label-picker__label {
+  display: flex;
+
+  align-items: center;
+
+  gap: 10px;
+
+  min-width: 0;
+}
+
+.clb-label-picker__dot {
+  width: 8px;
+  height: 8px;
+
+  flex-shrink: 0;
+
+  border-radius: 50%;
+
+  background: var(--clb-pink);
+}
+
+.clb-label-picker__empty {
+  margin: 0;
+
+  padding: var(--clb-space-md);
+
+  color: var(--clb-text-muted);
+
+  font-size: 0.85rem;
+
+  text-align: center;
+}
+
+@media (max-width: 640px) {
+  .clb-label-picker {
+    position: fixed;
+
+    top: auto;
+    bottom: 80px;
+
+    left: 50%;
+
+    transform: translateX(-50%);
+
+    width: min(320px, calc(100vw - 32px));
+  }
+}

@@ -1,0 +1,21 @@
+@import './token.css';
+
+.clb-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6em;
+}
+
+.clb-logo__mark {
+  flex-shrink: 0;
+  display: block;
+}
+
+.clb-logo__word {
+  font-family: var(--clb-font-display);
+  font-weight: 600;
+  font-size: calc(var(--clb-logo-size, 40px) * 0.6);
+  letter-spacing: -0.02em;
+  color: var(--clb-text);
+  line-height: 1;
+}

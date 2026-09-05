@@ -1,0 +1,54 @@
+@import '../../style/token.css';
+
+.clb-tracker-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--clb-space-sm);
+}
+
+.clb-tracker-filters__search {
+  flex: 1;
+  min-width: 200px;
+  display: flex;
+  align-items: center;
+  gap: var(--clb-space-xs);
+  background: var(--clb-surface);
+  border: 1px solid var(--clb-border);
+  border-radius: 999px;
+  padding: 0.55em var(--clb-space-md);
+}
+
+.clb-tracker-filters__search span {
+  opacity: 0.6;
+  font-size: 0.9em;
+}
+
+.clb-tracker-filters__search input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--clb-text);
+  font-family: var(--clb-font-body);
+  font-size: 0.9rem;
+}
+
+.clb-tracker-filters__search input::placeholder {
+  color: var(--clb-text-muted);
+}
+
+.clb-tracker-filters select {
+  background: var(--clb-surface);
+  border: 1px solid var(--clb-border);
+  border-radius: 999px;
+  padding: 0.55em var(--clb-space-md);
+  color: var(--clb-text);
+  font-family: var(--clb-font-body);
+  font-size: 0.85rem;
+  outline: none;
+  cursor: pointer;
+}
+
+.clb-tracker-filters select:focus {
+  border-color: var(--clb-pink);
+}

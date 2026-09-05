@@ -1,0 +1,76 @@
+@import "../../style/token.css";
+
+.clb-collab-filters {
+  display: flex;
+  gap: var(--clb-space-sm);
+  margin-bottom: var(--clb-space-md);
+}
+
+.clb-collab-search {
+  flex: 1;
+
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+
+  padding: 0 1rem;
+
+  background: var(--clb-surface);
+  border: 1px solid var(--clb-border);
+  border-radius: 12px;
+}
+
+.clb-collab-search svg {
+  color: var(--clb-text-muted);
+  flex-shrink: 0;
+}
+
+.clb-collab-search input {
+  width: 100%;
+  min-height: 48px;
+
+  background: transparent;
+  border: none;
+  outline: none;
+
+  color: var(--clb-text);
+  font-family: var(--clb-font-body);
+}
+
+.clb-collab-search input::placeholder {
+  color: var(--clb-text-muted);
+}
+
+.clb-collab-filters select {
+  width: 210px;
+  min-height: 48px;
+
+  padding: 0 0.9rem;
+
+  background: var(--clb-surface);
+  border: 1px solid var(--clb-border);
+  border-radius: 12px;
+
+  color: var(--clb-text);
+  font-family: var(--clb-font-body);
+  outline: none;
+}
+
+.clb-collab-filters select:focus {
+  border-color: var(--clb-pink);
+}
+
+.clb-collab-filters option {
+  background: var(--clb-surface);
+  color: var(--clb-text);
+}
+
+@media (max-width: 760px) {
+  .clb-collab-filters {
+    flex-direction: column;
+  }
+
+  .clb-collab-filters select {
+    width: 100%;
+  }
+}

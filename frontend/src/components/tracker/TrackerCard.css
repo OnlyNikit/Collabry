@@ -1,0 +1,517 @@
+@import "../../style/token.css";
+
+/* ==========================================================================
+   TRACKER CARD
+========================================================================== */
+
+.clb-tracker-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+
+  padding: 1.25rem;
+
+  background: var(--clb-surface);
+  border: 1px solid var(--clb-border);
+  border-radius: 16px;
+
+  transition:
+    transform 0.2s var(--clb-ease),
+    border-color 0.2s var(--clb-ease),
+    box-shadow 0.2s var(--clb-ease);
+}
+
+.clb-tracker-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--clb-pink-dim);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.14);
+}
+
+
+/* ==========================================================================
+   HEADER
+========================================================================== */
+
+.clb-tracker-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+
+.clb-tracker-card__title {
+  flex: 1;
+  min-width: 0;
+
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+
+.clb-tracker-card__brand {
+  font-family: var(--clb-font-display);
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--clb-text);
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+
+.clb-tracker-card__title h3 {
+  margin: 0;
+
+  font-family: var(--clb-font-body);
+  font-size: 0.88rem;
+  font-weight: 400;
+
+  color: var(--clb-text-muted);
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+
+/* ==========================================================================
+   STATUS
+========================================================================== */
+
+.clb-tracker-card__status-control {
+  flex-shrink: 0;
+}
+
+
+.clb-tracker-card__status-control select {
+  max-width: 220px;
+
+  padding: 0.55rem 0.75rem;
+
+  border: 1px solid var(--clb-border);
+  border-radius: 9px;
+
+  background: var(--clb-surface-2);
+  color: var(--clb-text);
+
+  font-family: var(--clb-font-body);
+  font-size: 0.82rem;
+
+  cursor: pointer;
+  outline: none;
+
+  transition:
+    border-color 0.2s var(--clb-ease),
+    box-shadow 0.2s var(--clb-ease);
+}
+
+
+.clb-tracker-card__status-control select:hover {
+  border-color: var(--clb-pink-dim);
+}
+
+
+.clb-tracker-card__status-control select:focus {
+  border-color: var(--clb-pink);
+
+  box-shadow:
+    0 0 0 3px var(--clb-pink-dim);
+}
+
+
+/* ==========================================================================
+   CONTACT
+========================================================================== */
+
+.clb-tracker-card__contact {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+
+  gap: 0.75rem 1rem;
+
+  color: var(--clb-text-muted);
+  font-size: 0.82rem;
+}
+
+
+.clb-tracker-card__contact span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+
+/* ==========================================================================
+   META
+========================================================================== */
+
+.clb-tracker-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+
+  gap: 0.65rem 1rem;
+}
+
+
+/* ==========================================================================
+   PRIORITY
+========================================================================== */
+
+.clb-tracker-card__priority {
+  display: inline-flex;
+  align-items: center;
+
+  gap: 0.5rem;
+
+  padding: 0.45rem 0.75rem;
+
+  border-radius: 999px;
+
+  font-size: 0.72rem;
+  font-weight: 600;
+
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+
+  white-space: nowrap;
+}
+
+
+.clb-tracker-card__priority-dot {
+  width: 8px;
+  height: 8px;
+
+  border-radius: 50%;
+
+  flex-shrink: 0;
+}
+
+
+/* HIGH */
+
+.clb-tracker-card__priority--high {
+  color: var(--clb-pink);
+  background: var(--clb-pink-dim);
+}
+
+
+.clb-tracker-card__priority--high
+.clb-tracker-card__priority-dot {
+  background: var(--clb-pink);
+
+  box-shadow:
+    0 0 10px var(--clb-pink);
+}
+
+
+/* MEDIUM */
+
+.clb-tracker-card__priority--medium {
+  color: var(--clb-gold);
+  background: var(--clb-gold-dim);
+}
+
+
+.clb-tracker-card__priority--medium
+.clb-tracker-card__priority-dot {
+  background: var(--clb-gold);
+
+  box-shadow:
+    0 0 10px var(--clb-gold);
+}
+
+
+/* LOW */
+
+.clb-tracker-card__priority--low {
+  color: var(--clb-text-muted);
+
+  background:
+    rgba(167, 159, 199, 0.1);
+}
+
+
+.clb-tracker-card__priority--low
+.clb-tracker-card__priority-dot {
+  background: var(--clb-text-muted);
+}
+
+
+/* ==========================================================================
+   DATE
+========================================================================== */
+
+.clb-tracker-card__date {
+  font-size: 0.8rem;
+
+  color: var(--clb-text-muted);
+
+  white-space: nowrap;
+}
+
+
+/* ==========================================================================
+   PAYMENT
+========================================================================== */
+
+.clb-tracker-card__payment {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 1rem;
+
+  padding: 0.9rem 1rem;
+
+  background: var(--clb-surface-2);
+
+  border: 1px solid var(--clb-border);
+  border-radius: 12px;
+}
+
+
+.clb-tracker-card__payment > div {
+  display: flex;
+  flex-direction: column;
+
+  gap: 0.25rem;
+}
+
+
+.clb-tracker-card__payment-label {
+  font-size: 0.72rem;
+
+  color: var(--clb-text-muted);
+
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+
+.clb-tracker-card__payment strong {
+  font-family: var(--clb-font-display);
+
+  font-size: 1.1rem;
+  font-weight: 600;
+
+  color: var(--clb-text);
+}
+
+
+/* PAYMENT STATUS */
+
+.clb-tracker-card__payment-status {
+  padding: 0.4rem 0.7rem;
+
+  border-radius: 999px;
+
+  font-size: 0.72rem;
+  font-weight: 600;
+
+  text-transform: capitalize;
+
+  white-space: nowrap;
+
+  color: var(--clb-text-muted);
+  background: var(--clb-surface);
+  border: 1px solid var(--clb-border);
+}
+
+
+/* PAID */
+
+.clb-tracker-card__payment-status--paid {
+  color: #4ade80;
+
+  background:
+    rgba(74, 222, 128, 0.1);
+
+  border-color:
+    rgba(74, 222, 128, 0.25);
+}
+
+
+/* PARTIALLY PAID */
+
+.clb-tracker-card__payment-status--partially_paid {
+  color: var(--clb-gold);
+
+  background:
+    var(--clb-gold-dim);
+}
+
+
+/* PENDING */
+
+.clb-tracker-card__payment-status--pending {
+  color: var(--clb-gold);
+
+  background:
+    var(--clb-gold-dim);
+}
+
+
+/* NEGOTIATING */
+
+.clb-tracker-card__payment-status--negotiating {
+  color: var(--clb-pink);
+
+  background:
+    var(--clb-pink-dim);
+}
+
+
+/* ==========================================================================
+   NOTES
+========================================================================== */
+
+.clb-tracker-card__notes {
+  margin: 0;
+
+  padding: 0.85rem 1rem;
+
+  border-left:
+    3px solid var(--clb-pink);
+
+  border-radius: 0 10px 10px 0;
+
+  background: var(--clb-surface-2);
+
+  color: var(--clb-text-muted);
+
+  font-size: 0.84rem;
+  line-height: 1.55;
+
+  white-space: pre-wrap;
+}
+
+
+/* ==========================================================================
+   ACTIONS
+========================================================================== */
+
+.clb-tracker-card__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 0.75rem;
+
+  padding-top: 0.25rem;
+}
+
+
+.clb-tracker-card__actions .clb-btn {
+  min-width: 100px;
+}
+
+
+/* DELETE ICON */
+
+.clb-tracker-card__delete {
+  width: 38px;
+  height: 38px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 0;
+
+  border:
+    1px solid rgba(255, 107, 157, 0.25);
+
+  border-radius: 9px;
+
+  background:
+    rgba(255, 107, 157, 0.06);
+
+  color: var(--clb-pink);
+
+  font-size: 0.9rem;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s var(--clb-ease),
+    border-color 0.2s var(--clb-ease),
+    transform 0.2s var(--clb-ease);
+}
+
+
+.clb-tracker-card__delete:hover {
+  background: var(--clb-pink-dim);
+
+  border-color: var(--clb-pink);
+
+  transform: translateY(-1px);
+}
+
+
+/* ==========================================================================
+   RESPONSIVE
+========================================================================== */
+
+@media (max-width: 700px) {
+
+  .clb-tracker-card {
+    padding: 1rem;
+  }
+
+
+  .clb-tracker-card__header {
+    flex-direction: column;
+  }
+
+
+  .clb-tracker-card__status-control {
+    width: 100%;
+  }
+
+
+  .clb-tracker-card__status-control select {
+    width: 100%;
+    max-width: none;
+  }
+
+
+  .clb-tracker-card__payment {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+
+  .clb-tracker-card__actions {
+    padding-top: 0.75rem;
+
+    border-top:
+      1px solid var(--clb-border);
+  }
+
+}
+
+
+@media (max-width: 480px) {
+
+  .clb-tracker-card__meta {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+
+  .clb-tracker-card__contact {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+
+  .clb-tracker-card__actions .clb-btn {
+    flex: 1;
+  }
+
+}

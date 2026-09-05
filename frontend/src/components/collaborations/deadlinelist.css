@@ -1,0 +1,74 @@
+@import '../../style/token.css';
+
+.clb-deadline-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--clb-space-sm);
+}
+
+.clb-deadline-item {
+  display: flex;
+  gap: var(--clb-space-md);
+  align-items: flex-start;
+  padding-bottom: var(--clb-space-sm);
+  border-bottom: 1px solid var(--clb-border);
+  min-width: 0;
+}
+
+.clb-deadline-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.clb-deadline-item__date {
+  min-width: 5.5em;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--clb-gold);
+  flex-shrink: 0;
+}
+
+.clb-deadline-item__body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.clb-deadline-item__body strong {
+  font-size: 0.92rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.clb-deadline-item__body span {
+  font-size: 0.8rem;
+  color: var(--clb-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.clb-deadline-list__empty {
+  color: var(--clb-text-muted);
+  font-size: 0.9rem;
+}
+
+/* ----------------------------------------------------------- Responsive */
+@media (max-width: 480px) {
+  .clb-deadline-item {
+    gap: var(--clb-space-sm);
+  }
+  .clb-deadline-item__date {
+    min-width: 4em;
+    font-size: 0.74rem;
+  }
+  .clb-deadline-item__body strong,
+  .clb-deadline-item__body span {
+    white-space: normal; /* chhoti screen pe text wrap ho jaye */
+  }
+}

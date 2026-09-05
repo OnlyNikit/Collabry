@@ -1,0 +1,34 @@
+@import "../../style/token.css";
+
+.clb-collaboration-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--clb-space-md);
+}
+
+.clb-collab-empty {
+  grid-column: 1 / -1;
+
+  padding: var(--clb-space-xl);
+  text-align: center;
+
+  background: var(--clb-surface);
+  border: 1px dashed var(--clb-border);
+  border-radius: 18px;
+}
+
+.clb-collab-empty h2 {
+  margin: 0;
+  font-family: var(--clb-font-display);
+}
+
+.clb-collab-empty p {
+  margin: 0.6rem 0 0;
+  color: var(--clb-text-muted);
+}
+
+@media (max-width: 760px) {
+  .clb-collaboration-list {
+    grid-template-columns: 1fr;
+  }
+}

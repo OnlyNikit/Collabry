@@ -1,0 +1,556 @@
+@import "../../style/token.css";
+
+.clb-header {
+  height: 72px;
+
+  display: flex;
+  align-items: center;
+
+  gap: var(--clb-space-md);
+
+  padding: 0 var(--clb-space-lg);
+
+  background: var(--clb-surface);
+
+  border-bottom: 1px solid var(--clb-border);
+
+  width: 100%;
+}
+
+/* =========================================================
+   HAMBURGER
+   ========================================================= */
+
+.clb-header__menu-btn {
+  display: none;
+
+  width: 42px;
+  height: 42px;
+
+  flex-shrink: 0;
+
+  align-items: center;
+  justify-content: center;
+
+  background: var(--clb-surface-2);
+
+  color: var(--clb-text);
+
+  border: 1px solid var(--clb-border);
+
+  border-radius: 10px;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s var(--clb-ease),
+    transform 0.2s var(--clb-ease);
+}
+
+.clb-header__menu-btn:hover {
+  background: var(--clb-pink-dim);
+
+  transform: translateY(-1px);
+}
+
+/* =========================================================
+   SEARCH
+   ========================================================= */
+
+.clb-header__search {
+  display: flex;
+  align-items: center;
+
+  gap: var(--clb-space-xs);
+
+  flex: 1;
+
+  max-width: 700px;
+
+  padding: 0.65rem 1rem;
+
+  background: var(--clb-bg);
+
+  border: 1px solid var(--clb-border);
+
+  border-radius: 12px;
+}
+
+.clb-header__search-icon {
+  flex-shrink: 0;
+
+  color: var(--clb-text-muted);
+}
+
+.clb-header__search input {
+  width: 100%;
+
+  background: transparent;
+
+  border: none;
+  outline: none;
+
+  color: var(--clb-text);
+
+  font-family: var(--clb-font-body);
+
+  font-size: 0.9rem;
+}
+
+.clb-header__search input::placeholder {
+  color: var(--clb-text-muted);
+}
+
+/* =========================================================
+   ACTIONS
+   ========================================================= */
+
+.clb-header__actions {
+  display: flex;
+  align-items: center;
+
+  gap: var(--clb-space-sm);
+
+  margin-left: auto;
+}
+
+.clb-header__icon-btn {
+  position: relative;
+
+  width: 42px;
+  height: 42px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: transparent;
+
+  border: 1px solid var(--clb-border);
+
+  border-radius: 10px;
+
+  color: var(--clb-text);
+
+  cursor: pointer;
+}
+
+.clb-header__icon-btn:hover {
+  background: var(--clb-surface-2);
+}
+
+.clb-header__badge {
+  position: absolute;
+
+  top: -5px;
+  right: -5px;
+
+  min-width: 18px;
+  height: 18px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 0 4px;
+
+  border-radius: 999px;
+
+  background: var(--clb-pink);
+
+  color: #17102b;
+
+  font-size: 0.65rem;
+
+  font-weight: 700;
+}
+
+.clb-header__user {
+  display: flex;
+  align-items: center;
+
+  gap: var(--clb-space-xs);
+}
+
+.clb-header__avatar {
+  width: 38px;
+  height: 38px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 50%;
+
+  background: var(--clb-gradient);
+
+  color: #17102b;
+
+  font-weight: 700;
+}
+
+.clb-header__name {
+  font-size: 0.9rem;
+
+  color: var(--clb-text);
+}
+
+/* =========================================================
+   BELOW 1960PX
+   ========================================================= */
+
+@media (max-width: 1960px) {
+  .clb-header__menu-btn {
+    display: inline-flex;
+  }
+}
+
+/* =========================================================
+   TABLET
+   ========================================================= */
+
+@media (max-width: 768px) {
+  .clb-header {
+    padding: 0 var(--clb-space-md);
+  }
+
+  .clb-header__search {
+    max-width: none;
+  }
+}
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 600px) {
+  .clb-header {
+    height: 64px;
+
+    gap: var(--clb-space-sm);
+
+    padding: 0 var(--clb-space-sm);
+  }
+
+  .clb-header__search {
+    padding: 0.55rem 0.75rem;
+  }
+
+  .clb-header__search input {
+    font-size: 0.8rem;
+  }
+
+  .clb-header__name {
+    display: none;
+  }
+
+  .clb-header__user {
+    display: none;
+  }
+}
+
+@media (max-width: 400px) {
+  .clb-header__search input::placeholder {
+    font-size: 0;
+  }
+
+  .clb-header__search input::placeholder::before {
+    content: "Search";
+  }
+
+  .clb-header__search {
+    min-width: 0;
+  }
+}
+/* =========================================================
+PROFILE DROPDOWN
+========================================================= */
+
+.clb-header__profile {
+position: relative;
+}
+
+.clb-header__user {
+border: none;
+background: transparent;
+color: var(--clb-text);
+cursor: pointer;
+
+display: flex;
+align-items: center;
+gap: 0.65rem;
+
+padding: 0.4rem;
+border-radius: 10px;
+
+font-family: var(--clb-font-body);
+
+transition:
+background 0.2s var(--clb-ease);
+}
+
+.clb-header__user:hover {
+background: var(--clb-surface-2);
+}
+
+/* Dropdown */
+
+.clb-header__profile-menu {
+position: absolute;
+
+top: calc(100% + 0.75rem);
+right: 0;
+
+width: 220px;
+
+background: var(--clb-surface);
+
+border: 1px solid var(--clb-border);
+
+border-radius: 14px;
+
+padding: 0.5rem;
+
+z-index: 100;
+
+box-shadow:
+0 20px 45px rgba(0, 0, 0, 0.35);
+}
+
+/* User information */
+
+.clb-header__profile-info {
+display: flex;
+align-items: center;
+gap: 0.75rem;
+
+padding: 0.75rem;
+}
+
+.clb-header__profile-info strong {
+display: block;
+
+font-size: 0.9rem;
+
+color: var(--clb-text);
+}
+
+.clb-header__profile-info span:not(
+.clb-header__profile-avatar
+) {
+display: block;
+
+margin-top: 0.15rem;
+
+font-size: 0.75rem;
+
+color: var(--clb-text-muted);
+}
+
+.clb-header__profile-avatar {
+width: 34px;
+height: 34px;
+
+border-radius: 50%;
+
+display: flex;
+align-items: center;
+justify-content: center;
+
+background: var(--clb-pink-dim);
+
+color: var(--clb-pink);
+}
+
+/* Divider */
+
+.clb-header__profile-divider {
+height: 1px;
+
+background: var(--clb-border);
+
+margin: 0.4rem 0;
+}
+
+/* Logout */
+
+.clb-header__logout {
+width: 100%;
+
+border: none;
+
+background: transparent;
+
+color: var(--clb-text-muted);
+
+cursor: pointer;
+
+display: flex;
+align-items: center;
+gap: 0.7rem;
+
+padding: 0.75rem;
+
+border-radius: 9px;
+
+font-family: var(--clb-font-body);
+
+text-align: left;
+
+transition:
+background 0.2s var(--clb-ease),
+color 0.2s var(--clb-ease);
+}
+
+.clb-header__logout:hover {
+background: var(--clb-pink-dim);
+
+color: var(--clb-pink);
+}
+/* =========================================================
+   REAL USER PROFILE IMAGE
+========================================================= */
+
+.clb-header__avatar-image {
+  width: 38px;
+  height: 38px;
+
+  border-radius: 50%;
+
+  object-fit: cover;
+
+  display: block;
+
+  flex-shrink: 0;
+}
+
+
+.clb-header__profile-image {
+  width: 38px;
+  height: 38px;
+
+  border-radius: 50%;
+
+  object-fit: cover;
+
+  display: block;
+
+  flex-shrink: 0;
+}
+
+
+/* =========================================================
+   PROFILE ACTION
+========================================================= */
+
+.clb-header__profile-action {
+  width: 100%;
+
+  border: none;
+
+  background: transparent;
+
+  color: var(--clb-text-muted);
+
+  cursor: pointer;
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 0.7rem;
+
+  padding: 0.75rem;
+
+  border-radius: 9px;
+
+  font-family: var(--clb-font-body);
+
+  text-align: left;
+
+  transition:
+    background 0.2s var(--clb-ease),
+    color 0.2s var(--clb-ease);
+}
+
+
+.clb-header__profile-action:hover {
+  background: var(--clb-surface-2);
+
+  color: var(--clb-text);
+}
+/* =========================================
+   REAL PROFILE IMAGE
+========================================= */
+
+.clb-header__avatar {
+  overflow: hidden;
+}
+
+.clb-header__avatar img {
+  width: 100%;
+  height: 100%;
+
+  object-fit: cover;
+
+  border-radius: 50%;
+
+  display: block;
+}
+
+.clb-header__profile-avatar {
+  overflow: hidden;
+}
+
+.clb-header__profile-avatar img {
+  width: 100%;
+  height: 100%;
+
+  object-fit: cover;
+
+  border-radius: 50%;
+
+  display: block;
+}
+
+/* =========================================
+   PROFILE MENU ITEM
+========================================= */
+
+.clb-header__menu-item {
+  width: 100%;
+
+  border: none;
+
+  background: transparent;
+
+  color: var(--clb-text-muted);
+
+  cursor: pointer;
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 0.7rem;
+
+  padding: 0.75rem;
+
+  border-radius: 9px;
+
+  font-family: var(--clb-font-body);
+
+  text-align: left;
+
+  transition:
+    background 0.2s var(--clb-ease),
+    color 0.2s var(--clb-ease);
+}
+
+.clb-header__menu-item:hover {
+  background:
+    var(--clb-surface-2);
+
+  color:
+    var(--clb-text);
+}

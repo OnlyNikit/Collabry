@@ -1,0 +1,266 @@
+@import "../../style/token.css";
+
+/* =========================================================
+   EMAIL LIST
+========================================================= */
+
+.clb-email-list {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+
+  display: flex;
+  flex-direction: column;
+
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  background: var(--clb-surface);
+
+  overscroll-behavior: contain;
+
+  scrollbar-width: thin;
+  scrollbar-color:
+    var(--clb-border)
+    transparent;
+
+  box-sizing: border-box;
+}
+
+/* =========================================================
+   WEBKIT SCROLLBAR
+========================================================= */
+
+.clb-email-list::-webkit-scrollbar {
+  width: 7px;
+}
+
+.clb-email-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.clb-email-list::-webkit-scrollbar-thumb {
+  background: var(--clb-border);
+  border-radius: 999px;
+}
+
+.clb-email-list::-webkit-scrollbar-thumb:hover {
+  background: var(--clb-pink-dim);
+}
+
+/* =========================================================
+   EMPTY STATE
+========================================================= */
+
+.clb-email-list__empty {
+  flex: 1;
+
+  min-height: 100%;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: var(--clb-space-lg);
+
+  color: var(--clb-text-muted);
+
+  text-align: center;
+
+  box-sizing: border-box;
+}
+
+.clb-email-list__empty p {
+  margin: 0;
+
+  font-family: var(--clb-font-body);
+
+  font-size: 0.9rem;
+
+  line-height: 1.6;
+}
+
+/* =========================================================
+   LOAD MORE CONTAINER
+========================================================= */
+
+.clb-email-list__load-more {
+  width: 100%;
+
+  flex-shrink: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding:
+    var(--clb-space-lg)
+    var(--clb-space-md);
+
+  border-top:
+    1px solid var(--clb-border);
+
+  background: var(--clb-surface);
+
+  box-sizing: border-box;
+}
+
+/* =========================================================
+   LOAD MORE BUTTON
+========================================================= */
+
+.clb-email-list__load-more-btn {
+  display: inline-flex;
+
+  align-items: center;
+  justify-content: center;
+
+  min-width: 140px;
+
+  min-height: 42px;
+
+  padding:
+    0.65rem
+    1.25rem;
+
+  border:
+    1px solid var(--clb-border);
+
+  border-radius: 10px;
+
+  background:
+    var(--clb-surface-2);
+
+  color:
+    var(--clb-text);
+
+  font-family:
+    var(--clb-font-body);
+
+  font-size:
+    0.875rem;
+
+  font-weight:
+    500;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s var(--clb-ease),
+    border-color 0.2s var(--clb-ease),
+    color 0.2s var(--clb-ease),
+    transform 0.15s var(--clb-ease),
+    opacity 0.2s var(--clb-ease);
+
+  box-sizing: border-box;
+}
+
+/* =========================================================
+   HOVER
+========================================================= */
+
+.clb-email-list__load-more-btn:hover:not(:disabled) {
+  background:
+    var(--clb-pink-dim);
+
+  border-color:
+    var(--clb-pink-dim);
+
+  color:
+    var(--clb-text);
+
+  transform:
+    translateY(-1px);
+}
+
+/* =========================================================
+   ACTIVE
+========================================================= */
+
+.clb-email-list__load-more-btn:active:not(:disabled) {
+  transform:
+    translateY(0);
+}
+
+/* =========================================================
+   FOCUS
+========================================================= */
+
+.clb-email-list__load-more-btn:focus-visible {
+  outline:
+    2px solid var(--clb-pink);
+
+  outline-offset:
+    3px;
+}
+
+/* =========================================================
+   DISABLED
+========================================================= */
+
+.clb-email-list__load-more-btn:disabled {
+  opacity: 0.6;
+
+  cursor: not-allowed;
+
+  transform: none;
+}
+
+/* =========================================================
+   LOADING TEXT
+========================================================= */
+
+.clb-email-list__load-more-btn:disabled {
+  pointer-events: none;
+}
+
+/* =========================================================
+   MOBILE / TABLET
+========================================================= */
+
+@media (max-width: 959px) {
+  .clb-email-list {
+    height: auto;
+
+    min-height:
+      calc(100dvh - 100px);
+
+    overflow: visible;
+
+    overscroll-behavior: auto;
+
+    background: transparent;
+  }
+
+  .clb-email-list__empty {
+    min-height:
+      calc(100dvh - 100px);
+  }
+
+  .clb-email-list__load-more {
+    padding:
+      var(--clb-space-lg)
+      var(--clb-space-md);
+  }
+}
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media (max-width: 640px) {
+  .clb-email-list__load-more {
+    padding:
+      var(--clb-space-md)
+      var(--clb-space-sm)
+      var(--clb-space-lg);
+  }
+
+  .clb-email-list__load-more-btn {
+    width: 100%;
+
+    min-width: 0;
+
+    min-height: 44px;
+  }
+}

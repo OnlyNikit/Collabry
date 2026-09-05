@@ -1,0 +1,44 @@
+@import '../../style/token.css';
+
+.clb-email-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--clb-space-sm);
+  padding: var(--clb-space-sm) var(--clb-space-md);
+  border-bottom: 1px solid var(--clb-border);
+}
+
+.clb-email-toolbar .clb-btn {
+  padding: 0.6em 1.1em;
+  font-size: 0.85rem;
+}
+
+.clb-email-toolbar__search {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--clb-space-xs);
+  background: var(--clb-surface-2);
+  border: 1px solid var(--clb-border);
+  border-radius: 999px;
+  padding: 0.45em var(--clb-space-sm);
+}
+
+.clb-email-toolbar__search span {
+  opacity: 0.6;
+  font-size: 0.85em;
+}
+
+.clb-email-toolbar__search input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--clb-text);
+  font-family: var(--clb-font-body);
+  font-size: 0.85rem;
+}
+
+.clb-email-toolbar__search input::placeholder {
+  color: var(--clb-text-muted);
+}

@@ -1,0 +1,76 @@
+/* Uses tokens from tokens.css (--clb-bg, --clb-gradient, --clb-text-muted, etc).
+   Make sure tokens.css is imported once at the app root before this file. */
+
+/* Full-viewport overlay (default) */
+.clb-global-loader {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--clb-space-sm);
+  background: rgba(15, 11, 30, 0.85); /* --clb-bg with transparency */
+  backdrop-filter: blur(4px);
+  font-family: var(--clb-font-body);
+}
+
+/* Inline variant — sits within a card/section instead of covering the screen */
+.clb-global-loader--inline {
+  position: static;
+  inset: auto;
+  z-index: auto;
+  background: transparent;
+  backdrop-filter: none;
+  padding: var(--clb-space-lg) 0;
+}
+
+/* Spinner — a ring in the brand gradient, rotating */
+.clb-global-loader__spinner {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg,
+    var(--clb-pink) 0deg,
+    var(--clb-gold) 180deg,
+    transparent 270deg,
+    transparent 360deg
+  );
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 4px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 4px));
+  animation: clb-spin 0.9s linear infinite;
+}
+
+@keyframes clb-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.clb-global-loader__text {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--clb-text-muted);
+  letter-spacing: 0.01em;
+}
+
+/* Visually hidden but still announced to screen readers when no text is passed */
+.clb-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .clb-global-loader__spinner {
+    animation: none;
+  }
+}

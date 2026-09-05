@@ -1,0 +1,306 @@
+@import './token.css';
+
+/* ==========================================================================
+   LANDING PAGE
+   Sections, in order: Nav / Hero / Features / How it works / CTA / Footer
+   ========================================================================== */
+*{
+    margin: 0;
+    padding: 0;
+}
+
+.clb-landing {
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ---------------------------------------------------------------- Nav -- */
+.clb-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--clb-space-md) var(--clb-space-xl);
+}
+
+.clb-nav__links {
+  display: flex;
+  gap: var(--clb-space-lg);
+}
+
+.clb-nav__links a {
+  color: var(--clb-text-muted);
+  text-decoration: none;
+  font-size: 0.95rem;
+  transition: color 0.2s var(--clb-ease);
+}
+
+.clb-nav__links a:hover {
+  color: var(--clb-text);
+}
+
+/* --------------------------------------------------------------- Hero -- */
+.clb-hero {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  align-items: center;
+  gap: var(--clb-space-2xl);
+  padding: var(--clb-space-2xl) var(--clb-space-xl);
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+.clb-hero__eyebrow {
+  font-family: var(--clb-font-display);
+  color: var(--clb-pink);
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin: 0 0 var(--clb-space-sm);
+  animation: clb-fade-up var(--clb-duration) var(--clb-ease) both;
+}
+
+.clb-hero h1 {
+  font-family: var(--clb-font-display);
+  font-size: clamp(2.5rem, 5vw, 4rem);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  margin: 0 0 var(--clb-space-md);
+  animation: clb-fade-up var(--clb-duration) var(--clb-ease) 0.1s both;
+}
+
+.clb-hero__sub {
+  color: var(--clb-text-muted);
+  font-size: 1.15rem;
+  line-height: 1.6;
+  max-width: 42ch;
+  margin: 0 0 var(--clb-space-lg);
+  animation: clb-fade-up var(--clb-duration) var(--clb-ease) 0.2s both;
+}
+
+.clb-hero__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--clb-space-sm);
+  animation: clb-fade-up var(--clb-duration) var(--clb-ease) 0.3s both;
+}
+
+/* Perspective card stack — the page's signature element.
+   Each card is offset via the --i custom property set inline in JSX,
+   and the whole stack tilts toward the cursor using rotateX/rotateY. */
+.clb-hero__stack {
+  position: relative;
+  height: 340px;
+  transform-style: preserve-3d;
+  transition: transform 0.15s var(--clb-ease);
+}
+
+.clb-deal-card {
+  position: absolute;
+  inset: 0;
+  width: 280px;
+  height: 160px;
+  margin: auto;
+  background: var(--clb-surface);
+  border: 1px solid var(--clb-border);
+  border-radius: 18px;
+  padding: var(--clb-space-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--clb-space-xs);
+  box-shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.6);
+  /* stack + fan the cards using the --i index passed from JSX */
+  transform: translate(calc(var(--i) * 28px), calc(var(--i) * -22px))
+    rotate(calc(var(--i) * -4deg));
+  animation: clb-card-in var(--clb-duration) var(--clb-ease) both;
+  animation-delay: calc(var(--i) * 0.12s);
+}
+
+.clb-deal-card__tag {
+  align-self: flex-start;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--clb-gold);
+  background: var(--clb-gold-dim);
+  padding: 0.25em 0.7em;
+  border-radius: 999px;
+}
+
+.clb-deal-card__brand {
+  font-family: var(--clb-font-display);
+  font-size: 1.15rem;
+  margin-top: auto;
+}
+
+.clb-deal-card__amount {
+  color: var(--clb-text-muted);
+  font-size: 0.95rem;
+}
+
+/* ----------------------------------------------------------- Features -- */
+.clb-features {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: var(--clb-space-2xl) var(--clb-space-xl);
+}
+
+.clb-features h2,
+.clb-steps h2 {
+  font-family: var(--clb-font-display);
+  font-size: clamp(1.8rem, 3vw, 2.4rem);
+  margin: 0 0 var(--clb-space-xl);
+  max-width: 20ch;
+}
+
+.clb-features__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--clb-space-lg);
+}
+
+.clb-feature-card {
+  background: var(--clb-surface);
+  border: 1px solid var(--clb-border);
+  border-radius: 16px;
+  padding: var(--clb-space-lg);
+}
+
+.clb-feature-card h3 {
+  font-family: var(--clb-font-display);
+  font-size: 1.1rem;
+  margin: 0 0 var(--clb-space-xs);
+}
+
+.clb-feature-card p {
+  color: var(--clb-text-muted);
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* --------------------------------------------------------- How it works */
+.clb-steps {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 var(--clb-space-xl) var(--clb-space-2xl);
+}
+
+.clb-steps__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--clb-space-lg);
+}
+
+.clb-step {
+  display: flex;
+  gap: var(--clb-space-lg);
+  align-items: flex-start;
+  padding-bottom: var(--clb-space-lg);
+  border-bottom: 1px solid var(--clb-border);
+}
+
+.clb-step:last-child {
+  border-bottom: none;
+}
+
+.clb-step__number {
+  font-family: var(--clb-font-display);
+  font-size: 1.5rem;
+  font-weight: 600;
+  background: var(--clb-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  min-width: 2.5ch;
+}
+
+.clb-step h3 {
+  font-family: var(--clb-font-display);
+  margin: 0 0 var(--clb-space-xs);
+}
+
+.clb-step p {
+  color: var(--clb-text-muted);
+  margin: 0;
+  line-height: 1.6;
+}
+
+/* ------------------------------------------------------------------ CTA */
+.clb-cta {
+  text-align: center;
+  padding: var(--clb-space-2xl) var(--clb-space-xl);
+  background: var(--clb-surface);
+  border-top: 1px solid var(--clb-border);
+  border-bottom: 1px solid var(--clb-border);
+}
+
+.clb-cta h2 {
+  font-family: var(--clb-font-display);
+  font-size: clamp(1.6rem, 3vw, 2.2rem);
+  margin: 0 0 var(--clb-space-lg);
+}
+
+/* --------------------------------------------------------------- Footer */
+.clb-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--clb-space-sm);
+  padding: var(--clb-space-lg);
+  color: var(--clb-text-muted);
+  font-size: 0.9rem;
+}
+
+.clb-footer p {
+  margin: 0;
+}
+
+/* ------------------------------------------------------------- Motion -- */
+@keyframes clb-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes clb-card-in {
+  from {
+    opacity: 0;
+    transform: translate(calc(var(--i) * 28px), calc(var(--i) * -22px + 30px))
+      rotate(calc(var(--i) * -4deg));
+  }
+  to {
+    opacity: 1;
+    transform: translate(calc(var(--i) * 28px), calc(var(--i) * -22px))
+      rotate(calc(var(--i) * -4deg));
+  }
+}
+
+/* ----------------------------------------------------------- Responsive */
+@media (max-width: 960px) {
+  .clb-hero {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
+  .clb-hero__sub {
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .clb-hero__actions {
+    justify-content: center;
+  }
+  .clb-hero__stack {
+    margin: 0 auto;
+  }
+  .clb-features__grid {
+    grid-template-columns: 1fr;
+  }
+  .clb-nav__links {
+    display: none;
+  }
+}

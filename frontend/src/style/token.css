@@ -1,0 +1,278 @@
+/* ==========================================================================
+   COLLABRY — DESIGN TOKENS
+   --------------------------------------------------------------------------
+   One place for color, type, spacing and motion values. Every component
+   stylesheet should `@import` this file first, then use these variables
+   instead of hardcoding colors/sizes. Change the brand look here once,
+   and it updates everywhere.
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap');
+
+:root {
+  /* ---- Color -------------------------------------------------------- */
+  /* Background reads like "late-night inbox" — deep violet, not flat black */
+  --clb-bg: #0f0b1e;
+  --clb-surface: #1a1530;      /* cards, panels */
+  --clb-surface-2: #241d3f;    /* hovered / raised surfaces */
+  --clb-border: rgba(245, 243, 255, 0.1);
+
+  --clb-pink: #ff6b9d;         /* primary accent — creator/social energy */
+  --clb-pink-dim: #ff6b9d33;
+  --clb-gold: #ffc857;         /* secondary accent — "deal caught" moments */
+  --clb-gold-dim: #ffc85733;
+
+  --clb-text: #f5f3ff;         /* primary text on dark background */
+  --clb-text-muted: #a79fc7;   /* secondary text, captions */
+
+  --clb-gradient: linear-gradient(135deg, var(--clb-pink), var(--clb-gold));
+
+  /* ---- Type ----------------------------------------------------------- */
+  --clb-font-display: 'Space Grotesk', 'Segoe UI', sans-serif;
+  --clb-font-body: 'Inter', 'Segoe UI', sans-serif;
+
+  /* ---- Spacing scale (use instead of one-off px/rem values) ----------- */
+  --clb-space-xs: 0.5rem;
+  --clb-space-sm: 1rem;
+  --clb-space-md: 1.5rem;
+  --clb-space-lg: 2.5rem;
+  --clb-space-xl: 4rem;
+  --clb-space-2xl: 6rem;
+
+  /* ---- Motion ----------------------------------------------------------- */
+  --clb-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --clb-duration: 0.6s;
+}
+
+/* Shared resets so pages don't each redeclare box-sizing/margins */
+.clb-landing,
+.clb-login {
+  box-sizing: border-box;
+  font-family: var(--clb-font-body);
+  background: var(--clb-bg);
+  color: var(--clb-text);
+}
+.clb-landing *,
+.clb-login *,
+.clb-landing *::before,
+.clb-landing *::after,
+.clb-login *::before,
+.clb-login *::after {
+  box-sizing: inherit;
+}
+
+/* Shared button styles used on both Landing and Login */
+.clb-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+  font-family: var(--clb-font-body);
+  font-weight: 600;
+  font-size: 0.95rem;
+  padding: 0.85em 1.6em;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  text-decoration: none;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.25s var(--clb-ease), box-shadow 0.25s var(--clb-ease);
+  white-space: nowrap;
+}
+.clb-btn:hover {
+  transform: translateY(-2px);
+}
+.clb-btn:active {
+  transform: translateY(0) scale(0.97);
+}
+
+/* Shine sweep — a light diagonal streak that slides across on hover.
+   Shared by every button variant via this ::after pseudo-element. */
+.clb-btn::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -60%;
+  width: 40%;
+  height: 100%;
+  background: linear-gradient(
+    115deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.35) 50%,
+    transparent 100%
+  );
+  transform: skewX(-20deg);
+  transition: left 0.6s var(--clb-ease);
+  pointer-events: none;
+}
+.clb-btn:hover::after {
+  left: 130%;
+}
+
+.clb-btn--primary {
+  background: var(--clb-gradient);
+  background-size: 200% 200%;
+  color: #17102b;
+  animation: clb-btn-glow 2.4s ease-in-out infinite;
+}
+.clb-btn--primary:hover {
+  background-position: 100% 0;
+  box-shadow: 0 10px 34px -6px var(--clb-pink-dim);
+}
+.clb-btn--ghost {
+  background: transparent;
+  border-color: var(--clb-border);
+  color: var(--clb-text);
+}
+.clb-btn--ghost:hover {
+  background: var(--clb-surface);
+}
+.clb-btn--text {
+  background: transparent;
+  color: var(--clb-text-muted);
+  padding: 0.85em 0.2em;
+}
+.clb-btn--text:hover {
+  color: var(--clb-text);
+}
+/* the trailing arrow (→) in text buttons slides forward on hover */
+.clb-btn--text span {
+  display: inline-block;
+  transition: transform 0.25s var(--clb-ease);
+}
+.clb-btn--text:hover span {
+  transform: translateX(4px);
+}
+
+/* Subtle idle pulse so the primary CTA reads as "alive" even before hover */
+@keyframes clb-btn-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 var(--clb-pink-dim);
+  }
+  50% {
+    box-shadow: 0 0 0 8px transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .clb-landing *,
+  .clb-login * {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}/* =========================================================
+   PRIORITY BADGE
+========================================================= */
+
+.clb-collab-priority {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+
+  padding: 0.38rem 0.7rem;
+
+  border: 1px solid var(--clb-border);
+  border-radius: 999px;
+
+  background: var(--clb-surface-2);
+
+  color: var(--clb-text-muted);
+
+  font-family: var(--clb-font-body);
+  font-size: 0.72rem;
+  font-weight: 600;
+
+  line-height: 1;
+  white-space: nowrap;
+}
+
+
+/* =========================================================
+   PRIORITY DOT
+========================================================= */
+
+.clb-collab-priority__dot {
+  width: 0.42rem;
+  height: 0.42rem;
+
+  border-radius: 50%;
+
+  flex-shrink: 0;
+}
+
+
+/* =========================================================
+   HIGH PRIORITY
+
+   Pink = urgent / attention
+========================================================= */
+
+.clb-collab-priority--high {
+  color: var(--clb-pink);
+
+  border-color: var(--clb-pink-dim);
+
+  background:
+    linear-gradient(
+      135deg,
+      var(--clb-pink-dim),
+      transparent
+    );
+}
+
+.clb-collab-priority--high
+.clb-collab-priority__dot {
+  background: var(--clb-pink);
+
+  box-shadow:
+    0 0 8px
+    var(--clb-pink);
+}
+
+
+/* =========================================================
+   MEDIUM PRIORITY
+
+   Gold = attention, but not urgent
+========================================================= */
+
+.clb-collab-priority--medium {
+  color: var(--clb-gold);
+
+  border-color: var(--clb-gold-dim);
+
+  background:
+    linear-gradient(
+      135deg,
+      var(--clb-gold-dim),
+      transparent
+    );
+}
+
+.clb-collab-priority--medium
+.clb-collab-priority__dot {
+  background: var(--clb-gold);
+
+  box-shadow:
+    0 0 8px
+    var(--clb-gold);
+}
+
+
+/* =========================================================
+   LOW PRIORITY
+
+   Muted = less urgent
+========================================================= */
+
+.clb-collab-priority--low {
+  color: var(--clb-text-muted);
+
+  background: var(--clb-surface);
+}
+
+.clb-collab-priority--low
+.clb-collab-priority__dot {
+  background: var(--clb-text-muted);
+}

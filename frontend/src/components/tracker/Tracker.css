@@ -1,0 +1,14 @@
+@import '../../style/token.css';
+
+.clb-tracker-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--clb-space-sm);
+}
+
+.clb-tracker-list__empty {
+  color: var(--clb-text-muted);
+  font-size: 0.9rem;
+  padding: var(--clb-space-lg) 0;
+  text-align: center;
+}

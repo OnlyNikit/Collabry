@@ -1,0 +1,413 @@
+@import '../../style/token.css';
+
+/* ==========================================================================
+   SETTINGS PAGE
+   ========================================================================== */
+
+.clb-settings {
+  display: flex;
+  flex-direction: column;
+  gap: var(--clb-space-lg);
+  padding: 2rem;
+  width: 100%;
+  /* max-width: 900px; */
+}
+
+.clb-settings__welcome h1 {
+  font-family: var(--clb-font-display);
+  font-size: clamp(1.3rem, 4vw, 2rem);
+  margin: 0 0 4px;
+}
+
+.clb-settings__welcome p {
+  color: var(--clb-text-muted);
+  margin: 0;
+  font-size: clamp(0.85rem, 2vw, 1rem);
+}
+
+/* ------------------------------------------------------------- Tabs -- */
+.clb-settings__tabs {
+  display: flex;
+  gap: var(--clb-space-xs);
+  border-bottom: 1px solid var(--clb-border);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.clb-settings__tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.clb-settings__tab {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  padding: 0.75em 1.1em;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--clb-text-muted);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.2s var(--clb-ease), border-color 0.2s var(--clb-ease);
+}
+
+.clb-settings__tab:hover {
+  color: var(--clb-text);
+}
+
+.clb-settings__tab--active {
+  color: var(--clb-text);
+  border-bottom-color: var(--clb-pink);
+}
+
+/* ------------------------------------------------------------ Card -- */
+.clb-settings__card {
+  background: var(--clb-surface);
+  border: 1px solid var(--clb-border);
+  border-radius: 16px;
+  padding: var(--clb-space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--clb-space-md);
+}
+
+.clb-settings__card h2 {
+  font-family: var(--clb-font-display);
+  font-size: 1.05rem;
+  margin: 0;
+}
+
+.clb-settings__card-desc {
+  color: var(--clb-text-muted);
+  font-size: 0.85rem;
+  margin: -8px 0 0;
+}
+
+/* ---------------------------------------------------------- Avatar -- */
+.clb-settings__avatar-row {
+  display: flex;
+  align-items: center;
+  gap: var(--clb-space-md);
+}
+
+.clb-settings__avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: var(--clb-gradient);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--clb-font-display);
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #17102b;
+  flex-shrink: 0;
+}
+
+.clb-settings__avatar-actions {
+  display: flex;
+  gap: var(--clb-space-sm);
+  flex-wrap: wrap;
+}
+
+/* --------------------------------------------------------- Fields --- */
+.clb-settings__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--clb-space-md);
+}
+
+.clb-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.clb-field--full {
+  grid-column: 1 / -1;
+}
+
+.clb-field label {
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--clb-text-muted);
+}
+
+.clb-field input,
+.clb-field textarea,
+.clb-field select {
+  font-family: var(--clb-font-body);
+  font-size: 0.92rem;
+  color: var(--clb-text);
+  background: var(--clb-surface-2);
+  border: 1px solid var(--clb-border);
+  border-radius: 10px;
+  padding: 0.7em 0.9em;
+  outline: none;
+  transition: border-color 0.2s var(--clb-ease), box-shadow 0.2s var(--clb-ease);
+  width: 100%;
+}
+
+.clb-field input:focus,
+.clb-field textarea:focus,
+.clb-field select:focus {
+  border-color: var(--clb-pink);
+  box-shadow: 0 0 0 3px var(--clb-pink-dim);
+}
+
+.clb-field textarea {
+  resize: vertical;
+  min-height: 80px;
+  font-family: var(--clb-font-body);
+}
+
+/* ------------------------------------------------------- Toggle row - */
+.clb-settings__toggle-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.clb-settings__toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--clb-space-md);
+  padding: var(--clb-space-sm) 0;
+  border-bottom: 1px solid var(--clb-border);
+}
+
+.clb-settings__toggle-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.clb-settings__toggle-row:first-child {
+  padding-top: 0;
+}
+
+.clb-settings__toggle-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.clb-settings__toggle-text strong {
+  font-size: 0.92rem;
+}
+
+.clb-settings__toggle-text span {
+  font-size: 0.8rem;
+  color: var(--clb-text-muted);
+}
+
+/* Toggle switch */
+.clb-toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  width: 44px;
+  height: 26px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.clb-toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.clb-toggle__track {
+  position: absolute;
+  inset: 0;
+  background: var(--clb-surface-2);
+  border: 1px solid var(--clb-border);
+  border-radius: 999px;
+  transition: background 0.2s var(--clb-ease);
+}
+
+.clb-toggle__track::before {
+  content: '';
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  left: 3px;
+  top: 3px;
+  background: var(--clb-text-muted);
+  border-radius: 50%;
+  transition: transform 0.2s var(--clb-ease), background 0.2s var(--clb-ease);
+}
+
+.clb-toggle input:checked + .clb-toggle__track {
+  background: var(--clb-pink-dim);
+  border-color: var(--clb-pink);
+}
+
+.clb-toggle input:checked + .clb-toggle__track::before {
+  transform: translateX(18px);
+  background: var(--clb-pink);
+}
+
+/* --------------------------------------------------------- Danger --- */
+.clb-settings__card--danger {
+  border-color: rgba(255, 107, 107, 0.3);
+}
+
+.clb-settings__danger-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--clb-space-md);
+  flex-wrap: wrap;
+}
+
+.clb-btn--danger {
+  background: transparent;
+  border: 1px solid rgba(255, 107, 107, 0.4);
+  color: #ff6b6b;
+}
+
+.clb-btn--danger:hover {
+  background: rgba(255, 107, 107, 0.1);
+}
+
+/* --------------------------------------------------------- Actions -- */
+.clb-settings__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--clb-space-sm);
+}
+
+/* ----------------------------------------------------------- Responsive */
+
+/* Tablet */
+@media (max-width: 960px) {
+  .clb-settings {
+    gap: var(--clb-space-md);
+  }
+
+  .clb-settings__card {
+    padding: var(--clb-space-md);
+  }
+}
+
+/* Mobile */
+@media (max-width: 640px) {
+  .clb-settings {
+    gap: var(--clb-space-sm);
+  }
+
+  .clb-settings__card {
+    padding: var(--clb-space-sm);
+    border-radius: 12px;
+    gap: var(--clb-space-sm);
+  }
+
+  .clb-settings__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .clb-settings__avatar-row {
+    flex-wrap: wrap;
+  }
+
+  .clb-settings__avatar {
+    width: 60px;
+    height: 60px;
+    font-size: 1.3rem;
+  }
+
+  .clb-settings__danger-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .clb-settings__actions {
+    justify-content: stretch;
+  }
+
+  .clb-settings__actions .clb-btn {
+    flex: 1;
+    justify-content: center;
+  }
+}
+
+/* Small mobile */
+@media (max-width: 400px) {
+  .clb-settings__card {
+    padding: 0.85rem;
+  }
+
+  .clb-settings__tab {
+    padding: 0.65em 0.85em;
+    font-size: 0.82rem;
+  }
+
+  .clb-field input,
+  .clb-field textarea,
+  .clb-field select {
+    font-size: 0.88rem;
+    padding: 0.6em 0.8em;
+  }
+}
+
+/* =========================================
+   REAL PROFILE IMAGE
+========================================= */
+
+.clb-settings__avatar {
+  overflow: hidden;
+}
+
+.clb-settings__avatar-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+
+/* =========================================
+   EMAIL READONLY
+========================================= */
+
+.clb-field input:read-only {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+
+/* =========================================
+   SUCCESS / ERROR
+========================================= */
+
+.clb-settings__success {
+  margin: 0;
+  padding: 0.85rem 1rem;
+
+  border-radius: 10px;
+
+  background: rgba(72, 187, 120, 0.12);
+  border: 1px solid rgba(72, 187, 120, 0.3);
+
+  color: #68d391;
+}
+
+
+.clb-settings__error {
+  margin: 0;
+  padding: 0.85rem 1rem;
+
+  border-radius: 10px;
+
+  background: rgba(255, 107, 107, 0.1);
+  border: 1px solid rgba(255, 107, 107, 0.3);
+
+  color: #ff8a8a;
+}

@@ -1,0 +1,207 @@
+@import "../style/token.css";
+
+/* ========================================
+   TOAST
+======================================== */
+
+.clb-toast {
+  position: fixed;
+
+  top: var(--clb-space-md);
+  right: var(--clb-space-md);
+
+  width: min(380px, calc(100vw - 32px));
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--clb-space-sm);
+
+  padding:
+    0.9rem
+    var(--clb-space-sm);
+
+  background: var(--clb-surface);
+
+  border: 1px solid var(--clb-border);
+
+  border-radius: 14px;
+
+  color: var(--clb-text);
+
+  font-family: var(--clb-font-body);
+
+  box-shadow:
+    0 18px 45px
+    rgba(0, 0, 0, 0.4);
+
+  z-index: 999999;
+
+  overflow: hidden;
+
+  animation:
+    clb-toast-in
+    0.3s
+    var(--clb-ease)
+    both;
+}
+
+/* ========================================
+   ACCENT BAR
+======================================== */
+
+.clb-toast::before {
+  content: "";
+
+  position: absolute;
+
+  top: 0;
+  left: 0;
+  bottom: 0;
+
+  width: 4px;
+
+  background: var(--clb-gradient);
+}
+
+/* ========================================
+   SUCCESS
+======================================== */
+
+.clb-toast--success {
+  border-color:
+    rgba(255, 200, 87, 0.25);
+}
+
+/* ========================================
+   ERROR
+======================================== */
+
+.clb-toast--error {
+  border-color:
+    rgba(255, 107, 157, 0.35);
+}
+
+.clb-toast--error::before {
+  background: var(--clb-pink);
+}
+
+/* ========================================
+   INFO
+======================================== */
+
+.clb-toast--info {
+  border-color:
+    var(--clb-border);
+}
+
+/* ========================================
+   WARNING
+======================================== */
+
+.clb-toast--warning {
+  border-color:
+    rgba(255, 200, 87, 0.4);
+}
+
+.clb-toast--warning::before {
+  background: var(--clb-gold);
+}
+
+/* ========================================
+   MESSAGE
+======================================== */
+
+.clb-toast__message {
+  padding-left: 0.25rem;
+
+  font-size: 0.9rem;
+
+  font-weight: 500;
+
+  line-height: 1.4;
+}
+
+/* ========================================
+   CLOSE BUTTON
+======================================== */
+
+.clb-toast__close {
+  flex-shrink: 0;
+
+  width: 30px;
+  height: 30px;
+
+  display: grid;
+  place-items: center;
+
+  border: none;
+
+  border-radius: 8px;
+
+  background:
+    var(--clb-surface-2);
+
+  color:
+    var(--clb-text-muted);
+
+  font-family:
+    var(--clb-font-body);
+
+  font-size: 1.25rem;
+
+  line-height: 1;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s var(--clb-ease),
+    color 0.2s var(--clb-ease),
+    transform 0.2s var(--clb-ease);
+}
+
+.clb-toast__close:hover {
+  background:
+    var(--clb-pink-dim);
+
+  color:
+    var(--clb-text);
+
+  transform:
+    scale(1.05);
+}
+
+/* ========================================
+   ANIMATION
+======================================== */
+
+@keyframes clb-toast-in {
+  from {
+    opacity: 0;
+
+    transform:
+      translateX(30px);
+  }
+
+  to {
+    opacity: 1;
+
+    transform:
+      translateX(0);
+  }
+}
+
+/* ========================================
+   MOBILE
+======================================== */
+
+@media (max-width: 600px) {
+  .clb-toast {
+    top: var(--clb-space-sm);
+
+    left: var(--clb-space-sm);
+    right: var(--clb-space-sm);
+
+    width: auto;
+  }
+}

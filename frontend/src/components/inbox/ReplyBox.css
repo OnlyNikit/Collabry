@@ -1,0 +1,332 @@
+@import "../../style/token.css";
+
+/* =========================================================
+   REPLY BOX
+========================================================= */
+
+.clb-reply-box {
+  display: flex;
+  flex-direction: column;
+  gap: var(--clb-space-md);
+
+  width: 100%;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(36, 29, 63, 0.98),
+      rgba(26, 21, 48, 0.98)
+    );
+
+  border: 1px solid var(--clb-border);
+
+  border-radius: 18px;
+
+  padding: var(--clb-space-md);
+
+  box-shadow:
+    0 18px 45px rgba(0, 0, 0, 0.22);
+
+  animation:
+    clb-reply-in
+    0.3s
+    var(--clb-ease)
+    both;
+}
+
+/* =========================================================
+   FIELD
+========================================================= */
+
+.clb-reply-box__field {
+  display: flex;
+  flex-direction: column;
+
+  gap: 0.55rem;
+
+  width: 100%;
+}
+
+/* =========================================================
+   LABEL
+========================================================= */
+
+.clb-reply-box__label {
+  font-family: var(--clb-font-body);
+
+  font-size: 0.82rem;
+  font-weight: 600;
+
+  color: var(--clb-text-muted);
+
+  letter-spacing: 0.01em;
+}
+
+/* =========================================================
+   RECIPIENT
+========================================================= */
+
+.clb-reply-box__recipient {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+
+  gap: 0.45rem;
+
+  padding:
+    0.75rem
+    0.9rem;
+
+  background:
+    rgba(15, 11, 30, 0.45);
+
+  border:
+    1px solid
+    rgba(245, 243, 255, 0.07);
+
+  border-radius: 12px;
+
+  font-size: 0.85rem;
+}
+
+.clb-reply-box__recipient span {
+  color: var(--clb-text-muted);
+}
+
+.clb-reply-box__recipient strong {
+  color: var(--clb-text);
+
+  font-weight: 600;
+
+  overflow-wrap: anywhere;
+}
+
+/* =========================================================
+   FORWARD EMAIL INPUT
+========================================================= */
+
+.clb-reply-box__to-input {
+  width: 100%;
+
+  background:
+    rgba(15, 11, 30, 0.7);
+
+  border:
+    1px solid
+    var(--clb-border);
+
+  border-radius: 12px;
+
+  padding:
+    0.85rem
+    1rem;
+
+  color: var(--clb-text);
+
+  font-family: var(--clb-font-body);
+  font-size: 0.9rem;
+
+  outline: none;
+
+  transition:
+    border-color 0.2s var(--clb-ease),
+    box-shadow 0.2s var(--clb-ease),
+    background 0.2s var(--clb-ease);
+}
+
+.clb-reply-box__to-input::placeholder {
+  color: var(--clb-text-muted);
+}
+
+.clb-reply-box__to-input:focus {
+  border-color: var(--clb-pink);
+
+  background:
+    rgba(15, 11, 30, 0.9);
+
+  box-shadow:
+    0 0 0 3px
+    rgba(255, 107, 157, 0.12);
+}
+
+.clb-reply-box__to-input:disabled {
+  opacity: 0.6;
+
+  cursor: not-allowed;
+}
+
+/* =========================================================
+   TEXTAREA
+========================================================= */
+
+.clb-reply-box__textarea {
+  width: 100%;
+
+  min-height: 130px;
+
+  background:
+    rgba(15, 11, 30, 0.7);
+
+  border:
+    1px solid
+    var(--clb-border);
+
+  border-radius: 14px;
+
+  padding:
+    1rem;
+
+  color: var(--clb-text);
+
+  font-family: var(--clb-font-body);
+  font-size: 0.92rem;
+
+  line-height: 1.65;
+
+  outline: none;
+
+  resize: vertical;
+
+  transition:
+    border-color 0.2s var(--clb-ease),
+    box-shadow 0.2s var(--clb-ease),
+    background 0.2s var(--clb-ease);
+}
+
+.clb-reply-box__textarea::placeholder {
+  color: var(--clb-text-muted);
+}
+
+.clb-reply-box__textarea:focus {
+  border-color:
+    var(--clb-pink);
+
+  background:
+    rgba(15, 11, 30, 0.9);
+
+  box-shadow:
+    0 0 0 3px
+    rgba(255, 107, 157, 0.12);
+}
+
+.clb-reply-box__textarea:disabled {
+  opacity: 0.65;
+
+  cursor: not-allowed;
+}
+
+/* =========================================================
+   ERROR
+========================================================= */
+
+.clb-reply-box__error {
+  padding:
+    0.75rem
+    0.9rem;
+
+  background:
+    rgba(255, 80, 100, 0.1);
+
+  border:
+    1px solid
+    rgba(255, 80, 100, 0.3);
+
+  border-radius: 10px;
+
+  color:
+    #ff9aaa;
+
+  font-size:
+    0.84rem;
+}
+
+/* =========================================================
+   ACTIONS
+========================================================= */
+
+.clb-reply-box__actions {
+  display: flex;
+
+  align-items: center;
+
+  justify-content: flex-end;
+
+  gap:
+    var(--clb-space-sm);
+
+  padding-top:
+    0.25rem;
+
+  border-top:
+    1px solid
+    rgba(245, 243, 255, 0.06);
+}
+
+/* Slightly tighter buttons inside reply box */
+
+.clb-reply-box__actions .clb-btn {
+  min-height: 42px;
+}
+
+/* =========================================================
+   ANIMATION
+========================================================= */
+
+@keyframes clb-reply-in {
+  from {
+    opacity: 0;
+
+    transform:
+      translateY(-8px)
+      scale(0.99);
+  }
+
+  to {
+    opacity: 1;
+
+    transform:
+      translateY(0)
+      scale(1);
+  }
+}
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media (max-width: 600px) {
+  .clb-reply-box {
+    padding:
+      var(--clb-space-sm);
+
+    border-radius:
+      14px;
+
+    gap:
+      var(--clb-space-sm);
+  }
+
+  .clb-reply-box__textarea {
+    min-height:
+      110px;
+  }
+
+  .clb-reply-box__actions {
+    justify-content:
+      stretch;
+
+    flex-direction:
+      column-reverse;
+
+    gap:
+      0.65rem;
+  }
+
+  .clb-reply-box__actions .clb-btn {
+    width:
+      100%;
+
+    justify-content:
+      center;
+  }
+} 
