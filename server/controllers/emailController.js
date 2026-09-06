@@ -1,8 +1,6 @@
-const asyncHandler =
-  require("../utils/asyncHandler");
+const asyncHandler = require("../utils/asyncHandler");
 
-const ApiError =
-  require("../utils/apiError");
+const ApiError = require("../utils/apiError");
 
 const {
   listEmails,
@@ -21,553 +19,342 @@ const {
   trashEmail,
   permanentlyDeleteEmail,
 
-  sendEmail,
-  replyToEmail,
-} = require(
-  "../services/gmailService",
-);
+  sendNewEmail: sendGmailEmail,
+  replyEmail: replyGmailEmail,
+} = require("../services/gmailService");
 
 /* =========================================================
-   GET EMAIL LIST
+  GET EMAIL LIST
 ========================================================= */
 
-const getEmails =
-  asyncHandler(
-    async (req, res) => {
-      const {
-        maxResults,
-        pageToken,
-        labelIds,
-        query,
-      } = req.query;
+const getEmails = asyncHandler(async (req, res) => {
+  const { maxResults, pageToken, labelIds, query } = req.query;
 
-      const parsedLabelIds =
-        labelIds
-          ? Array.isArray(labelIds)
-            ? labelIds
-            : labelIds
-                .split(",")
-                .map((label) =>
-                  label.trim(),
-                )
-                .filter(Boolean)
-          : undefined;
+  const parsedLabelIds = labelIds
+    ? Array.isArray(labelIds)
+      ? labelIds
+      : labelIds
+          .split(",")
+          .map((label) => label.trim())
+          .filter(Boolean)
+    : undefined;
 
-      const result =
-        await listEmails(
-          req.user._id,
-          {
-            maxResults,
-            pageToken,
-            labelIds:
-              parsedLabelIds,
-            query,
-          },
-        );
+  const result = await listEmails(req.user._id, {
+    maxResults,
+    pageToken,
+    labelIds: parsedLabelIds,
+    query,
+  });
 
-      return res
-        .status(200)
-        .json({
-          success: true,
+  return res.status(200).json({
+    success: true,
 
-          data: {
-            emails:
-              result.emails,
+    data: {
+      emails: result.messages,
 
-            nextPageToken:
-              result.nextPageToken,
+      nextPageToken: result.nextPageToken,
 
-            resultSizeEstimate:
-              result.resultSizeEstimate,
-          },
-        });
+      resultSizeEstimate: result.resultSizeEstimate,
     },
-  );
+  });
+});
 
 /* =========================================================
-   GET SINGLE EMAIL
+  GET SINGLE EMAIL
 ========================================================= */
 
-const getEmail =
-  asyncHandler(
-    async (req, res) => {
-      const { id } =
-        req.params;
+const getEmail = asyncHandler(async (req, res) => {
+  const { id } = req.params;
 
-      if (!id) {
-        throw new ApiError(
-          400,
-          "Email ID is required",
-        );
-      }
+  if (!id) {
+    throw new ApiError(400, "Email ID is required");
+  }
 
-      const email =
-        await getEmailById(
-          req.user._id,
-          id,
-        );
+  const email = await getEmailById(req.user._id, id);
 
-      return res
-        .status(200)
-        .json({
-          success: true,
+  return res.status(200).json({
+    success: true,
 
-          data: {
-            email,
-          },
-        });
+    data: {
+      email,
     },
-  );
+  });
+});
 
 /* =========================================================
-   GET THREAD
+  GET THREAD
 ========================================================= */
 
-const getThread =
-  asyncHandler(
-    async (req, res) => {
-      const { id } =
-        req.params;
+const getThread = asyncHandler(async (req, res) => {
+  const { id } = req.params;
 
-      if (!id) {
-        throw new ApiError(
-          400,
-          "Email ID is required",
-        );
-      }
+  if (!id) {
+    throw new ApiError(400, "Email ID is required");
+  }
 
-      const thread =
-        await getEmailThread(
-          req.user._id,
-          id,
-        );
+  const thread = await getEmailThread(req.user._id, id);
 
-      return res
-        .status(200)
-        .json({
-          success: true,
+  return res.status(200).json({
+    success: true,
 
-          data: {
-            thread,
-          },
-        });
+    data: {
+      thread,
     },
-  );
+  });
+});
 
 /* =========================================================
-   MARK READ
+  MARK READ
 ========================================================= */
 
-const markAsRead =
-  asyncHandler(
-    async (req, res) => {
-      const { id } =
-        req.params;
+const markAsRead = asyncHandler(async (req, res) => {
+  const { id } = req.params;
 
-      if (!id) {
-        throw new ApiError(
-          400,
-          "Email ID is required",
-        );
-      }
+  if (!id) {
+    throw new ApiError(400, "Email ID is required");
+  }
 
-      const result =
-        await markEmailAsRead(
-          req.user._id,
-          id,
-        );
+  const result = await markEmailAsRead(req.user._id, id);
 
-      return res
-        .status(200)
-        .json({
-          success: true,
+  return res.status(200).json({
+    success: true,
 
-          message:
-            "Email marked as read",
+    message: "Email marked as read",
 
-          data: result,
-        });
-    },
-  );
+    data: result,
+  });
+});
 
 /* =========================================================
-   MARK UNREAD
+  MARK UNREAD
 ========================================================= */
 
-const markAsUnread =
-  asyncHandler(
-    async (req, res) => {
-      const { id } =
-        req.params;
+const markAsUnread = asyncHandler(async (req, res) => {
+  const { id } = req.params;
 
-      if (!id) {
-        throw new ApiError(
-          400,
-          "Email ID is required",
-        );
-      }
+  if (!id) {
+    throw new ApiError(400, "Email ID is required");
+  }
 
-      const result =
-        await markEmailAsUnread(
-          req.user._id,
-          id,
-        );
+  const result = await markEmailAsUnread(req.user._id, id);
 
-      return res
-        .status(200)
-        .json({
-          success: true,
+  return res.status(200).json({
+    success: true,
 
-          message:
-            "Email marked as unread",
+    message: "Email marked as unread",
 
-          data: result,
-        });
-    },
-  );
+    data: result,
+  });
+});
 
 /* =========================================================
-   STAR
+  STAR
 ========================================================= */
 
-const starEmailController =
-  asyncHandler(
-    async (req, res) => {
-      const { id } =
-        req.params;
+const starEmailController = asyncHandler(async (req, res) => {
+  const { id } = req.params;
 
-      if (!id) {
-        throw new ApiError(
-          400,
-          "Email ID is required",
-        );
-      }
+  if (!id) {
+    throw new ApiError(400, "Email ID is required");
+  }
 
-      const result =
-        await starEmail(
-          req.user._id,
-          id,
-        );
+  const result = await starEmail(req.user._id, id);
 
-      return res
-        .status(200)
-        .json({
-          success: true,
+  return res.status(200).json({
+    success: true,
 
-          message:
-            "Email starred",
+    message: "Email starred",
 
-          data: result,
-        });
-    },
-  );
+    data: result,
+  });
+});
 
 /* =========================================================
-   UNSTAR
+  UNSTAR
 ========================================================= */
 
-const unstarEmailController =
-  asyncHandler(
-    async (req, res) => {
-      const { id } =
-        req.params;
+const unstarEmailController = asyncHandler(async (req, res) => {
+  const { id } = req.params;
 
-      if (!id) {
-        throw new ApiError(
-          400,
-          "Email ID is required",
-        );
-      }
+  if (!id) {
+    throw new ApiError(400, "Email ID is required");
+  }
 
-      const result =
-        await unstarEmail(
-          req.user._id,
-          id,
-        );
+  const result = await unstarEmail(req.user._id, id);
 
-      return res
-        .status(200)
-        .json({
-          success: true,
+  return res.status(200).json({
+    success: true,
 
-          message:
-            "Email unstarred",
+    message: "Email unstarred",
 
-          data: result,
-        });
-    },
-  );
+    data: result,
+  });
+});
 
 /* =========================================================
-   ARCHIVE
+  ARCHIVE
 ========================================================= */
 
-const archiveEmailController =
-  asyncHandler(
-    async (req, res) => {
-      const { id } =
-        req.params;
+const archiveEmailController = asyncHandler(async (req, res) => {
+  const { id } = req.params;
 
-      if (!id) {
-        throw new ApiError(
-          400,
-          "Email ID is required",
-        );
-      }
+  if (!id) {
+    throw new ApiError(400, "Email ID is required");
+  }
 
-      const result =
-        await archiveEmail(
-          req.user._id,
-          id,
-        );
+  const result = await archiveEmail(req.user._id, id);
 
-      return res
-        .status(200)
-        .json({
-          success: true,
+  return res.status(200).json({
+    success: true,
 
-          message:
-            "Email archived",
+    message: "Email archived",
 
-          data: result,
-        });
-    },
-  );
+    data: result,
+  });
+});
 
 /* =========================================================
-   MOVE TO INBOX
+  MOVE TO INBOX
 ========================================================= */
 
-const moveToInbox =
-  asyncHandler(
-    async (req, res) => {
-      const { id } =
-        req.params;
+const moveToInbox = asyncHandler(async (req, res) => {
+  const { id } = req.params;
 
-      if (!id) {
-        throw new ApiError(
-          400,
-          "Email ID is required",
-        );
-      }
+  if (!id) {
+    throw new ApiError(400, "Email ID is required");
+  }
 
-      const result =
-        await moveEmailToInbox(
-          req.user._id,
-          id,
-        );
+  const result = await moveEmailToInbox(req.user._id, id);
 
-      return res
-        .status(200)
-        .json({
-          success: true,
+  return res.status(200).json({
+    success: true,
 
-          message:
-            "Email moved to inbox",
+    message: "Email moved to inbox",
 
-          data: result,
-        });
-    },
-  );
+    data: result,
+  });
+});
 
 /* =========================================================
-   MOVE TO TRASH
+  MOVE TO TRASH
 ========================================================= */
 
-const trashEmailController =
-  asyncHandler(
-    async (req, res) => {
-      const { id } =
-        req.params;
+const trashEmailController = asyncHandler(async (req, res) => {
+  const { id } = req.params;
 
-      if (!id) {
-        throw new ApiError(
-          400,
-          "Email ID is required",
-        );
-      }
+  if (!id) {
+    throw new ApiError(400, "Email ID is required");
+  }
 
-      const result =
-        await trashEmail(
-          req.user._id,
-          id,
-        );
+  const result = await trashEmail(req.user._id, id);
 
-      return res
-        .status(200)
-        .json({
-          success: true,
+  return res.status(200).json({
+    success: true,
 
-          message:
-            "Email moved to trash",
+    message: "Email moved to trash",
 
-          data: result,
-        });
-    },
-  );
+    data: result,
+  });
+});
 
 /* =========================================================
-   PERMANENT DELETE
+  PERMANENT DELETE
 ========================================================= */
 
-const permanentlyDeleteEmailController =
-  asyncHandler(
-    async (req, res) => {
-      const { id } =
-        req.params;
+const permanentlyDeleteEmailController = asyncHandler(async (req, res) => {
+  const { id } = req.params;
 
-      if (!id) {
-        throw new ApiError(
-          400,
-          "Email ID is required",
-        );
-      }
+  if (!id) {
+    throw new ApiError(400, "Email ID is required");
+  }
 
-      const result =
-        await permanentlyDeleteEmail(
-          req.user._id,
-          id,
-        );
+  const result = await permanentlyDeleteEmail(req.user._id, id);
 
-      return res
-        .status(200)
-        .json({
-          success: true,
+  return res.status(200).json({
+    success: true,
 
-          message:
-            "Email permanently deleted",
+    message: "Email permanently deleted",
 
-          data: result,
-        });
-    },
-  );
+    data: result,
+  });
+});
 
 /* =========================================================
-   SEND EMAIL
+  SEND EMAIL
 ========================================================= */
 
-const sendNewEmail =
-  asyncHandler(
-    async (req, res) => {
-      const {
-        to,
-        cc,
-        bcc,
-        subject,
-        text,
-        html,
-      } = req.body || {};
+const sendNewEmail = asyncHandler(async (req, res) => {
+  const { to, cc, bcc, subject, text, html } = req.body || {};
 
-      const result =
-        await sendEmail(
-          req.user._id,
-          {
-            to,
-            cc,
-            bcc,
-            subject,
-            text,
-            html,
-          },
-        );
+  const result = await sendGmailEmail(req.user._id, {
+    to,
+    cc,
+    bcc,
+    subject,
 
-      return res
-        .status(201)
-        .json({
-          success: true,
+    // gmailService expects "body"
+    body: text,
 
-          message:
-            "Email sent successfully",
+    html,
+  });
 
-          data: {
-            email: result,
-          },
-        });
+  return res.status(201).json({
+    success: true,
+
+    message: "Email sent successfully",
+
+    data: {
+      email: result,
     },
-  );
+  });
+});
 
 /* =========================================================
-   REPLY EMAIL
+  REPLY EMAIL
 ========================================================= */
 
-const replyEmail =
-  asyncHandler(
-    async (req, res) => {
-      const { id } =
-        req.params;
+const replyEmail = asyncHandler(async (req, res) => {
+  const { id } = req.params;
 
-      const {
-        text,
-        body,
-        html,
-        replyAll = false,
-      } = req.body || {};
+  const { text, body, html, replyAll = false } = req.body || {};
 
-      if (!id) {
-        throw new ApiError(
-          400,
-          "Email ID is required",
-        );
-      }
+  if (!id) {
+    throw new ApiError(400, "Email ID is required");
+  }
 
-      const replyText =
-        typeof text === "string"
-          ? text.trim()
-          : typeof body === "string"
-            ? body.trim()
-            : "";
+  const replyText =
+    typeof text === "string"
+      ? text.trim()
+      : typeof body === "string"
+        ? body.trim()
+        : "";
 
-      const replyHtml =
-        typeof html === "string"
-          ? html.trim()
-          : "";
+  const replyHtml = typeof html === "string" ? html.trim() : "";
 
-      if (
-        !replyText &&
-        !replyHtml
-      ) {
-        throw new ApiError(
-          400,
-          "Reply content is required",
-        );
-      }
+  if (!replyText && !replyHtml) {
+    throw new ApiError(400, "Reply content is required");
+  }
 
-      const result =
-        await replyToEmail(
-          req.user._id,
-          id,
-          {
-            text:
-              replyText ||
-              undefined,
+  const result = await replyGmailEmail(req.user._id, id, {
+    // gmailService expects "body"
+    body: replyText || undefined,
 
-            html:
-              replyHtml ||
-              undefined,
+    html: replyHtml || undefined,
+  });
 
-            replyAll:
-              replyAll === true ||
-              replyAll === "true",
-          },
-        );
+  return res.status(201).json({
+    success: true,
 
-      return res
-        .status(201)
-        .json({
-          success: true,
+    message: "Reply sent successfully",
 
-          message:
-            "Reply sent successfully",
-
-          data: {
-            email: result,
-          },
-        });
+    data: {
+      email: result,
     },
-  );
+  });
+});
 
 /* =========================================================
-   EXPORTS
+  EXPORTS
 ========================================================= */
 
 module.exports = {

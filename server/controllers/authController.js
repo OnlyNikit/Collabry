@@ -14,6 +14,12 @@ const generateToken = require(
   "../utils/generateToken"
 );
 
+const {
+  initializeGmailSync,
+} = require(
+  "../services/gmailSyncService"
+);
+
 /* =========================================================
    COOKIE OPTIONS
 ========================================================= */
@@ -59,6 +65,32 @@ const googleAuthCallback = asyncHandler(
       token,
       getCookieOptions()
     );
+
+    /*
+      -------------------------------------------------------
+      GMAIL WATCH + INITIAL SYNC
+      -------------------------------------------------------
+
+      Fire-and-forget: registers the Gmail watch()
+      with Pub/Sub and runs the initial full sync.
+
+      We do NOT await this - fullSync() fetches up to
+      50 messages and can take a few seconds. The user
+      should not be blocked on that before redirecting
+      to the dashboard.
+
+      Any failure here is logged, not thrown - a failed
+      Gmail sync init should never break the login flow.
+    */
+
+    initializeGmailSync(
+      req.user._id
+    ).catch((error) => {
+      console.error(
+        `[GMAIL SYNC INIT] Failed for user ${req.user._id}:`,
+        error
+      );
+    });
 
     return res.redirect(
       `${process.env.CLIENT_URL}/dashboard`

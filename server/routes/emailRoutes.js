@@ -42,10 +42,10 @@ router.get("/", getEmails);
 
 /* =========================================================
    SEND NEW EMAIL
-   POST /api/emails
+   POST /api/emails/send
 ========================================================= */
 
-router.post("/", sendNewEmail);
+router.post("/send", sendNewEmail);
 
 /* =========================================================
    EMAIL ACTION ROUTES

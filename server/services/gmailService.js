@@ -1,19 +1,27 @@
 const { google } = require("googleapis");
+
 const mongoose = require("mongoose");
 
 const User = require("../models/User");
+
+const GmailEmail = require("../models/GmailEmail");
+
+const GmailSyncState = require("../models/GmailSyncState");
+
 const ApiError = require("../utils/apiError");
 
 /* =========================================================
    CONSTANTS
 ========================================================= */
 
-const DEFAULT_MAX_RESULTS = 100;
-const MAX_RESULTS_LIMIT = 500;
-const REQUEST_CONCURRENCY = 10;
+const DEFAULT_MAX_RESULTS = 25;
+
+const MAX_RESULTS_LIMIT = 50;
+
+const REQUEST_CONCURRENCY = 3;
 
 /* =========================================================
-   HELPERS
+   VALIDATION
 ========================================================= */
 
 const validateUserId = (userId) => {
@@ -46,6 +54,10 @@ const validateMessageId = (messageId) => {
   return cleanMessageId;
 };
 
+/* =========================================================
+   HEADER HELPERS
+========================================================= */
+
 const getHeader = (headers = [], name = "") => {
   if (!Array.isArray(headers)) {
     return "";
@@ -74,25 +86,17 @@ const parseEmailAddress = (value = "") => {
 
   const trimmedValue = value.trim();
 
-  const angleMatch = trimmedValue.match(
-    /^(.*?)<([^<>\s]+@[^<>\s]+)>$/,
-  );
+  const angleMatch = trimmedValue.match(/^(.*?)<([^<>\s]+@[^<>\s]+)>$/);
 
   if (angleMatch) {
     return {
-      name: angleMatch[1]
-        .trim()
-        .replace(/^["']|["']$/g, ""),
+      name: angleMatch[1].trim().replace(/^["']|["']$/g, ""),
 
-      email: angleMatch[2]
-        .trim()
-        .toLowerCase(),
+      email: angleMatch[2].trim().toLowerCase(),
     };
   }
 
-  const emailMatch = trimmedValue.match(
-    /^[^<>\s]+@[^<>\s]+$/,
-  );
+  const emailMatch = trimmedValue.match(/^[^<>\s]+@[^<>\s]+$/);
 
   if (emailMatch) {
     return {
@@ -115,7 +119,9 @@ const splitEmailAddresses = (value = "") => {
   const addresses = [];
 
   let current = "";
+
   let inQuotes = false;
+
   let angleDepth = 0;
 
   for (let index = 0; index < value.length; index += 1) {
@@ -129,24 +135,17 @@ const splitEmailAddresses = (value = "") => {
       angleDepth += 1;
     }
 
-    if (
-      char === ">" &&
-      !inQuotes &&
-      angleDepth > 0
-    ) {
+    if (char === ">" && !inQuotes && angleDepth > 0) {
       angleDepth -= 1;
     }
 
-    if (
-      char === "," &&
-      !inQuotes &&
-      angleDepth === 0
-    ) {
+    if (char === "," && !inQuotes && angleDepth === 0) {
       if (current.trim()) {
         addresses.push(current.trim());
       }
 
       current = "";
+
       continue;
     }
 
@@ -180,9 +179,7 @@ const normalizeLabelIds = (labelIds) => {
       .map((label) => String(label).trim())
       .filter(Boolean);
 
-    return cleaned.length > 0
-      ? cleaned
-      : undefined;
+    return cleaned.length ? cleaned : undefined;
   }
 
   if (typeof labelIds === "string") {
@@ -191,16 +188,14 @@ const normalizeLabelIds = (labelIds) => {
       .map((label) => label.trim())
       .filter(Boolean);
 
-    return cleaned.length > 0
-      ? cleaned
-      : undefined;
+    return cleaned.length ? cleaned : undefined;
   }
 
   return undefined;
 };
 
 /* =========================================================
-   BASE64 HELPERS
+   BASE64
 ========================================================= */
 
 const decodeBase64Url = (data = "") => {
@@ -209,24 +204,16 @@ const decodeBase64Url = (data = "") => {
   }
 
   try {
-    const base64 = data
-      .replace(/-/g, "+")
-      .replace(/_/g, "/");
+    const base64 = data.replace(/-/g, "+").replace(/_/g, "/");
 
-    return Buffer.from(
-      base64,
-      "base64",
-    ).toString("utf-8");
-  } catch (error) {
+    return Buffer.from(base64, "base64").toString("utf-8");
+  } catch {
     return "";
   }
 };
 
 const encodeBase64Url = (value = "") => {
-  return Buffer.from(
-    value,
-    "utf-8",
-  )
+  return Buffer.from(value, "utf-8")
     .toString("base64")
     .replace(/\+/g, "-")
     .replace(/\//g, "_")
@@ -234,13 +221,10 @@ const encodeBase64Url = (value = "") => {
 };
 
 /* =========================================================
-   DATE HELPERS
+   DATE
 ========================================================= */
 
-const formatEmailDate = (
-  dateValue,
-  internalDate,
-) => {
+const formatEmailDate = (dateValue, internalDate) => {
   if (dateValue) {
     const parsedDate = new Date(dateValue);
 
@@ -267,44 +251,31 @@ const getTimestamp = (internalDate) => {
 
   const timestamp = Number(internalDate);
 
-  if (Number.isNaN(timestamp)) {
-    return null;
-  }
-
-  return timestamp;
+  return Number.isNaN(timestamp) ? null : timestamp;
 };
 
-const formatDisplayTime = (
-  dateValue,
-  internalDate,
-) => {
-  const date = formatEmailDate(
-    dateValue,
-    internalDate,
-  );
+const formatDisplayTime = (dateValue, internalDate) => {
+  const date = formatEmailDate(dateValue, internalDate);
 
   if (!date) {
     return "";
   }
 
   try {
-    return new Intl.DateTimeFormat(
-      "en-IN",
-      {
-        day: "numeric",
-        month: "short",
-        year: "numeric",
-        hour: "numeric",
-        minute: "2-digit",
-      },
-    ).format(new Date(date));
-  } catch (error) {
+    return new Intl.DateTimeFormat("en-IN", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    }).format(new Date(date));
+  } catch {
     return date;
   }
 };
 
 /* =========================================================
-   EXTRACT EMAIL BODY
+   BODY
 ========================================================= */
 
 const extractEmailBody = (
@@ -320,26 +291,16 @@ const extractEmailBody = (
 
   const mimeType = payload.mimeType || "";
 
-  if (
-    mimeType === "text/plain" &&
-    payload.body?.data
-  ) {
-    const decoded = decodeBase64Url(
-      payload.body.data,
-    );
+  if (mimeType === "text/plain" && payload.body?.data) {
+    const decoded = decodeBase64Url(payload.body.data);
 
     if (decoded && !result.text) {
       result.text = decoded;
     }
   }
 
-  if (
-    mimeType === "text/html" &&
-    payload.body?.data
-  ) {
-    const decoded = decodeBase64Url(
-      payload.body.data,
-    );
+  if (mimeType === "text/html" && payload.body?.data) {
+    const decoded = decodeBase64Url(payload.body.data);
 
     if (decoded && !result.html) {
       result.html = decoded;
@@ -347,55 +308,35 @@ const extractEmailBody = (
   }
 
   if (Array.isArray(payload.parts)) {
-    payload.parts.forEach((part) => {
-      extractEmailBody(
-        part,
-        result,
-      );
-    });
+    payload.parts.forEach((part) => extractEmailBody(part, result));
   }
 
   return result;
 };
 
 /* =========================================================
-   EXTRACT ATTACHMENTS
+   ATTACHMENTS
 ========================================================= */
 
-const extractAttachments = (
-  payload,
-  attachments = [],
-) => {
+const extractAttachments = (payload, attachments = []) => {
   if (!payload) {
     return attachments;
   }
 
-  if (
-    payload.filename &&
-    payload.body?.attachmentId
-  ) {
+  if (payload.filename && payload.body?.attachmentId) {
     attachments.push({
       filename: payload.filename,
 
-      mimeType:
-        payload.mimeType ||
-        "application/octet-stream",
+      mimeType: payload.mimeType || "application/octet-stream",
 
-      size:
-        Number(payload.body.size) || 0,
+      size: Number(payload.body.size) || 0,
 
-      attachmentId:
-        payload.body.attachmentId,
+      attachmentId: payload.body.attachmentId,
     });
   }
 
   if (Array.isArray(payload.parts)) {
-    payload.parts.forEach((part) => {
-      extractAttachments(
-        part,
-        attachments,
-      );
-    });
+    payload.parts.forEach((part) => extractAttachments(part, attachments));
   }
 
   return attachments;
@@ -406,310 +347,100 @@ const hasAttachments = (payload) => {
     return false;
   }
 
-  if (
-    payload.filename &&
-    (
-      payload.body?.attachmentId ||
-      payload.body?.size > 0
-    )
-  ) {
+  if (payload.filename && payload.body?.attachmentId) {
     return true;
   }
 
   if (Array.isArray(payload.parts)) {
-    return payload.parts.some(
-      hasAttachments,
-    );
+    return payload.parts.some((part) => hasAttachments(part));
   }
 
   return false;
 };
 
 /* =========================================================
-   GMAIL ERROR HANDLER
+   FORMAT EMAIL
 ========================================================= */
 
-const handleGmailError = (error) => {
-  if (error instanceof ApiError) {
-    throw error;
-  }
+const formatEmail = (message = {}) => {
+  const payload = message.payload || {};
 
-  const status =
-    error?.code ||
-    error?.response?.status ||
-    error?.status;
+  const headers = payload.headers || [];
 
-  const message =
-    error?.response?.data?.error?.message ||
-    error?.message ||
-    "Gmail request failed";
+  const fromHeader = getHeader(headers, "From");
 
-  if (status === 400) {
-    throw new ApiError(
-      400,
-      message,
-    );
-  }
+  const toHeader = getHeader(headers, "To");
 
-  if (status === 401) {
-    throw new ApiError(
-      401,
-      "Gmail authentication expired. Please reconnect your Google account.",
-    );
-  }
+  const ccHeader = getHeader(headers, "Cc");
 
-  if (status === 403) {
-    throw new ApiError(
-      403,
-      `Gmail permission denied: ${message}`,
-    );
-  }
+  const bccHeader = getHeader(headers, "Bcc");
 
-  if (status === 404) {
-    throw new ApiError(
-      404,
-      "Email not found",
-    );
-  }
+  const subject = getHeader(headers, "Subject");
 
-  if (status === 429) {
-    throw new ApiError(
-      429,
-      "Too many Gmail requests. Please try again shortly.",
-    );
-  }
+  const dateHeader = getHeader(headers, "Date");
 
-  throw new ApiError(
-    status || 500,
-    message,
-  );
-};
+  const parsedFrom = parseEmailAddress(fromHeader);
 
-/* =========================================================
-   GOOGLE OAUTH
-========================================================= */
+  const to = parseEmailAddresses(toHeader);
 
-const getOAuthClient = async (
-  userId,
-) => {
-  validateUserId(userId);
+  const cc = parseEmailAddresses(ccHeader);
 
-  const user = await User.findById(
-    userId,
-  ).select(
-    "+googleAccessToken " +
-      "+googleRefreshToken " +
-      "+googleTokenExpiry",
-  );
+  const bcc = parseEmailAddresses(bccHeader);
 
-  if (!user) {
-    throw new ApiError(
-      404,
-      "User not found",
-    );
-  }
+  const labels = Array.isArray(message.labelIds) ? message.labelIds : [];
 
-  if (!user.googleRefreshToken) {
-    throw new ApiError(
-      401,
-      "Gmail is not connected. Please reconnect your Google account.",
-    );
-  }
+  const body = extractEmailBody(payload);
 
-  if (
-    !process.env.GOOGLE_CLIENT_ID ||
-    !process.env.GOOGLE_CLIENT_SECRET ||
-    !process.env.GOOGLE_CALLBACK_URL
-  ) {
-    throw new ApiError(
-      500,
-      "Google OAuth configuration is incomplete",
-    );
-  }
+  const attachmentList = extractAttachments(payload);
 
-  const oauth2Client =
-    new google.auth.OAuth2(
-      process.env.GOOGLE_CLIENT_ID,
-      process.env.GOOGLE_CLIENT_SECRET,
-      process.env.GOOGLE_CALLBACK_URL,
-    );
+  const internalDate = message.internalDate || null;
 
-  oauth2Client.setCredentials({
-    access_token:
-      user.googleAccessToken ||
-      undefined,
-
-    refresh_token:
-      user.googleRefreshToken,
-
-    expiry_date:
-      user.googleTokenExpiry
-        ? new Date(
-            user.googleTokenExpiry,
-          ).getTime()
-        : undefined,
-  });
-
-  oauth2Client.on(
-    "tokens",
-    async (tokens) => {
-      try {
-        const updates = {};
-
-        if (tokens.access_token) {
-          updates.googleAccessToken =
-            tokens.access_token;
-        }
-
-        if (tokens.refresh_token) {
-          updates.googleRefreshToken =
-            tokens.refresh_token;
-        }
-
-        if (tokens.expiry_date) {
-          updates.googleTokenExpiry =
-            new Date(
-              tokens.expiry_date,
-            );
-        }
-
-        if (
-          Object.keys(updates).length > 0
-        ) {
-          await User.findByIdAndUpdate(
-            userId,
-            {
-              $set: updates,
-            },
-          );
-        }
-      } catch (error) {
-        console.error(
-          "Failed to save refreshed Google token:",
-          error.message,
-        );
-      }
-    },
-  );
-
-  return oauth2Client;
-};
-
-const getGmailClient = async (
-  userId,
-) => {
-  try {
-    const auth =
-      await getOAuthClient(userId);
-
-    return google.gmail({
-      version: "v1",
-      auth,
-    });
-  } catch (error) {
-    handleGmailError(error);
-  }
-};
-
-/* =========================================================
-   FORMAT EMAIL FOR LIST
-========================================================= */
-
-const formatEmail = (message) => {
-  const headers =
-    message.payload?.headers || [];
-
-  const fromValue =
-    getHeader(headers, "From");
-
-  const toValue =
-    getHeader(headers, "To");
-
-  const ccValue =
-    getHeader(headers, "Cc");
-
-  const bccValue =
-    getHeader(headers, "Bcc");
-
-  const subject =
-    getHeader(headers, "Subject") ||
-    "(No Subject)";
-
-  const dateValue =
-    getHeader(headers, "Date");
-
-  const from =
-    parseEmailAddress(fromValue);
-
-  const labelIds =
-    message.labelIds || [];
-
-  const date =
-    formatEmailDate(
-      dateValue,
-      message.internalDate,
-    );
+  const date = formatEmailDate(dateHeader, internalDate);
 
   return {
-    id: message.id,
+    id: message.id || "",
 
-    threadId: message.threadId,
+    threadId: message.threadId || "",
 
-    from,
+    from: parsedFrom,
 
-    sender:
-      from.name ||
-      from.email ||
-      "Unknown Sender",
+    sender: parsedFrom.name || parsedFrom.email || "Unknown Sender",
 
-    senderEmail:
-      from.email || "",
+    senderEmail: parsedFrom.email || "",
 
-    to:
-      parseEmailAddresses(toValue),
+    to,
 
-    cc:
-      parseEmailAddresses(ccValue),
+    cc,
 
-    bcc:
-      parseEmailAddresses(bccValue),
+    bcc,
 
-    subject,
+    subject: subject || "(No Subject)",
 
-    snippet:
-      message.snippet || "",
+    snippet: message.snippet || "",
 
     date,
 
-    time:
-      formatDisplayTime(
-        dateValue,
-        message.internalDate,
-      ),
+    timestamp: getTimestamp(internalDate),
 
-    timestamp:
-      getTimestamp(
-        message.internalDate,
-      ),
+    internalDate,
 
-    internalDate:
-      message.internalDate || null,
+    labels,
 
-    labels: labelIds,
+    isRead: !labels.includes("UNREAD"),
 
-    isRead:
-      !labelIds.includes("UNREAD"),
+    isStarred: labels.includes("STARRED"),
 
-    isStarred:
-      labelIds.includes("STARRED"),
+    isImportant: labels.includes("IMPORTANT"),
 
-    isImportant:
-      labelIds.includes("IMPORTANT"),
+    isSent: labels.includes("SENT"),
 
-    hasAttachments:
-      hasAttachments(
-        message.payload,
-      ),
+    hasAttachments: attachmentList.length > 0,
+
+    body,
+
+    attachments: attachmentList,
+
+    historyId: message.historyId || null,
   };
 };
 
@@ -717,140 +448,1019 @@ const formatEmail = (message) => {
    FORMAT FULL EMAIL
 ========================================================= */
 
-const formatFullEmail = (message) => {
-  const headers =
-    message.payload?.headers || [];
-
-  const fromValue =
-    getHeader(headers, "From");
-
-  const toValue =
-    getHeader(headers, "To");
-
-  const ccValue =
-    getHeader(headers, "Cc");
-
-  const bccValue =
-    getHeader(headers, "Bcc");
-
-  const subject =
-    getHeader(headers, "Subject") ||
-    "(No Subject)";
-
-  const dateValue =
-    getHeader(headers, "Date");
-
-  const from =
-    parseEmailAddress(fromValue);
-
-  const body =
-    extractEmailBody(
-      message.payload,
-    );
-
-  const attachments =
-    extractAttachments(
-      message.payload,
-    );
-
-  const labelIds =
-    message.labelIds || [];
-
-  const date =
-    formatEmailDate(
-      dateValue,
-      message.internalDate,
-    );
+const formatFullEmail = (message = {}) => {
+  const email = formatEmail(message);
 
   return {
-    id: message.id,
-
-    threadId: message.threadId,
-
-    from,
-
-    /* Frontend compatibility */
-
-    sender:
-      from.name ||
-      from.email ||
-      "Unknown Sender",
-
-    senderEmail:
-      from.email || "",
-
-    to:
-      parseEmailAddresses(toValue),
-
-    cc:
-      parseEmailAddresses(ccValue),
-
-    bcc:
-      parseEmailAddresses(bccValue),
-
-    subject,
-
-    snippet:
-      message.snippet || "",
+    ...email,
 
     body: {
-      text:
-        body.text || "",
+      text: email.body?.text || "",
 
-      html:
-        body.html || "",
+      html: email.body?.html || "",
     },
 
-    date,
-
-    time:
-      formatDisplayTime(
-        dateValue,
-        message.internalDate,
-      ),
-
-    timestamp:
-      getTimestamp(
-        message.internalDate,
-      ),
-
-    internalDate:
-      message.internalDate || null,
-
-    labels: labelIds,
-
-    isRead:
-      !labelIds.includes("UNREAD"),
-
-    isStarred:
-      labelIds.includes("STARRED"),
-
-    isImportant:
-      labelIds.includes("IMPORTANT"),
-
-    isSent:
-      labelIds.includes("SENT"),
-
-    attachments,
-
-    hasAttachments:
-      attachments.length > 0,
+    attachments: Array.isArray(email.attachments) ? email.attachments : [],
   };
 };
 
 /* =========================================================
-   FETCH MESSAGE METADATA
+   ERROR HANDLER
 ========================================================= */
 
-const getMessageMetadata = async (
-  gmail,
-  messageId,
-) => {
-  const cleanMessageId =
-    validateMessageId(messageId);
+const handleGmailError = (error) => {
+  const status = error?.response?.status;
 
-  const response =
-    await gmail.users.messages.get({
+  const message =
+    error?.response?.data?.error?.message ||
+    error?.message ||
+    "Gmail request failed";
+
+  const lowerMessage = String(message).toLowerCase();
+
+  if (
+    status === 429 ||
+    lowerMessage.includes("quota exceeded") ||
+    lowerMessage.includes("rate limit") ||
+    lowerMessage.includes("too many requests") ||
+    lowerMessage.includes("resource exhausted")
+  ) {
+    throw new ApiError(
+      429,
+      "Gmail API quota exceeded. Please try again later.",
+    );
+  }
+
+  if (
+    status === 401 ||
+    lowerMessage.includes("invalid credentials") ||
+    lowerMessage.includes("unauthorized")
+  ) {
+    throw new ApiError(
+      401,
+      "Gmail authentication expired. Please reconnect Gmail.",
+    );
+  }
+
+  if (status === 403) {
+    throw new ApiError(403, message);
+  }
+
+  if (status === 404) {
+    throw new ApiError(404, "Gmail resource not found");
+  }
+
+  throw error;
+};
+
+/* =========================================================
+   OAUTH CLIENT
+========================================================= */
+
+const getOAuthClient = async (userId) => {
+  validateUserId(userId);
+
+  const user = await User.findById(userId).select(
+    "+googleAccessToken +googleRefreshToken +googleTokenExpiry",
+  );
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  const refreshToken = user.googleRefreshToken || user.refreshToken;
+
+  if (!refreshToken) {
+    throw new ApiError(401, "Gmail is not connected");
+  }
+
+  const oauth2Client = new google.auth.OAuth2(
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_SECRET,
+    process.env.GOOGLE_CALLBACK_URL,
+  );
+
+  oauth2Client.setCredentials({
+    refresh_token: refreshToken,
+  });
+
+  return oauth2Client;
+};
+
+/* =========================================================
+   GMAIL CLIENT
+========================================================= */
+
+const getGmailClient = async (userId) => {
+  const auth = await getOAuthClient(userId);
+
+  return google.gmail({
+    version: "v1",
+    auth,
+  });
+};
+
+/* =========================================================
+   MONGO PAGE TOKEN
+========================================================= */
+
+const encodeMongoPageToken = (offset) => {
+  return Buffer.from(
+    JSON.stringify({
+      offset,
+    }),
+    "utf-8",
+  )
+    .toString("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+};
+
+const decodeMongoPageToken = (token) => {
+  if (!token) {
+    return 0;
+  }
+
+  try {
+    const normalized = String(token).replace(/-/g, "+").replace(/_/g, "/");
+
+    const padded = normalized + "=".repeat((4 - (normalized.length % 4)) % 4);
+
+    const decoded = JSON.parse(Buffer.from(padded, "base64").toString("utf-8"));
+
+    const offset = Number(decoded?.offset);
+
+    if (!Number.isInteger(offset) || offset < 0) {
+      return 0;
+    }
+
+    return offset;
+  } catch {
+    return 0;
+  }
+};
+
+/* =========================================================
+   BUILD MONGO QUERY
+========================================================= */
+
+const buildMongoEmailQuery = (userId, labelIds, query) => {
+  const mongoQuery = {
+    user: userId,
+  };
+
+  const normalizedLabels = normalizeLabelIds(labelIds);
+
+  if (normalizedLabels?.length) {
+    mongoQuery.labels = {
+      $all: normalizedLabels,
+    };
+  }
+
+  if (!query || typeof query !== "string") {
+    return mongoQuery;
+  }
+
+  const parts = query.trim().split(/\s+/).filter(Boolean);
+
+  const textParts = [];
+
+  for (const part of parts) {
+    const lowerPart = part.toLowerCase();
+
+    if (lowerPart === "is:unread") {
+      mongoQuery.isRead = false;
+      continue;
+    }
+
+    if (lowerPart === "is:read") {
+      mongoQuery.isRead = true;
+      continue;
+    }
+
+    if (lowerPart === "is:starred") {
+      mongoQuery.isStarred = true;
+      continue;
+    }
+
+    if (lowerPart === "is:important") {
+      mongoQuery.isImportant = true;
+      continue;
+    }
+
+    if (lowerPart === "is:sent" || lowerPart === "in:sent") {
+      mongoQuery.labels = {
+        ...(mongoQuery.labels || {}),
+        $all: [...(mongoQuery.labels?.$all || []), "SENT"],
+      };
+
+      continue;
+    }
+
+    if (lowerPart === "in:trash") {
+      mongoQuery.labels = {
+        ...(mongoQuery.labels || {}),
+        $all: [...(mongoQuery.labels?.$all || []), "TRASH"],
+      };
+
+      continue;
+    }
+
+    if (lowerPart === "in:drafts") {
+      mongoQuery.labels = {
+        ...(mongoQuery.labels || {}),
+        $all: [...(mongoQuery.labels?.$all || []), "DRAFT"],
+      };
+
+      continue;
+    }
+
+    if (lowerPart.startsWith("from:")) {
+      const value = part.slice(5).trim();
+
+      if (value) {
+        mongoQuery.$or = [
+          ...(mongoQuery.$or || []),
+          {
+            senderEmail: {
+              $regex: value,
+              $options: "i",
+            },
+          },
+          {
+            sender: {
+              $regex: value,
+              $options: "i",
+            },
+          },
+        ];
+      }
+
+      continue;
+    }
+
+    if (lowerPart.startsWith("to:")) {
+      const value = part.slice(3).trim();
+
+      if (value) {
+        mongoQuery.$or = [
+          ...(mongoQuery.$or || []),
+          {
+            "to.email": {
+              $regex: value,
+              $options: "i",
+            },
+          },
+          {
+            "to.name": {
+              $regex: value,
+              $options: "i",
+            },
+          },
+        ];
+      }
+
+      continue;
+    }
+
+    if (lowerPart.startsWith("subject:")) {
+      const value = part.slice(8).trim();
+
+      if (value) {
+        mongoQuery.subject = {
+          $regex: value,
+          $options: "i",
+        };
+      }
+
+      continue;
+    }
+
+    if (lowerPart.startsWith("has:attachment")) {
+      mongoQuery.hasAttachments = true;
+
+      continue;
+    }
+
+    textParts.push(part);
+  }
+
+  if (textParts.length) {
+    const textSearch = textParts.join(" ");
+
+    const textRegex = {
+      $regex: textSearch,
+      $options: "i",
+    };
+
+    const textConditions = [
+      {
+        subject: textRegex,
+      },
+      {
+        snippet: textRegex,
+      },
+      {
+        sender: textRegex,
+      },
+      {
+        senderEmail: textRegex,
+      },
+      {
+        "body.text": textRegex,
+      },
+      {
+        "body.html": textRegex,
+      },
+    ];
+
+    mongoQuery.$and = [
+      ...(mongoQuery.$and || []),
+      {
+        $or: textConditions,
+      },
+    ];
+  }
+
+  return mongoQuery;
+};
+
+const serializeCachedEmail = (email, full = false) => {
+  if (!email) {
+    return null;
+  }
+
+  const labels = Array.isArray(email.labels) ? email.labels : [];
+
+  const formatted = {
+    id: email.gmailMessageId,
+
+    threadId: email.threadId,
+
+    from: email.from || {
+      name: email.sender || "",
+
+      email: email.senderEmail || "",
+    },
+
+    sender:
+      email.sender || email.from?.name || email.from?.email || "Unknown Sender",
+
+    senderEmail: email.senderEmail || email.from?.email || "",
+
+    to: Array.isArray(email.to) ? email.to : [],
+
+    cc: Array.isArray(email.cc) ? email.cc : [],
+
+    bcc: Array.isArray(email.bcc) ? email.bcc : [],
+
+    subject: email.subject || "(No Subject)",
+
+    snippet: email.snippet || "",
+
+    date:
+      email.date ||
+      (email.internalDate
+        ? new Date(Number(email.internalDate)).toISOString()
+        : null),
+
+    time: formatDisplayTime(email.date, email.internalDate),
+
+    timestamp: email.timestamp || getTimestamp(email.internalDate),
+
+    internalDate: email.internalDate || null,
+
+    labels,
+
+    isRead:
+      typeof email.isRead === "boolean"
+        ? email.isRead
+        : !labels.includes("UNREAD"),
+
+    isStarred:
+      typeof email.isStarred === "boolean"
+        ? email.isStarred
+        : labels.includes("STARRED"),
+
+    isImportant:
+      typeof email.isImportant === "boolean"
+        ? email.isImportant
+        : labels.includes("IMPORTANT"),
+
+    isSent:
+      typeof email.isSent === "boolean"
+        ? email.isSent
+        : labels.includes("SENT"),
+
+    hasAttachments: Boolean(email.hasAttachments || email.attachments?.length),
+  };
+
+  if (full) {
+    formatted.body = {
+      text: email.body?.text || "",
+
+      html: email.body?.html || "",
+    };
+
+    formatted.attachments = Array.isArray(email.attachments)
+      ? email.attachments
+      : [];
+  }
+
+  return formatted;
+};
+
+/* =========================================================
+   LIST EMAILS — MONGODB ONLY
+========================================================= */
+
+const listEmails = async (userId, options = {}) => {
+  try {
+    validateUserId(userId);
+
+    const {
+      maxResults = DEFAULT_MAX_RESULTS,
+
+      pageToken,
+
+      labelIds,
+
+      query,
+    } = options;
+
+    const requestedLimit = Number(maxResults) || DEFAULT_MAX_RESULTS;
+
+    const limit = Math.min(Math.max(requestedLimit, 1), MAX_RESULTS_LIMIT);
+
+    const offset = decodeMongoPageToken(pageToken);
+
+    const mongoQuery = buildMongoEmailQuery(userId, labelIds, query);
+
+    const [emails, total] = await Promise.all([
+      GmailEmail.find(mongoQuery)
+        .sort({
+          internalDate: -1,
+          timestamp: -1,
+          _id: -1,
+        })
+        .skip(offset)
+        .limit(limit)
+        .lean(),
+
+      GmailEmail.countDocuments(mongoQuery),
+    ]);
+
+    const formattedEmails = emails.map((email) =>
+      serializeCachedEmail(email, false),
+    );
+
+    const nextOffset = offset + formattedEmails.length;
+
+    const nextPageToken =
+      nextOffset < total ? encodeMongoPageToken(nextOffset) : null;
+
+    return {
+      messages: formattedEmails,
+
+      nextPageToken,
+
+      resultSizeEstimate: total,
+    };
+  } catch (error) {
+    handleGmailError(error);
+  }
+};
+
+/* =========================================================
+   GET EMAIL BY ID — MONGODB ONLY
+========================================================= */
+
+const getEmailById = async (userId, messageId) => {
+  try {
+    validateUserId(userId);
+
+    const cleanMessageId = validateMessageId(messageId);
+
+    const email = await GmailEmail.findOne({
+      user: userId,
+
+      gmailMessageId: cleanMessageId,
+    }).lean();
+
+    if (!email) {
+      throw new ApiError(404, "Email not found");
+    }
+
+    return serializeCachedEmail(email, true);
+  } catch (error) {
+    handleGmailError(error);
+  }
+};
+
+/* =========================================================
+   GET EMAIL THREAD — MONGODB ONLY
+========================================================= */
+
+const getEmailThread = async (userId, messageId) => {
+  try {
+    validateUserId(userId);
+
+    const cleanMessageId = validateMessageId(messageId);
+
+    const selectedEmail = await GmailEmail.findOne({
+      user: userId,
+
+      gmailMessageId: cleanMessageId,
+    }).lean();
+
+    if (!selectedEmail) {
+      throw new ApiError(404, "Email not found");
+    }
+
+    const threadId = selectedEmail.threadId;
+
+    if (!threadId) {
+      return [serializeCachedEmail(selectedEmail, true)];
+    }
+
+    const threadEmails = await GmailEmail.find({
+      user: userId,
+
+      threadId,
+    })
+      .sort({
+        internalDate: 1,
+        timestamp: 1,
+        _id: 1,
+      })
+      .lean();
+
+    return threadEmails.map((email) => serializeCachedEmail(email, true));
+  } catch (error) {
+    handleGmailError(error);
+  }
+};
+
+/* =========================================================
+   UPDATE CACHED EMAIL
+========================================================= */
+
+const updateCachedEmail = async (userId, messageId, gmail) => {
+  const cleanMessageId = validateMessageId(messageId);
+
+  const response = await gmail.users.messages.get({
+    userId: "me",
+
+    id: cleanMessageId,
+
+    format: "full",
+  });
+
+  const email = formatFullEmail(response.data);
+
+  const updated = await GmailEmail.findOneAndUpdate(
+    {
+      user: userId,
+
+      gmailMessageId: cleanMessageId,
+    },
+
+    {
+      $set: {
+        user: userId,
+
+        gmailMessageId: email.id,
+
+        threadId: email.threadId,
+
+        from: email.from,
+
+        sender: email.sender,
+
+        senderEmail: email.senderEmail,
+
+        to: email.to,
+
+        cc: email.cc,
+
+        bcc: email.bcc,
+
+        subject: email.subject,
+
+        snippet: email.snippet,
+
+        date: email.date,
+
+        timestamp: email.timestamp,
+
+        internalDate: email.internalDate,
+
+        labels: email.labels,
+
+        isRead: email.isRead,
+
+        isStarred: email.isStarred,
+
+        isImportant: email.isImportant,
+
+        isSent: email.isSent,
+
+        hasAttachments: email.hasAttachments,
+
+        body: email.body,
+
+        attachments: email.attachments,
+
+        historyId: response.data.historyId || null,
+      },
+    },
+
+    {
+      upsert: true,
+
+      new: true,
+    },
+  ).lean();
+
+  return serializeCachedEmail(updated, true);
+};
+
+/* =========================================================
+   MARK AS READ
+========================================================= */
+
+const markEmailAsRead = async (userId, messageId) => {
+  try {
+    validateUserId(userId);
+
+    const cleanMessageId = validateMessageId(messageId);
+
+    const gmail = await getGmailClient(userId);
+
+    await gmail.users.messages.modify({
+      userId: "me",
+
+      id: cleanMessageId,
+
+      requestBody: {
+        removeLabelIds: ["UNREAD"],
+      },
+    });
+
+    return await updateCachedEmail(userId, cleanMessageId, gmail);
+  } catch (error) {
+    handleGmailError(error);
+  }
+};
+
+/* =========================================================
+   MARK AS UNREAD
+========================================================= */
+
+const markEmailAsUnread = async (userId, messageId) => {
+  try {
+    validateUserId(userId);
+
+    const cleanMessageId = validateMessageId(messageId);
+
+    const gmail = await getGmailClient(userId);
+
+    await gmail.users.messages.modify({
+      userId: "me",
+
+      id: cleanMessageId,
+
+      requestBody: {
+        addLabelIds: ["UNREAD"],
+      },
+    });
+
+    return await updateCachedEmail(userId, cleanMessageId, gmail);
+  } catch (error) {
+    handleGmailError(error);
+  }
+};
+
+/* =========================================================
+   STAR EMAIL
+========================================================= */
+
+const starEmail = async (userId, messageId) => {
+  try {
+    validateUserId(userId);
+
+    const cleanMessageId = validateMessageId(messageId);
+
+    const gmail = await getGmailClient(userId);
+
+    await gmail.users.messages.modify({
+      userId: "me",
+
+      id: cleanMessageId,
+
+      requestBody: {
+        addLabelIds: ["STARRED"],
+      },
+    });
+
+    return await updateCachedEmail(userId, cleanMessageId, gmail);
+  } catch (error) {
+    handleGmailError(error);
+  }
+};
+
+/* =========================================================
+   UNSTAR EMAIL
+========================================================= */
+
+const unstarEmail = async (userId, messageId) => {
+  try {
+    validateUserId(userId);
+
+    const cleanMessageId = validateMessageId(messageId);
+
+    const gmail = await getGmailClient(userId);
+
+    await gmail.users.messages.modify({
+      userId: "me",
+
+      id: cleanMessageId,
+
+      requestBody: {
+        removeLabelIds: ["STARRED"],
+      },
+    });
+
+    return await updateCachedEmail(userId, cleanMessageId, gmail);
+  } catch (error) {
+    handleGmailError(error);
+  }
+};
+
+/* =========================================================
+   ARCHIVE EMAIL
+========================================================= */
+
+const archiveEmail = async (userId, messageId) => {
+  try {
+    validateUserId(userId);
+
+    const cleanMessageId = validateMessageId(messageId);
+
+    const gmail = await getGmailClient(userId);
+
+    await gmail.users.messages.modify({
+      userId: "me",
+
+      id: cleanMessageId,
+
+      requestBody: {
+        removeLabelIds: ["INBOX"],
+      },
+    });
+
+    return await updateCachedEmail(userId, cleanMessageId, gmail);
+  } catch (error) {
+    handleGmailError(error);
+  }
+};
+
+/* =========================================================
+   MOVE TO INBOX
+========================================================= */
+
+const moveToInbox = async (userId, messageId) => {
+  try {
+    validateUserId(userId);
+
+    const cleanMessageId = validateMessageId(messageId);
+
+    const gmail = await getGmailClient(userId);
+
+    await gmail.users.messages.modify({
+      userId: "me",
+
+      id: cleanMessageId,
+
+      requestBody: {
+        addLabelIds: ["INBOX"],
+
+        removeLabelIds: ["TRASH"],
+      },
+    });
+
+    return await updateCachedEmail(userId, cleanMessageId, gmail);
+  } catch (error) {
+    handleGmailError(error);
+  }
+};
+
+/* =========================================================
+   TRASH EMAIL
+========================================================= */
+
+const trashEmail = async (userId, messageId) => {
+  try {
+    validateUserId(userId);
+
+    const cleanMessageId = validateMessageId(messageId);
+
+    const gmail = await getGmailClient(userId);
+
+    await gmail.users.messages.trash({
+      userId: "me",
+
+      id: cleanMessageId,
+    });
+
+    return await updateCachedEmail(userId, cleanMessageId, gmail);
+  } catch (error) {
+    handleGmailError(error);
+  }
+};
+
+/* =========================================================
+   PERMANENTLY DELETE EMAIL
+========================================================= */
+
+const permanentlyDeleteEmail = async (userId, messageId) => {
+  try {
+    validateUserId(userId);
+
+    const cleanMessageId = validateMessageId(messageId);
+
+    const gmail = await getGmailClient(userId);
+
+    await gmail.users.messages.delete({
+      userId: "me",
+
+      id: cleanMessageId,
+    });
+
+    await GmailEmail.deleteOne({
+      user: userId,
+
+      gmailMessageId: cleanMessageId,
+    });
+
+    return {
+      success: true,
+
+      id: cleanMessageId,
+    };
+  } catch (error) {
+    handleGmailError(error);
+  }
+};
+
+/* =========================================================
+   CREATE RAW EMAIL
+========================================================= */
+
+const createRawEmail = ({
+  to,
+  cc,
+  bcc,
+  subject,
+  body,
+  html,
+  inReplyTo,
+  references,
+}) => {
+  const headers = [];
+
+  if (to) {
+    headers.push(`To: ${to}`);
+  }
+
+  if (cc) {
+    headers.push(`Cc: ${cc}`);
+  }
+
+  if (bcc) {
+    headers.push(`Bcc: ${bcc}`);
+  }
+
+  headers.push(`Subject: ${subject || ""}`);
+
+  headers.push("MIME-Version: 1.0");
+
+  if (inReplyTo) {
+    headers.push(`In-Reply-To: ${inReplyTo}`);
+  }
+
+  if (references) {
+    headers.push(`References: ${references}`);
+  }
+
+  const textBody = body || "";
+
+  const htmlBody = html || "";
+
+  if (htmlBody) {
+    const boundary = `boundary_${Date.now()}_${Math.random()
+      .toString(36)
+      .slice(2)}`;
+
+    headers.push(`Content-Type: multipart/alternative; boundary="${boundary}"`);
+
+    const raw = [
+      headers.join("\r\n"),
+      "",
+      `--${boundary}`,
+      'Content-Type: text/plain; charset="UTF-8"',
+      "",
+      textBody,
+      "",
+      `--${boundary}`,
+      'Content-Type: text/html; charset="UTF-8"',
+      "",
+      htmlBody,
+      "",
+      `--${boundary}--`,
+    ].join("\r\n");
+
+    return encodeBase64Url(raw);
+  }
+
+  headers.push('Content-Type: text/plain; charset="UTF-8"');
+
+  const raw = [headers.join("\r\n"), "", textBody].join("\r\n");
+
+  return encodeBase64Url(raw);
+};
+/* =========================================================
+   SEND NEW EMAIL
+========================================================= */
+
+const sendNewEmail = async (userId, options = {}) => {
+  try {
+    validateUserId(userId);
+
+    const { to, cc, bcc, subject, body, html } = options;
+
+    if (!to) {
+      throw new ApiError(400, "Recipient email is required");
+    }
+
+    const gmail = await getGmailClient(userId);
+
+    const raw = createRawEmail({
+      to,
+      cc,
+      bcc,
+      subject,
+      body,
+      html,
+    });
+
+    const response = await gmail.users.messages.send({
+      userId: "me",
+
+      requestBody: {
+        raw,
+      },
+    });
+
+    const messageId = response.data?.id;
+
+    if (!messageId) {
+      return response.data;
+    }
+
+    /*
+     * Fetch the newly sent message and cache it.
+     */
+    try {
+      await updateCachedEmail(userId, messageId, gmail);
+    } catch (cacheError) {
+      console.error("[GMAIL SEND] Failed to cache sent email:", cacheError);
+    }
+
+    return response.data;
+  } catch (error) {
+    handleGmailError(error);
+  }
+};
+
+/* =========================================================
+   REPLY EMAIL
+========================================================= */
+
+const replyEmail = async (userId, messageId, options = {}) => {
+  try {
+    validateUserId(userId);
+
+    const cleanMessageId = validateMessageId(messageId);
+
+    const { body, html } = options;
+
+    const gmail = await getGmailClient(userId);
+
+    /*
+     * Fetch original message headers.
+     */
+    const original = await gmail.users.messages.get({
       userId: "me",
 
       id: cleanMessageId,
@@ -861,1007 +1471,271 @@ const getMessageMetadata = async (
         "From",
         "To",
         "Cc",
-        "Bcc",
         "Subject",
-        "Date",
-      ],
-    });
-
-  return response.data;
-};
-
-/* =========================================================
-   PROCESS WITH CONCURRENCY LIMIT
-========================================================= */
-
-const processInBatches = async (
-  items = [],
-  limit = REQUEST_CONCURRENCY,
-  processor,
-) => {
-  const results = [];
-
-  for (
-    let index = 0;
-    index < items.length;
-    index += limit
-  ) {
-    const batch =
-      items.slice(
-        index,
-        index + limit,
-      );
-
-    const batchResults =
-      await Promise.all(
-        batch.map(processor),
-      );
-
-    results.push(
-      ...batchResults,
-    );
-  }
-
-  return results;
-};
-
-/* =========================================================
-   LIST EMAILS
-========================================================= */
-
-const listEmails = async (
-  userId,
-  options = {},
-) => {
-  try {
-    validateUserId(userId);
-
-    const gmail =
-      await getGmailClient(userId);
-
-    const {
-      maxResults =
-        DEFAULT_MAX_RESULTS,
-      pageToken,
-      labelIds,
-      query,
-    } = options;
-
-    const parsedMaxResults =
-      Number(maxResults);
-
-    const safeMaxResults =
-      Math.min(
-        Math.max(
-          Number.isFinite(
-            parsedMaxResults,
-          )
-            ? Math.floor(
-                parsedMaxResults,
-              )
-            : DEFAULT_MAX_RESULTS,
-          1,
-        ),
-        MAX_RESULTS_LIMIT,
-      );
-
-    const normalizedLabelIds =
-      normalizeLabelIds(labelIds);
-
-    const listResponse =
-      await gmail.users.messages.list({
-        userId: "me",
-
-        maxResults:
-          safeMaxResults,
-
-        pageToken:
-          pageToken || undefined,
-
-        labelIds:
-          normalizedLabelIds,
-
-        q:
-          typeof query ===
-          "string"
-            ? query.trim() ||
-              undefined
-            : undefined,
-      });
-
-    const messageRefs =
-      listResponse.data.messages ||
-      [];
-
-    if (
-      messageRefs.length === 0
-    ) {
-      return {
-        emails: [],
-
-        nextPageToken:
-          null,
-
-        resultSizeEstimate:
-          listResponse.data
-            .resultSizeEstimate || 0,
-      };
-    }
-
-    const messages =
-      await processInBatches(
-        messageRefs,
-        REQUEST_CONCURRENCY,
-        async (message) =>
-          getMessageMetadata(
-            gmail,
-            message.id,
-          ),
-      );
-
-    const emails =
-      messages
-        .map(formatEmail)
-        .sort(
-          (a, b) =>
-            (b.timestamp || 0) -
-            (a.timestamp || 0),
-        );
-
-    return {
-      emails,
-
-      nextPageToken:
-        listResponse.data
-          .nextPageToken || null,
-
-      resultSizeEstimate:
-        listResponse.data
-          .resultSizeEstimate || 0,
-    };
-  } catch (error) {
-    handleGmailError(error);
-  }
-};
-
-/* =========================================================
-   GET EMAIL THREAD
-========================================================= */
-
-const getEmailThread = async (
-  userId,
-  messageId,
-) => {
-  try {
-    validateUserId(userId);
-
-    const cleanMessageId =
-      validateMessageId(messageId);
-
-    const gmail =
-      await getGmailClient(userId);
-
-    const messageResponse =
-      await gmail.users.messages.get({
-        userId: "me",
-
-        id: cleanMessageId,
-
-        format: "metadata",
-      });
-
-    const threadId =
-      messageResponse.data.threadId;
-
-    if (!threadId) {
-      throw new ApiError(
-        404,
-        "Email thread not found",
-      );
-    }
-
-    const threadResponse =
-      await gmail.users.threads.get({
-        userId: "me",
-
-        id: threadId,
-
-        format: "full",
-      });
-
-    const thread =
-      threadResponse.data;
-
-    const messages =
-      (thread.messages || [])
-        .map(formatFullEmail)
-        .sort(
-          (a, b) =>
-            (a.timestamp || 0) -
-            (b.timestamp || 0),
-        );
-
-    return {
-      id: thread.id,
-
-      threadId: thread.id,
-
-      messages,
-    };
-  } catch (error) {
-    handleGmailError(error);
-  }
-};
-
-/* =========================================================
-   GET SINGLE EMAIL
-========================================================= */
-
-const getEmailById = async (
-  userId,
-  messageId,
-) => {
-  try {
-    validateUserId(userId);
-
-    const cleanMessageId =
-      validateMessageId(messageId);
-
-    const gmail =
-      await getGmailClient(userId);
-
-    const response =
-      await gmail.users.messages.get({
-        userId: "me",
-
-        id: cleanMessageId,
-
-        format: "full",
-      });
-
-    return formatFullEmail(
-      response.data,
-    );
-  } catch (error) {
-    handleGmailError(error);
-  }
-};
-
-/* =========================================================
-   MODIFY EMAIL LABELS
-========================================================= */
-
-const modifyEmailLabels = async (
-  userId,
-  messageId,
-  {
-    addLabelIds = [],
-    removeLabelIds = [],
-  } = {},
-) => {
-  try {
-    validateUserId(userId);
-
-    const cleanMessageId =
-      validateMessageId(messageId);
-
-    const gmail =
-      await getGmailClient(userId);
-
-    const response =
-      await gmail.users.messages.modify({
-        userId: "me",
-
-        id: cleanMessageId,
-
-        requestBody: {
-          addLabelIds,
-
-          removeLabelIds,
-        },
-      });
-
-    return {
-      id:
-        response.data.id,
-
-      threadId:
-        response.data.threadId,
-
-      labels:
-        response.data.labelIds ||
-        [],
-    };
-  } catch (error) {
-    handleGmailError(error);
-  }
-};
-
-/* =========================================================
-   EMAIL ACTIONS
-========================================================= */
-
-const markEmailAsRead = (
-  userId,
-  messageId,
-) => {
-  return modifyEmailLabels(
-    userId,
-    messageId,
-    {
-      removeLabelIds: [
-        "UNREAD",
-      ],
-    },
-  );
-};
-
-const markEmailAsUnread = (
-  userId,
-  messageId,
-) => {
-  return modifyEmailLabels(
-    userId,
-    messageId,
-    {
-      addLabelIds: [
-        "UNREAD",
-      ],
-    },
-  );
-};
-
-const starEmail = (
-  userId,
-  messageId,
-) => {
-  return modifyEmailLabels(
-    userId,
-    messageId,
-    {
-      addLabelIds: [
-        "STARRED",
-      ],
-    },
-  );
-};
-
-const unstarEmail = (
-  userId,
-  messageId,
-) => {
-  return modifyEmailLabels(
-    userId,
-    messageId,
-    {
-      removeLabelIds: [
-        "STARRED",
-      ],
-    },
-  );
-};
-
-const archiveEmail = (
-  userId,
-  messageId,
-) => {
-  return modifyEmailLabels(
-    userId,
-    messageId,
-    {
-      removeLabelIds: [
-        "INBOX",
-      ],
-    },
-  );
-};
-
-const moveEmailToInbox = (
-  userId,
-  messageId,
-) => {
-  return modifyEmailLabels(
-    userId,
-    messageId,
-    {
-      addLabelIds: [
-        "INBOX",
-      ],
-
-      removeLabelIds: [
-        "TRASH",
-      ],
-    },
-  );
-};
-
-/* =========================================================
-   TRASH EMAIL
-========================================================= */
-
-const trashEmail = async (
-  userId,
-  messageId,
-) => {
-  try {
-    validateUserId(userId);
-
-    const cleanMessageId =
-      validateMessageId(messageId);
-
-    const gmail =
-      await getGmailClient(userId);
-
-    const response =
-      await gmail.users.messages.trash({
-        userId: "me",
-
-        id: cleanMessageId,
-      });
-
-    return {
-      success: true,
-
-      id:
-        response.data?.id ||
-        cleanMessageId,
-
-      threadId:
-        response.data?.threadId ||
-        null,
-
-      labels:
-        response.data?.labelIds ||
-        [],
-
-      message:
-        "Email moved to trash",
-    };
-  } catch (error) {
-    handleGmailError(error);
-  }
-};
-
-/* =========================================================
-   PERMANENT DELETE
-========================================================= */
-
-const permanentlyDeleteEmail =
-  async (
-    userId,
-    messageId,
-  ) => {
-    try {
-      validateUserId(userId);
-
-      const cleanMessageId =
-        validateMessageId(
-          messageId,
-        );
-
-      const gmail =
-        await getGmailClient(
-          userId,
-        );
-
-      const messageResponse =
-        await gmail.users.messages.get({
-          userId: "me",
-
-          id: cleanMessageId,
-
-          format: "metadata",
-        });
-
-      const labels =
-        messageResponse.data
-          .labelIds || [];
-
-      if (
-        !labels.includes(
-          "TRASH",
-        )
-      ) {
-        throw new ApiError(
-          400,
-          "Email must be in trash before permanent deletion",
-        );
-      }
-
-      await gmail.users.messages.delete({
-        userId: "me",
-
-        id: cleanMessageId,
-      });
-
-      return {
-        success: true,
-
-        id: cleanMessageId,
-
-        message:
-          "Email permanently deleted",
-      };
-    } catch (error) {
-      handleGmailError(error);
-    }
-  };
-
-/* =========================================================
-   BUILD MIME BODY
-========================================================= */
-
-const buildMimeBody = ({
-  text,
-  html,
-}) => {
-  const boundary =
-    `boundary_${Date.now()}_${Math.random()
-      .toString(36)
-      .slice(2)}`;
-
-  let content = "";
-
-  if (text && html) {
-    content +=
-      `Content-Type: multipart/alternative; ` +
-      `boundary="${boundary}"\r\n\r\n`;
-
-    content +=
-      `--${boundary}\r\n`;
-
-    content +=
-      "Content-Type: text/plain; charset=UTF-8\r\n";
-
-    content +=
-      "Content-Transfer-Encoding: 8bit\r\n\r\n";
-
-    content +=
-      `${text}\r\n\r\n`;
-
-    content +=
-      `--${boundary}\r\n`;
-
-    content +=
-      "Content-Type: text/html; charset=UTF-8\r\n";
-
-    content +=
-      "Content-Transfer-Encoding: 8bit\r\n\r\n";
-
-    content +=
-      `${html}\r\n\r\n`;
-
-    content +=
-      `--${boundary}--`;
-
-    return content;
-  }
-
-  if (html) {
-    content +=
-      "Content-Type: text/html; charset=UTF-8\r\n";
-
-    content +=
-      "Content-Transfer-Encoding: 8bit\r\n\r\n";
-
-    content += html;
-
-    return content;
-  }
-
-  content +=
-    "Content-Type: text/plain; charset=UTF-8\r\n";
-
-  content +=
-    "Content-Transfer-Encoding: 8bit\r\n\r\n";
-
-  content += text || "";
-
-  return content;
-};
-
-/* =========================================================
-   SEND EMAIL
-========================================================= */
-
-const sendEmail = async (
-  userId,
-  {
-    to,
-    cc = [],
-    bcc = [],
-    subject,
-    text,
-    html,
-  } = {},
-) => {
-  try {
-    validateUserId(userId);
-
-    const normalizeRecipients =
-      (value) => {
-        if (!value) {
-          return [];
-        }
-
-        const values =
-          Array.isArray(value)
-            ? value
-            : [value];
-
-        return values
-          .flatMap((item) =>
-            typeof item === "string"
-              ? splitEmailAddresses(
-                  item,
-                )
-              : [],
-          )
-          .map((item) =>
-            item.trim(),
-          )
-          .filter(Boolean);
-      };
-
-    const toRecipients =
-      normalizeRecipients(to);
-
-    const ccRecipients =
-      normalizeRecipients(cc);
-
-    const bccRecipients =
-      normalizeRecipients(bcc);
-
-    if (
-      toRecipients.length === 0
-    ) {
-      throw new ApiError(
-        400,
-        "At least one recipient is required",
-      );
-    }
-
-    if (
-      !subject ||
-      typeof subject !== "string" ||
-      !subject.trim()
-    ) {
-      throw new ApiError(
-        400,
-        "Email subject is required",
-      );
-    }
-
-    if (!text && !html) {
-      throw new ApiError(
-        400,
-        "Email content is required",
-      );
-    }
-
-    const gmail =
-      await getGmailClient(userId);
-
-    let email = "";
-
-    email +=
-      `To: ${toRecipients.join(
-        ", ",
-      )}\r\n`;
-
-    if (
-      ccRecipients.length > 0
-    ) {
-      email +=
-        `Cc: ${ccRecipients.join(
-          ", ",
-        )}\r\n`;
-    }
-
-    if (
-      bccRecipients.length > 0
-    ) {
-      email +=
-        `Bcc: ${bccRecipients.join(
-          ", ",
-        )}\r\n`;
-    }
-
-    email +=
-      `Subject: ${subject.trim()}\r\n`;
-
-    email +=
-      "MIME-Version: 1.0\r\n";
-
-    email += buildMimeBody({
-      text,
-      html,
-    });
-
-    const raw =
-      encodeBase64Url(email);
-
-    const response =
-      await gmail.users.messages.send({
-        userId: "me",
-
-        requestBody: {
-          raw,
-        },
-      });
-
-    return {
-      id:
-        response.data.id,
-
-      threadId:
-        response.data.threadId,
-
-      labelIds:
-        response.data.labelIds ||
-        [],
-    };
-  } catch (error) {
-    handleGmailError(error);
-  }
-};
-
-/* =========================================================
-   REPLY TO EMAIL
-========================================================= */
-
-const replyToEmail = async (
-  userId,
-  messageId,
-  {
-    text,
-    html,
-    replyAll = false,
-  } = {},
-) => {
-  try {
-    validateUserId(userId);
-
-    const cleanMessageId =
-      validateMessageId(messageId);
-
-    if (!text && !html) {
-      throw new ApiError(
-        400,
-        "Reply content is required",
-      );
-    }
-
-    const gmail =
-      await getGmailClient(userId);
-
-    const originalResponse =
-      await gmail.users.messages.get({
-        userId: "me",
-
-        id: cleanMessageId,
-
-        format: "metadata",
-
-        metadataHeaders: [
-          "From",
-          "To",
-          "Cc",
-          "Subject",
-          "Message-ID",
-          "References",
-        ],
-      });
-
-    const original =
-      originalResponse.data;
-
-    const headers =
-      original.payload?.headers ||
-      [];
-
-    const from =
-      getHeader(
-        headers,
-        "From",
-      );
-
-    const to =
-      getHeader(
-        headers,
-        "To",
-      );
-
-    const cc =
-      getHeader(
-        headers,
-        "Cc",
-      );
-
-    const subject =
-      getHeader(
-        headers,
-        "Subject",
-      );
-
-    const messageIdHeader =
-      getHeader(
-        headers,
         "Message-ID",
-      );
-
-    const references =
-      getHeader(
-        headers,
         "References",
-      );
-
-    const replyRecipients =
-      parseEmailAddresses(
-        from,
-      ).map(
-        (item) =>
-          item.email,
-      );
-
-    if (
-      replyRecipients.length === 0
-    ) {
-      throw new ApiError(
-        400,
-        "Could not determine reply recipient",
-      );
-    }
-
-    let ccRecipients = [];
-
-    if (replyAll) {
-      const toRecipients =
-        parseEmailAddresses(
-          to,
-        ).map(
-          (item) =>
-            item.email,
-        );
-
-      const originalCcRecipients =
-        parseEmailAddresses(
-          cc,
-        ).map(
-          (item) =>
-            item.email,
-        );
-
-      const user =
-        await User.findById(
-          userId,
-        ).select(
-          "email",
-        );
-
-      const ownEmail =
-        user?.email?.toLowerCase();
-
-      const replyRecipientSet =
-        new Set(
-          replyRecipients.map(
-            (email) =>
-              email.toLowerCase(),
-          ),
-        );
-
-      ccRecipients = [
-        ...toRecipients,
-        ...originalCcRecipients,
-      ]
-        .filter(Boolean)
-        .filter(
-          (email) =>
-            email.toLowerCase() !==
-            ownEmail,
-        )
-        .filter(
-          (
-            email,
-            index,
-            array,
-          ) =>
-            array.findIndex(
-              (item) =>
-                item.toLowerCase() ===
-                email.toLowerCase(),
-            ) === index,
-        )
-        .filter(
-          (email) =>
-            !replyRecipientSet.has(
-              email.toLowerCase(),
-            ),
-        );
-    }
-
-    const cleanSubject =
-      subject?.trim() ||
-      "";
-
-    const replySubject =
-      cleanSubject
-        .toLowerCase()
-        .startsWith("re:")
-        ? cleanSubject
-        : `Re: ${cleanSubject}`;
-
-    let email = "";
-
-    email +=
-      `To: ${replyRecipients.join(
-        ", ",
-      )}\r\n`;
-
-    if (
-      ccRecipients.length > 0
-    ) {
-      email +=
-        `Cc: ${ccRecipients.join(
-          ", ",
-        )}\r\n`;
-    }
-
-    email +=
-      `Subject: ${replySubject}\r\n`;
-
-    if (messageIdHeader) {
-      email +=
-        `In-Reply-To: ${messageIdHeader}\r\n`;
-    }
-
-    const referenceValue = [
-      references,
-      messageIdHeader,
-    ]
-      .filter(Boolean)
-      .join(" ")
-      .trim();
-
-    if (referenceValue) {
-      email +=
-        `References: ${referenceValue}\r\n`;
-    }
-
-    email +=
-      "MIME-Version: 1.0\r\n";
-
-    email += buildMimeBody({
-      text,
-      html,
+      ],
     });
 
-    const raw =
-      encodeBase64Url(email);
+    const originalPayload = original.data?.payload || {};
 
-    const response =
-      await gmail.users.messages.send({
-        userId: "me",
+    const headers = originalPayload.headers || [];
 
-        requestBody: {
-          raw,
+    const fromHeader = getHeader(headers, "From");
 
-          threadId:
-            original.threadId,
-        },
-      });
+    const subjectHeader = getHeader(headers, "Subject");
+
+    const messageIdHeader = getHeader(headers, "Message-ID");
+
+    const referencesHeader = getHeader(headers, "References");
+
+    const parsedFrom = parseEmailAddress(fromHeader);
+
+    if (!parsedFrom.email) {
+      throw new ApiError(400, "Unable to determine reply recipient");
+    }
+
+    let replySubject = subjectHeader || "";
+
+    if (!/^re:/i.test(replySubject.trim())) {
+      replySubject = `Re: ${replySubject}`;
+    }
+
+    const references = [referencesHeader, messageIdHeader]
+      .filter(Boolean)
+      .join(" ");
+
+    const raw = createRawEmail({
+      to: parsedFrom.email,
+
+      subject: replySubject,
+
+      body: body || "",
+
+      html: html || "",
+
+      inReplyTo: messageIdHeader,
+
+      references,
+    });
+
+    const response = await gmail.users.messages.send({
+      userId: "me",
+
+      requestBody: {
+        raw,
+
+        threadId: original.data?.threadId,
+      },
+    });
+
+    const sentMessageId = response.data?.id;
+
+    if (sentMessageId) {
+      try {
+        await updateCachedEmail(userId, sentMessageId, gmail);
+      } catch (cacheError) {
+        console.error("[GMAIL REPLY] Failed to cache sent email:", cacheError);
+      }
+    }
+
+    return response.data;
+  } catch (error) {
+    handleGmailError(error);
+  }
+};
+
+/* =========================================================
+   GET ATTACHMENT
+========================================================= */
+
+const getAttachment = async (userId, messageId, attachmentId) => {
+  try {
+    validateUserId(userId);
+
+    const cleanMessageId = validateMessageId(messageId);
+
+    if (!attachmentId || typeof attachmentId !== "string") {
+      throw new ApiError(400, "Attachment ID is required");
+    }
+
+    const gmail = await getGmailClient(userId);
+
+    const response = await gmail.users.messages.attachments.get({
+      userId: "me",
+
+      messageId: cleanMessageId,
+
+      id: attachmentId,
+    });
 
     return {
-      id:
-        response.data.id,
+      data: response.data?.data || "",
 
-      threadId:
-        response.data.threadId,
-
-      labelIds:
-        response.data.labelIds ||
-        [],
+      size: response.data?.size || 0,
     };
+  } catch (error) {
+    handleGmailError(error);
+  }
+};
+
+/* =========================================================
+   START GMAIL WATCH
+========================================================= */
+
+const startGmailWatch = async (userId) => {
+  validateUserId(userId);
+
+  const topicName = process.env.GMAIL_PUBSUB_TOPIC;
+
+  if (!topicName) {
+    throw new ApiError(500, "GMAIL_PUBSUB_TOPIC is not configured");
+  }
+
+  console.log(`[GMAIL WATCH] Starting watch for user ${userId}`);
+
+  console.log(`[GMAIL WATCH] Topic: ${topicName}`);
+
+  const gmail = await getGmailClient(userId);
+
+  /*
+   * IMPORTANT:
+   *
+   * We keep the current incremental historyId.
+   *
+   * Gmail watch returns a new historyId.
+   *
+   * The new watch historyId is NOT automatically used
+   * as our sync checkpoint because that could skip events
+   * between the old checkpoint and the new watch.
+   */
+  const existingState = await GmailSyncState.findOne({
+    user: userId,
+  }).lean();
+
+  const existingHistoryId = existingState?.historyId || null;
+
+  const watchResponse = await gmail.users.watch({
+    userId: "me",
+
+    requestBody: {
+      topicName,
+    },
+  });
+
+  const {
+    historyId: watchHistoryId,
+
+    expiration,
+  } = watchResponse.data || {};
+
+  if (!watchHistoryId) {
+    throw new ApiError(500, "Gmail watch did not return a historyId");
+  }
+
+  /*
+   * Get the Gmail account address.
+   */
+  const profile = await gmail.users.getProfile({
+    userId: "me",
+  });
+
+  const emailAddress =
+    profile.data?.emailAddress || existingState?.emailAddress || "";
+
+  if (!emailAddress) {
+    throw new ApiError(500, "Unable to determine Gmail account email address");
+  }
+
+  /*
+   * FIRST WATCH:
+   *
+   * There is no previous history checkpoint.
+   *
+   * We use the watch historyId as the initial checkpoint.
+   *
+   * EXISTING WATCH:
+   *
+   * Preserve existing historyId.
+   */
+  const syncHistoryId = existingHistoryId || watchHistoryId;
+
+  const expirationDate = expiration ? new Date(Number(expiration)) : null;
+
+  await GmailSyncState.findOneAndUpdate(
+    {
+      user: userId,
+    },
+
+    {
+      $set: {
+        emailAddress: emailAddress.toLowerCase(),
+
+        historyId: syncHistoryId,
+
+        watchHistoryId: watchHistoryId,
+
+        watchExpiration: expirationDate,
+
+        syncStatus: existingState?.syncStatus || "idle",
+
+        lastError: "",
+      },
+    },
+
+    {
+      upsert: true,
+
+      new: true,
+    },
+  );
+
+  console.log(`[GMAIL WATCH] Watch started`, {
+    userId,
+
+    emailAddress,
+
+    historyId: syncHistoryId,
+
+    watchHistoryId,
+
+    expiration: expirationDate ? expirationDate.toISOString() : null,
+  });
+
+  return {
+    success: true,
+
+    emailAddress,
+
+    historyId: syncHistoryId,
+
+    watchHistoryId,
+
+    expiration: expirationDate,
+  };
+};
+
+/* =========================================================
+   GMAIL MESSAGE FETCH
+========================================================= */
+
+const getGmailMessage = async (userId, messageId, format = "full") => {
+  validateUserId(userId);
+
+  const cleanMessageId = validateMessageId(messageId);
+
+  const gmail = await getGmailClient(userId);
+
+  try {
+    const response = await gmail.users.messages.get({
+      userId: "me",
+
+      id: cleanMessageId,
+
+      format,
+    });
+
+    return response.data;
   } catch (error) {
     handleGmailError(error);
   }
@@ -1873,26 +1747,42 @@ const replyToEmail = async (
 
 module.exports = {
   getOAuthClient,
+
   getGmailClient,
 
+  formatEmail,
+
+  formatFullEmail,
+
   listEmails,
+
   getEmailById,
+
   getEmailThread,
 
-  modifyEmailLabels,
-
   markEmailAsRead,
+
   markEmailAsUnread,
 
   starEmail,
+
   unstarEmail,
 
   archiveEmail,
-  moveEmailToInbox,
+
+  moveToInbox,
 
   trashEmail,
+
   permanentlyDeleteEmail,
 
-  sendEmail,
-  replyToEmail,
+  sendNewEmail,
+
+  replyEmail,
+
+  getAttachment,
+
+  getGmailMessage,
+
+  startGmailWatch,
 };
