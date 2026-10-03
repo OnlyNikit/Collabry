@@ -17,7 +17,60 @@ import { getActingOwnerId, useMailbox } from "./MailboxContext";
 
 const EmailsContext = createContext(null);
 
-const API_URL = import.meta.env.VITE_API_URL;
+/* =========================================================
+   API + SOCKET URLS
+
+   Production me API calls relative jaati hain (Vercel rewrite => Render),
+   isse cookie first-party rehti hai. Socket seedha Render se judta hai
+   (Vercel websocket proxy nahi karta), isliye VITE_SOCKET_URL chahiye.
+========================================================= */
+
+const API_URL = import.meta.env.PROD
+  ? ""
+  : import.meta.env.VITE_API_URL || "http://localhost:8080";
+
+const SOCKET_URL = import.meta.env.PROD
+  ? import.meta.env.VITE_SOCKET_URL
+  : import.meta.env.VITE_API_URL || "http://localhost:8080";
+
+const SOCKET_TOKEN_URL = import.meta.env.PROD
+  ? "/api/auth/socket-token"
+  : `${SOCKET_URL}/api/auth/socket-token`;
+
+async function fetchSocketToken() {
+  try {
+    const response = await fetch(SOCKET_TOKEN_URL, {
+      credentials: "include",
+    });
+
+    if (!response.ok) return null;
+
+    const json = await response.json();
+
+    return json?.data?.token || null;
+  } catch {
+    return null;
+  }
+}
+
+/*
+  auth function har connect / reconnect par chalta hai,
+  isliye expire hua token apne aap naya ho jata hai.
+*/
+function createAuthedSocket() {
+  const socket = io(SOCKET_URL, {
+    withCredentials: true,
+    transports: ["websocket", "polling"],
+    autoConnect: false,
+    auth: (callback) => {
+      fetchSocketToken().then((token) => callback({ token }));
+    },
+  });
+
+  socket.connect();
+
+  return socket;
+}
 
 /* =========================================================
 CONSTANTS
@@ -1281,11 +1334,8 @@ function EmailsProviderInner({ children }) {
       return undefined;
     }
 
-    const socket = io(API_URL, {
-      withCredentials: true,
-      transports: ["websocket", "polling"],
-      autoConnect: true,
-    });
+    /* Token ke saath authenticated socket (Render se seedha) */
+    const socket = createAuthedSocket();
 
     /*
       Open thread ko silently dobara fetch karo.
