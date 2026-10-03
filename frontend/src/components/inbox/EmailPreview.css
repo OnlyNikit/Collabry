@@ -412,27 +412,25 @@
   box-sizing: border-box;
   color: var(--clb-text);
   overflow-x: hidden;
-  overflow-wrap: anywhere;
-  word-break: break-word;
+
+  /*
+    IMPORTANT: "overflow-wrap: anywhere" / "word-break: break-word"
+    table cells ki min-content width ko 0 kar dete hain, jisse
+    2-column layout me text ka column 1 letter chauda reh jata hai
+    (har letter alag line me). "break-word" sirf lambe words todta
+    hai aur layout ko nahi bigadta.
+  */
+  overflow-wrap: break-word;
   line-height: 1.7;
 }
 
-/* Email ke andar ka kuch bhi container se bada na ho */
+/* Email ka apna layout rehne do, sirf box-sizing consistent rakho */
 .clb-email-preview__html * {
-  max-width: 100% !important;
   box-sizing: border-box;
 }
 
 .clb-email-preview__html p {
   margin: 0 0 1rem;
-}
-
-.clb-email-preview__html div,
-.clb-email-preview__html span,
-.clb-email-preview__html td,
-.clb-email-preview__html th {
-  overflow-wrap: anywhere;
-  word-break: break-word;
 }
 
 .clb-email-preview__html h1,
@@ -443,7 +441,7 @@
 .clb-email-preview__html h6 {
   color: var(--clb-text);
   line-height: 1.35;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 
 .clb-email-preview__html h1 {
@@ -473,22 +471,22 @@
 
 .clb-email-preview__html a {
   color: var(--clb-primary);
-  overflow-wrap: anywhere;
-  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 /* =========================================================
    IMAGES / MEDIA
 ========================================================= */
 
-.clb-email-preview__html img,
+.clb-email-preview__html img {
+  max-width: 100%;
+  height: auto !important;
+}
+
 .clb-email-preview__html video,
 .clb-email-preview__html iframe {
-  display: block;
-  max-width: 100% !important;
-  height: auto !important;
-  margin: 0.75rem 0;
-  object-fit: contain;
+  max-width: 100%;
+  height: auto;
 }
 
 /* =========================================================
@@ -496,10 +494,8 @@
 ========================================================= */
 
 .clb-email-preview__html table {
-  max-width: 100% !important;
-  height: auto;
+  max-width: 100%;
   border-collapse: collapse;
-  table-layout: auto;
 }
 
 /* =========================================================
@@ -537,7 +533,7 @@
 }
 
 .clb-email-preview__html code {
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 
 /* =========================================================
