@@ -1,4 +1,4 @@
-import { useMemo, useState ,useEffect} from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 import StatCard from "../../components/common/StatsCard";
@@ -9,6 +9,7 @@ import ComposeModal from "../../components/inbox/ComposeModal";
 
 import { useCollaboration } from "../../context/CollaborationsContext";
 import { useEmails } from "../../context/EmailContext";
+import { useAuth } from "../../context/AuthContext"; // path/hook apne project ke hisaab se badlo
 
 import "./dashboard.css";
 
@@ -71,13 +72,10 @@ const formatRelativeTime = (timestamp) => {
   }
 
   const now = Date.now();
-
   const difference = now - timestamp;
 
   const minute = 60 * 1000;
-
   const hour = 60 * minute;
-
   const day = 24 * hour;
 
   if (difference < minute) {
@@ -86,19 +84,16 @@ const formatRelativeTime = (timestamp) => {
 
   if (difference < hour) {
     const minutes = Math.floor(difference / minute);
-
     return `${minutes} ${minutes === 1 ? "minute" : "minutes"} ago`;
   }
 
   if (difference < day) {
     const hours = Math.floor(difference / hour);
-
     return `${hours} ${hours === 1 ? "hour" : "hours"} ago`;
   }
 
   if (difference < 7 * day) {
     const days = Math.floor(difference / day);
-
     return `${days} ${days === 1 ? "day" : "days"} ago`;
   }
 
@@ -127,7 +122,6 @@ const formatDeadlineDate = (deadline) => {
   }
 
   const now = new Date();
-
   const deadlineDate = new Date(timestamp);
 
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -158,34 +152,50 @@ const formatDeadlineDate = (deadline) => {
   });
 };
 
+/* ---------- Greeting helpers ---------- */
+
+const getFullName = (user) => {
+  const name =
+    user?.name ||
+    user?.displayName ||
+    user?.fullName ||
+    (user?.email ? user.email.split("@")[0] : "");
+
+  return String(name).trim() || "there";
+};
+
+const getGreeting = (hour) => {
+  if (hour >= 5 && hour < 12) return "Good morning";
+  if (hour >= 12 && hour < 17) return "Good afternoon";
+  if (hour >= 17 && hour < 21) return "Good evening";
+  return "Good night";
+};
+
 /* =========================================================
    DASHBOARD
 ========================================================= */
 
 function Dashboard() {
   const navigate = useNavigate();
+
+  /* ========================================
+     DYNAMIC GREETING (time + user name)
+  ======================================== */
+
+  const { user } = useAuth();
+
   const [currentHour, setCurrentHour] = useState(new Date().getHours());
 
   useEffect(() => {
-    const updateGreeting = () => {
+    const interval = setInterval(() => {
       setCurrentHour(new Date().getHours());
-    };
-
-    updateGreeting();
-
-    const interval = setInterval(updateGreeting, 60 * 1000);
+    }, 60 * 1000);
 
     return () => clearInterval(interval);
   }, []);
 
-  const greeting =
-    currentHour >= 5 && currentHour < 12
-      ? "Good morning"
-      : currentHour >= 12 && currentHour < 17
-        ? "Good afternoon"
-        : currentHour >= 17 && currentHour < 21
-          ? "Good evening"
-          : "Good night";
+  const fullName = getFullName(user);
+  const greeting = getGreeting(currentHour);
 
   const {
     collaborations = [],
@@ -250,7 +260,7 @@ function Dashboard() {
     }
   }
 
-  function handleEdit(collaboration) {
+  function handleEdit() {
     navigate("/collaborations");
   }
 
@@ -298,20 +308,16 @@ function Dashboard() {
       .slice(0, 3)
       .map((email) => ({
         id: getEmailId(email),
-
         brand: getEmailSenderName(email),
-
         senderEmail: getEmailSenderEmail(email),
-
         subject: email?.subject || "(No subject)",
-
         time: formatRelativeTime(getEmailTimestamp(email)),
       }));
   }, [emails]);
 
   /* ========================================
      PENDING REPLIES
-     
+
      Received unread inbox emails are treated
      as pending replies.
   ======================================== */
@@ -322,11 +328,8 @@ function Dashboard() {
         const labels = Array.isArray(email?.labels) ? email.labels : [];
 
         const isInbox = labels.includes("INBOX");
-
         const isUnread = email?.unread === true || email?.isRead === false;
-
         const isSent = labels.includes("SENT");
-
         const isTrash = labels.includes("TRASH");
 
         return isInbox && isUnread && !isSent && !isTrash;
@@ -344,7 +347,6 @@ function Dashboard() {
     return collaborations
       .filter((collaboration) => {
         const status = String(collaboration?.status || "").toLowerCase();
-
         const deadline = getDeadlineTimestamp(collaboration);
 
         if (!deadline || deadline < now) {
@@ -385,41 +387,26 @@ function Dashboard() {
     () => [
       {
         icon: "📧",
-
         value: unreadCount,
-
         title: "Unread Emails",
-
         accent: "pink",
       },
-
       {
         icon: "⏳",
-
         value: pendingReplies,
-
         title: "Pending Replies",
-
         accent: "gold",
       },
-
       {
         icon: "🤝",
-
         value: activeCollaborations.length,
-
         title: "Active Collaborations",
-
         accent: "pink",
       },
-
       {
         icon: "📅",
-
         value: upcomingDeadlines.length,
-
         title: "Upcoming Deadlines",
-
         accent: "gold",
       },
     ],
@@ -438,7 +425,9 @@ function Dashboard() {
       ======================================== */}
 
       <section className="clb-dashboard__welcome">
-        <h1>{greeting}, Nikit 👋</h1>
+        <h1>
+          {greeting}, {fullName} 👋
+        </h1>
 
         <p>Here&rsquo;s what&rsquo;s happening with your collaborations.</p>
       </section>
@@ -458,9 +447,7 @@ function Dashboard() {
       ======================================== */}
 
       <div className="clb-dashboard__grid">
-        {/* ======================================
-            RECENT EMAILS
-        ====================================== */}
+        {/* RECENT EMAILS */}
 
         <section className="clb-dashboard__card">
           <div className="clb-dashboard__card-header">
@@ -492,16 +479,12 @@ function Dashboard() {
           )}
         </section>
 
-        {/* ======================================
-            QUICK ACTIONS
-        ====================================== */}
+        {/* QUICK ACTIONS */}
 
         <section className="clb-dashboard__card">
           <h2>Quick Actions</h2>
 
           <div className="clb-quick-actions">
-            {/* COMPOSE EMAIL */}
-
             <button
               type="button"
               className="clb-btn clb-btn--primary"
@@ -510,8 +493,6 @@ function Dashboard() {
               + Compose Email
             </button>
 
-            {/* CREATE COLLABORATION */}
-
             <button
               type="button"
               className="clb-btn clb-btn--ghost"
@@ -519,8 +500,6 @@ function Dashboard() {
             >
               + Create Collaboration
             </button>
-
-            {/* VIEW INBOX */}
 
             <Link to="/inbox" className="clb-btn clb-btn--text">
               View Inbox
