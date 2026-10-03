@@ -61,6 +61,15 @@ app.get("/", (req, res) => {
   });
 });
 
+app.get("/health", (req, res) => {
+  res.status(200).json({
+    success: true,
+    status: "healthy",
+    service: "Collabry API",
+    timestamp: new Date().toISOString(),
+  });
+});
+
 app.use((req, res, next) => {
   console.log(
     `[REQUEST] ${req.method} ${req.originalUrl} | Referer: ${
