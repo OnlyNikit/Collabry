@@ -9,6 +9,7 @@
   align-items: center;
   justify-content: center;
   padding: var(--clb-space-lg);
+  box-sizing: border-box;
   z-index: 100;
   animation: clb-tf-fade-in 0.2s var(--clb-ease) both;
 }
@@ -17,6 +18,7 @@
   width: 100%;
   max-width: 420px;
   max-height: 90vh;
+  max-height: 90dvh; /* mobile browser ki real height */
   overflow-y: auto;
   background: var(--clb-surface);
   border: 1px solid var(--clb-border);
@@ -34,6 +36,7 @@
   position: sticky;
   top: 0;
   background: var(--clb-surface);
+  z-index: 1;
 }
 
 .clb-tracker-form-modal__header h2 {
@@ -68,11 +71,15 @@
   gap: 4px;
   font-size: 0.78rem;
   color: var(--clb-text-muted);
+  min-width: 0;
 }
 
 .clb-tracker-form input,
 .clb-tracker-form select,
 .clb-tracker-form textarea {
+  width: 100%;
+  min-width: 0;            /* date input chhote screen par bahar na nikle */
+  box-sizing: border-box;
   background: var(--clb-surface-2);
   border: 1px solid var(--clb-border);
   border-radius: 10px;
@@ -90,20 +97,58 @@
   border-color: var(--clb-pink);
 }
 
+/* ---------- Actions (buttons) ---------- */
 .clb-tracker-form__actions {
   display: flex;
+  flex-wrap: wrap;                 /* jagah kam ho to neeche aa jaye */
   justify-content: flex-end;
   gap: var(--clb-space-sm);
   padding-top: var(--clb-space-xs);
 }
 
+.clb-tracker-form__actions .clb-btn {
+  max-width: 100%;
+  box-sizing: border-box;
+  text-align: center;
+  white-space: normal;             /* text overflow ki jagah wrap hoga */
+  overflow-wrap: anywhere;
+}
+
+/* ---------- Chhote screens ---------- */
+@media (max-width: 480px) {
+  .clb-tracker-form-backdrop {
+    padding: var(--clb-space-sm);
+  }
+
+  .clb-tracker-form-modal {
+    max-height: 94dvh;
+  }
+
+  .clb-tracker-form-modal__header,
+  .clb-tracker-form {
+    padding: var(--clb-space-sm) var(--clb-space-md);
+  }
+
+  .clb-tracker-form {
+    /* iPhone home bar ke liye */
+    padding-bottom: calc(var(--clb-space-md) + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Buttons: upar-neeche, poori width, primary upar */
+  .clb-tracker-form__actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .clb-tracker-form__actions .clb-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
 @keyframes clb-tf-fade-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 @keyframes clb-tf-pop-scale {

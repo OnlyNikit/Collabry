@@ -1,21 +1,33 @@
 @import '../../style/token.css';
 
+/* =========================================================
+   DEFAULT (bade screens): ek hi row
+   [ search ............ ] [ status ] [ priority ]
+   ========================================================= */
 .clb-tracker-filters {
   display: flex;
-  flex-wrap: wrap;
+  align-items: center;
   gap: var(--clb-space-sm);
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .clb-tracker-filters__search {
-  flex: 1;
-  min-width: 200px;
+  flex: 1 1 auto;
+  min-width: 0;               /* shrink ho sake, overflow na kare */
   display: flex;
   align-items: center;
   gap: var(--clb-space-xs);
+  box-sizing: border-box;
   background: var(--clb-surface);
   border: 1px solid var(--clb-border);
   border-radius: 999px;
   padding: 0.55em var(--clb-space-md);
+  transition: border-color 0.15s ease;
+}
+
+.clb-tracker-filters__search:focus-within {
+  border-color: var(--clb-pink);
 }
 
 .clb-tracker-filters__search span {
@@ -25,19 +37,33 @@
 
 .clb-tracker-filters__search input {
   flex: 1;
+  min-width: 0;
+  width: 100%;
   background: transparent;
   border: none;
   outline: none;
   color: var(--clb-text);
   font-family: var(--clb-font-body);
   font-size: 0.9rem;
+  text-overflow: ellipsis;    /* lamba placeholder kat jaye, bahar na nikle */
 }
 
 .clb-tracker-filters__search input::placeholder {
   color: var(--clb-text-muted);
 }
 
+/* ---------- Selects wrapper ---------- */
+.clb-tracker-filters__selects {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: var(--clb-space-sm);   /* dono ke beech gap */
+}
+
 .clb-tracker-filters select {
+  width: 190px;
+  max-width: 100%;
+  box-sizing: border-box;
   background: var(--clb-surface);
   border: 1px solid var(--clb-border);
   border-radius: 999px;
@@ -47,8 +73,53 @@
   font-size: 0.85rem;
   outline: none;
   cursor: pointer;
+  text-overflow: ellipsis;
+  transition: border-color 0.15s ease;
 }
 
 .clb-tracker-filters select:focus {
   border-color: var(--clb-pink);
+}
+
+/* =========================================================
+   TABLET / CHHOTE LAPTOP (900px tak):
+   row 1: search (full width)
+   row 2: status + priority (50% - 50%)
+   ========================================================= */
+@media (max-width: 900px) {
+  .clb-tracker-filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .clb-tracker-filters__search {
+    flex: none;
+    width: 100%;
+  }
+
+  .clb-tracker-filters__selects {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--clb-space-sm);
+    width: 100%;
+  }
+
+  .clb-tracker-filters select {
+    width: 100%;
+  }
+}
+
+/* =========================================================
+   BAHUT CHHOTE SCREENS (400px tak):
+   dono select upar-neeche, full width
+   ========================================================= */
+@media (max-width: 400px) {
+  .clb-tracker-filters__selects {
+    grid-template-columns: 1fr;
+  }
+
+  .clb-tracker-filters__search input,
+  .clb-tracker-filters select {
+    font-size: 1rem;          /* 16px: iOS par zoom nahi hoga */
+  }
 }
