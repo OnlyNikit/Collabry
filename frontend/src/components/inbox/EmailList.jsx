@@ -1,6 +1,7 @@
+import { createPortal } from "react-dom";
+
 import EmailListItem from "./EmailListItem";
 import EmailListItemSkeleton from "../common/emailListLoader";
-import Loader from "../common/Loader";
 
 import { useEmails } from "../../context/EmailContext";
 
@@ -27,6 +28,9 @@ function EmailList({
   const { activeEmailId: pendingEmailId, isThreadReady } = useEmails();
 
   const isOpeningEmail = Boolean(pendingEmailId) && !isThreadReady;
+
+  // DEBUG (zarurat ho toh uncomment karo, click par console dekho):
+  // console.log("[EmailList]", { pendingEmailId, isThreadReady, isOpeningEmail });
 
   function handleSelectEmail(emailOrId) {
     if (typeof onSelect !== "function") {
@@ -110,15 +114,25 @@ function EmailList({
         </div>
       )}
 
-      {isOpeningEmail && (
-        <div
-          className="clb-email-list__pending"
-          role="status"
-          aria-live="polite"
-        >
-          <Loader inline text="Loading conversation..." />
-        </div>
-      )}
+      {/*
+        Portal: overlay seedha document.body mein render hota hai,
+        taaki parent ke overflow / transform / z-index se kat na jaye.
+      */}
+      {isOpeningEmail &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <div
+            className="clb-email-list__pending"
+            role="status"
+            aria-live="polite"
+          >
+            <div className="clb-email-list__pending-box">
+              <span className="clb-email-list__spinner" />
+              <span>Loading conversation...</span>
+            </div>
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }
