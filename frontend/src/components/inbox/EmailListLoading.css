@@ -1,0 +1,24 @@
+/* =========================================================
+   OPENING EMAIL LOADER (sirf chhoti screen par)
+   Desktop par preview pane khud loader dikhata hai,
+   isliye wahan ye hidden rehta hai.
+========================================================= */
+
+.clb-email-list__pending {
+  display: none;
+}
+
+@media (max-width: 959px) {
+  .clb-email-list__pending {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(2px);
+  }
+}

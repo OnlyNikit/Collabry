@@ -1,7 +1,11 @@
 import EmailListItem from "./EmailListItem";
 import EmailListItemSkeleton from "../common/emailListLoader";
+import Loader from "../common/Loader";
+
+import { useEmails } from "../../context/EmailContext";
 
 import "./EmailList.css";
+import "./EmailListLoading.css";
 
 function EmailList({
   emails = [],
@@ -13,18 +17,24 @@ function EmailList({
   loadingMore = false,
   onLoadMore,
 }) {
+  /*
+    Click hote hi context activeEmailId set kar deta hai aur
+    isThreadReady = false. Jab tak thread load ho raha hai,
+    chhoti screen par list ke upar loader dikhao.
+    (Desktop par ye CSS se hidden rehta hai, kyunki wahan
+    preview side mein khud loader dikhata hai.)
+  */
+  const { activeEmailId: pendingEmailId, isThreadReady } = useEmails();
+
+  const isOpeningEmail = Boolean(pendingEmailId) && !isThreadReady;
+
   function handleSelectEmail(emailOrId) {
     if (typeof onSelect !== "function") {
       return;
     }
 
-    if (
-      typeof emailOrId === "object" &&
-      emailOrId !== null
-    ) {
-      const emailId =
-        emailOrId.id ||
-        emailOrId._id;
+    if (typeof emailOrId === "object" && emailOrId !== null) {
+      const emailId = emailOrId.id || emailOrId._id;
 
       if (emailId) {
         onSelect(emailId);
@@ -41,13 +51,9 @@ function EmailList({
   if (loading) {
     return (
       <div className="clb-email-list">
-        {Array.from({ length: 18 }).map(
-          (_, index) => (
-            <EmailListItemSkeleton
-              key={`email-skeleton-${index}`}
-            />
-          )
-        )}
+        {Array.from({ length: 18 }).map((_, index) => (
+          <EmailListItemSkeleton key={`email-skeleton-${index}`} />
+        ))}
       </div>
     );
   }
@@ -62,10 +68,7 @@ function EmailList({
     );
   }
 
-  if (
-    !Array.isArray(emails) ||
-    emails.length === 0
-  ) {
+  if (!Array.isArray(emails) || emails.length === 0) {
     return (
       <div className="clb-email-list">
         <div className="clb-email-list__empty">
@@ -78,9 +81,7 @@ function EmailList({
   return (
     <div className="clb-email-list">
       {emails.map((email) => {
-        const emailId =
-          email.id ||
-          email._id;
+        const emailId = email.id || email._id;
 
         if (!emailId) {
           return null;
@@ -90,13 +91,8 @@ function EmailList({
           <EmailListItem
             key={String(emailId)}
             email={email}
-            isActive={
-              String(emailId) ===
-              String(activeEmailId)
-            }
-            onSelect={
-              handleSelectEmail
-            }
+            isActive={String(emailId) === String(activeEmailId)}
+            onSelect={handleSelectEmail}
           />
         );
       })}
@@ -107,16 +103,20 @@ function EmailList({
             type="button"
             className="clb-email-list__load-more-btn"
             onClick={onLoadMore}
-            disabled={
-              loadingMore ||
-              typeof onLoadMore !==
-                "function"
-            }
+            disabled={loadingMore || typeof onLoadMore !== "function"}
           >
-            {loadingMore
-              ? "Loading..."
-              : "Load More"}
+            {loadingMore ? "Loading..." : "Load More"}
           </button>
+        </div>
+      )}
+
+      {isOpeningEmail && (
+        <div
+          className="clb-email-list__pending"
+          role="status"
+          aria-live="polite"
+        >
+          <Loader inline text="Loading conversation..." />
         </div>
       )}
     </div>
