@@ -538,24 +538,43 @@
     font-size: 16px;
   }
 
-  /* avatar + name stay on the first line, badges drop below */
+  /* avatar sits at the top, aligned with the first line of text */
+  .clb-share__row-top {
+    align-items: flex-start;
+  }
+
+  /* avatar + name stay on the first line */
   .clb-share__who {
     flex: 1 1 calc(100% - var(--s-avatar) - var(--s-avatar-gap));
   }
 
+  /* everything below the name uses the FULL row width (no left indent) */
   .clb-share__badges {
     flex: 1 1 100%;
-    padding-left: calc(var(--s-avatar) + var(--s-avatar-gap));
+    width: 100%;
+    margin: 0;
+    padding-left: 0;
   }
 
-  /* invite text takes the first line, buttons below */
+  /* "Leave" button: full width, centered text, same height as other buttons */
+  .clb-share__badges .clb-btn {
+    flex: 1 1 100%;
+    width: 100%;
+    margin: 0;
+    justify-content: center;
+    min-height: 44px;
+  }
+
+  /* invite text takes the first line, buttons below at full width */
   .clb-share__invite-text {
     flex: 1 1 calc(100% - var(--s-avatar) - var(--s-avatar-gap));
   }
 
   .clb-share__invite-actions {
     flex: 1 1 100%;
-    padding-left: calc(var(--s-avatar) + var(--s-avatar-gap));
+    width: 100%;
+    margin: 0;
+    padding-left: 0;
   }
 
   .clb-share__invite-actions .clb-btn {
@@ -615,12 +634,6 @@
   .clb-share__lead,
   .clb-share__alert {
     font-size: 0.82rem;
-  }
-
-  /* more room: badges / actions use the full row width */
-  .clb-share__badges,
-  .clb-share__invite-actions {
-    padding-left: 0;
   }
 
   /* long names and emails may wrap instead of being cut off */
