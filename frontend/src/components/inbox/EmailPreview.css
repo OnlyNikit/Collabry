@@ -6,7 +6,9 @@
 
 .clb-email-preview {
   width: 100%;
+  max-width: 100%;
   height: 100%;
+  min-width: 0;
   min-height: 0;
   display: flex;
   flex-direction: column;
@@ -124,7 +126,9 @@
 .clb-email-preview__body {
   flex: 1;
   min-height: 0;
+  min-width: 0;
   width: 100%;
+  max-width: 100%;
   display: flex;
   flex-direction: column;
   padding: var(--clb-space-md) var(--clb-space-lg);
@@ -145,6 +149,8 @@
 
 .clb-email-thread {
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: var(--clb-space-sm);
@@ -156,6 +162,8 @@
 
 .clb-thread-message {
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
   box-sizing: border-box;
   background: var(--clb-surface);
   border: 1px solid var(--clb-border);
@@ -187,6 +195,7 @@
 
 .clb-thread-message__toggle {
   width: 100%;
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: var(--clb-space-sm);
@@ -328,11 +337,15 @@
 ========================================================= */
 
 .clb-thread-message__content {
+  min-width: 0;
+  max-width: 100%;
   padding:
     var(--clb-space-sm)
     var(--clb-space-md)
     var(--clb-space-md);
   border-top: 1px solid var(--clb-border);
+  box-sizing: border-box;
+  overflow: hidden;
   animation: clb-thread-expand 0.25s var(--clb-ease);
 }
 
@@ -350,17 +363,19 @@
 
 /* =========================================================
    MESSAGE BODY
+   (no horizontal scroll: content is shrunk / scaled to fit)
 ========================================================= */
 
 .clb-thread-message__body {
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
   box-sizing: border-box;
   color: var(--clb-text);
   font-family: var(--clb-font-body);
   font-size: 0.92rem;
   line-height: 1.7;
-  overflow-x: auto;
-  scrollbar-width: thin;
+  overflow-x: hidden;
 }
 
 /* =========================================================
@@ -368,11 +383,23 @@
 ========================================================= */
 
 .clb-email-preview__text {
+  max-width: 100%;
   color: var(--clb-text);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   word-break: break-word;
   line-height: 1.7;
+}
+
+/* =========================================================
+   FIT WRAPPER (used by FitHtml in EmailPreview.jsx)
+========================================================= */
+
+.clb-email-fit {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
 }
 
 /* =========================================================
@@ -384,15 +411,28 @@
   max-width: 100%;
   box-sizing: border-box;
   color: var(--clb-text);
-  overflow-x: auto;
+  overflow-x: hidden;
   overflow-wrap: anywhere;
   word-break: break-word;
   line-height: 1.7;
-  scrollbar-width: thin;
+}
+
+/* Email ke andar ka kuch bhi container se bada na ho */
+.clb-email-preview__html * {
+  max-width: 100% !important;
+  box-sizing: border-box;
 }
 
 .clb-email-preview__html p {
   margin: 0 0 1rem;
+}
+
+.clb-email-preview__html div,
+.clb-email-preview__html span,
+.clb-email-preview__html td,
+.clb-email-preview__html th {
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .clb-email-preview__html h1,
@@ -438,10 +478,12 @@
 }
 
 /* =========================================================
-   IMAGES
+   IMAGES / MEDIA
 ========================================================= */
 
-.clb-email-preview__html img {
+.clb-email-preview__html img,
+.clb-email-preview__html video,
+.clb-email-preview__html iframe {
   display: block;
   max-width: 100% !important;
   height: auto !important;
@@ -457,13 +499,7 @@
   max-width: 100% !important;
   height: auto;
   border-collapse: collapse;
-}
-
-.clb-email-preview__html td,
-.clb-email-preview__html th {
-  max-width: 100%;
-  overflow-wrap: anywhere;
-  word-break: break-word;
+  table-layout: auto;
 }
 
 /* =========================================================
@@ -494,7 +530,8 @@
 .clb-email-preview__html pre {
   max-width: 100%;
   padding: 0.75rem;
-  overflow-x: auto;
+  white-space: pre-wrap;
+  overflow-x: hidden;
   border-radius: 8px;
   background: rgba(0, 0, 0, 0.08);
 }
@@ -551,12 +588,15 @@
 }
 
 .clb-thread-message__quoted-content {
+  min-width: 0;
+  max-width: 100%;
   margin-top: var(--clb-space-sm);
   padding: var(--clb-space-sm);
   border-left: 3px solid var(--clb-pink-dim);
   border-radius: 0 10px 10px 0;
   background: rgba(255, 255, 255, 0.025);
-  overflow-x: auto;
+  box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 .clb-email-preview__quoted-html,
@@ -682,7 +722,9 @@
   .clb-email-preview {
     height: auto;
     min-height: calc(100dvh - 138px);
+    max-width: 100vw;
     overflow: visible;
+    overflow-x: clip; /* page par bhi sideways scroll nahi */
   }
 
   .clb-email-preview__header {
@@ -694,6 +736,7 @@
     min-height: auto;
     padding: var(--clb-space-md);
     overflow: visible;
+    overflow-x: clip;
   }
 
   .clb-email-preview__actions {

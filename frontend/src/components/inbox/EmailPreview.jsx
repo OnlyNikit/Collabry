@@ -1,4 +1,10 @@
-import { useState, useMemo, useEffect } from "react";
+import {
+  useState,
+  useMemo,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+} from "react";
 
 import toast from "react-hot-toast";
 
@@ -59,6 +65,25 @@ function sanitizeEmailHtml(html) {
   }
 }
 
+function sanitizeWithProfile(html) {
+  return DOMPurify.sanitize(html, {
+    USE_PROFILES: {
+      html: true,
+    },
+
+    ADD_ATTR: [
+      "target",
+      "style",
+      "width",
+      "height",
+      "align",
+      "border",
+      "cellpadding",
+      "cellspacing",
+    ],
+  });
+}
+
 /* ========================================
    LINKIFY PLAIN TEXT
 
@@ -84,23 +109,89 @@ function LinkifiedText({ text = "" }) {
   );
 }
 
-function sanitizeWithProfile(html) {
-  return DOMPurify.sanitize(html, {
-    USE_PROFILES: {
-      html: true,
-    },
+/* ========================================
+   FIT HTML TO WIDTH
 
-    ADD_ATTR: [
-      "target",
-      "style",
-      "width",
-      "height",
-      "align",
-      "border",
-      "cellpadding",
-      "cellspacing",
-    ],
-  });
+   Agar email ka content container se chauda hai
+   toh use scale karke screen width mein fit kar deta
+   hai (Gmail app jaisa), taaki left-right scroll
+   na karna pade.
+======================================== */
+
+function FitHtml({ html, className = "" }) {
+  const wrapRef = useRef(null);
+  const innerRef = useRef(null);
+
+  useLayoutEffect(() => {
+    const wrap = wrapRef.current;
+    const inner = innerRef.current;
+
+    if (!wrap || !inner) {
+      return undefined;
+    }
+
+    let lastWidth = 0;
+
+    function fit() {
+      // reset
+      inner.style.transform = "none";
+      inner.style.width = "";
+      wrap.style.height = "";
+
+      const available = wrap.clientWidth;
+      const needed = inner.scrollWidth;
+
+      if (available > 0 && needed > available + 1) {
+        const scale = available / needed;
+
+        inner.style.width = `${needed}px`;
+        inner.style.transformOrigin = "top left";
+        inner.style.transform = `scale(${scale})`;
+        wrap.style.height = `${inner.scrollHeight * scale}px`;
+      }
+    }
+
+    fit();
+
+    // Sirf width badalne par dobara fit karo (height change se loop na bane)
+    let observer = null;
+
+    if (typeof ResizeObserver !== "undefined") {
+      observer = new ResizeObserver(() => {
+        const width = wrap.clientWidth;
+
+        if (width !== lastWidth) {
+          lastWidth = width;
+          fit();
+        }
+      });
+
+      observer.observe(wrap);
+    }
+
+    // Images late load hoti hain, tab size badal jata hai
+    const images = Array.from(inner.querySelectorAll("img"));
+
+    images.forEach((img) => img.addEventListener("load", fit));
+
+    return () => {
+      if (observer) {
+        observer.disconnect();
+      }
+
+      images.forEach((img) => img.removeEventListener("load", fit));
+    };
+  }, [html]);
+
+  return (
+    <div ref={wrapRef} className="clb-email-fit">
+      <div
+        ref={innerRef}
+        className={className}
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
+    </div>
+  );
 }
 
 /* ========================================
@@ -531,11 +622,9 @@ function ThreadMessage({ message, isLatest, attachments = [] }) {
             {hasRealContent ? (
               isHtml ? (
                 mainHtml ? (
-                  <div
+                  <FitHtml
+                    html={mainHtml}
                     className="clb-email-preview__html"
-                    dangerouslySetInnerHTML={{
-                      __html: mainHtml,
-                    }}
                   />
                 ) : (
                   <div className="clb-email-preview__text">
@@ -580,11 +669,9 @@ function ThreadMessage({ message, isLatest, attachments = [] }) {
               {showQuotedText && (
                 <div className="clb-thread-message__quoted-content">
                   {isHtml ? (
-                    <div
+                    <FitHtml
+                      html={quotedHtml}
                       className="clb-email-preview__html clb-email-preview__quoted-html"
-                      dangerouslySetInnerHTML={{
-                        __html: quotedHtml,
-                      }}
                     />
                   ) : (
                     <div className="clb-email-preview__text clb-email-preview__quoted-text">
