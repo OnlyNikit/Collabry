@@ -438,13 +438,26 @@
    EMAIL FRAME (isolated iframe, see EmailFrame in EmailPreview.jsx)
 ========================================================= */
 
-.clb-email-frame {
-  display: block;
+/* Wrapper: scaled iframe ko screen ke andar rakhta hai */
+.clb-email-frame-wrap {
+  position: relative;
   width: 100%;
   max-width: 100%;
   min-width: 0;
-  border: 0;
   border-radius: 10px;
+  background: #ffffff;
+  overflow: hidden;
+}
+
+/*
+  Iframe ki width JS set karta hai (layout width), aur transform: scale
+  se wrapper me fit hota hai. Isliye yahan max-width: none zaroori hai.
+*/
+.clb-email-frame {
+  display: block;
+  width: 100%;
+  max-width: none;
+  border: 0;
   background: #ffffff;
   overflow: hidden;
 }

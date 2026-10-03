@@ -65,6 +65,16 @@ function sanitizeWithProfile(html) {
       html: true,
     },
 
+    /*
+      FORCE_BODY: email ke shuru ki <style> tag DOMPurify hata deta tha,
+      jisse email ki responsive CSS (media queries) kho jati thi aur
+      mobile par layout nahi bachta tha. Ye email ki <style> ko rakhta hai.
+      Email sirf sandboxed iframe me render hota hai (scripts band),
+      isliye ye safe hai.
+    */
+    FORCE_BODY: true,
+    ADD_TAGS: ["style"],
+
     ADD_ATTR: [
       "target",
       "style",
@@ -124,6 +134,23 @@ function LinkifiedText({ text = "" }) {
    karke width me fit kar dete hain (left-right scroll nahi).
 ======================================== */
 
+/*
+  Gmail app jaisa fit:
+
+  - Responsive email (apni @media max-width CSS wali): iframe ko
+    available width par render karte hain, taaki email apne aap
+    mobile layout me stack ho jaye.
+  - Non-responsive email (fixed 600px tables wali): pehle
+    MIN_LAYOUT_WIDTH par desktop layout me render karte hain, phir
+    poore iframe ko scale karke screen me fit kar dete hain. Isse
+    columns kabhi 1-1 letter me nahi tootte.
+*/
+const MIN_LAYOUT_WIDTH = 640;
+
+function isResponsiveHtml(html) {
+  return /@media[^{]*(max|min)-(device-)?width/i.test(html || "");
+}
+
 function buildEmailDocument(html, muted = false) {
   const textColor = muted ? "#5f6368" : "#202124";
 
@@ -149,18 +176,25 @@ function buildEmailDocument(html, muted = false) {
     font-family: Arial, Helvetica, sans-serif;
     font-size: 14px;
     line-height: 1.5;
-    overflow-wrap: break-word;
+  }
+  /*
+    "word-break: break-word" / "overflow-wrap: anywhere" table cells ki
+    min-width 0 kar dete hain (text ek-ek letter me toot jata hai).
+    "overflow-wrap: break-word" sirf lambe words todta hai, layout nahi.
+  */
+  * {
+    word-break: normal !important;
+    overflow-wrap: break-word !important;
   }
   img {
-    max-width: 100% !important;
-    height: auto !important;
+    max-width: 100%;
+    height: auto;
   }
-  table { max-width: 100%; }
   pre {
     max-width: 100%;
     white-space: pre-wrap;
   }
-  video, iframe, embed { max-width: 100%; }
+  video, embed { max-width: 100%; }
   a { color: #1a73e8; }
 </style>
 </head>
@@ -169,18 +203,22 @@ function buildEmailDocument(html, muted = false) {
 }
 
 function EmailFrame({ html, muted = false }) {
+  const wrapRef = useRef(null);
   const frameRef = useRef(null);
-  const [height, setHeight] = useState(80);
+  const [wrapHeight, setWrapHeight] = useState(80);
 
   const srcDoc = useMemo(
     () => buildEmailDocument(html, muted),
     [html, muted],
   );
 
+  const responsive = useMemo(() => isResponsiveHtml(html), [html]);
+
   useEffect(() => {
+    const wrap = wrapRef.current;
     const frame = frameRef.current;
 
-    if (!frame) {
+    if (!wrap || !frame) {
       return undefined;
     }
 
@@ -192,32 +230,48 @@ function EmailFrame({ html, muted = false }) {
     function fit() {
       const doc = frame.contentDocument;
       const root = doc?.documentElement;
-      const body = doc?.body;
 
-      if (!root || !body) {
+      if (!root || !doc.body) {
         return;
       }
 
-      // reset, taaki natural size naap sakein
-      body.style.transform = "none";
-      body.style.width = "";
+      const available = wrap.clientWidth;
 
-      const available = frame.clientWidth;
-      const needed = root.scrollWidth;
-
-      let scale = 1;
-
-      if (available > 0 && needed > available + 1) {
-        scale = available / needed;
-
-        body.style.width = `${needed}px`;
-        body.style.transformOrigin = "0 0";
-        body.style.transform = `scale(${scale})`;
+      if (available <= 0) {
+        return;
       }
 
-      // body.offsetHeight: content ki height (root.scrollHeight iframe ki
-      // current height se kam nahi hoti, isliye wo use nahi karte)
-      setHeight(Math.ceil(body.offsetHeight * scale) + 2);
+      const layoutWidth = responsive
+        ? available
+        : Math.max(available, MIN_LAYOUT_WIDTH);
+
+      // reset, taaki natural size naap sakein
+      frame.style.transform = "none";
+      frame.style.height = "0px";
+      frame.style.width = `${layoutWidth}px`;
+
+      // Content layout width se chauda ho to iframe chauda kar do
+      let width = layoutWidth;
+      const needed = root.scrollWidth;
+
+      if (needed > layoutWidth + 1) {
+        width = needed;
+        frame.style.width = `${width}px`;
+      }
+
+      const contentHeight = Math.ceil(root.scrollHeight);
+
+      frame.style.height = `${contentHeight}px`;
+
+      // Poora iframe scale karke screen me fit (left-right scroll nahi)
+      const scale = width > available ? available / width : 1;
+
+      if (scale < 1) {
+        frame.style.transformOrigin = "0 0";
+        frame.style.transform = `scale(${scale})`;
+      }
+
+      setWrapHeight(Math.ceil(contentHeight * scale) + 2);
     }
 
     function handleLoad() {
@@ -250,7 +304,7 @@ function EmailFrame({ html, muted = false }) {
     // Container ki width badli (rotate / resize) => dobara fit
     if (typeof ResizeObserver !== "undefined") {
       resizeObserver = new ResizeObserver(() => {
-        const width = frame.clientWidth;
+        const width = wrap.clientWidth;
 
         if (width !== lastWidth) {
           lastWidth = width;
@@ -258,7 +312,7 @@ function EmailFrame({ html, muted = false }) {
         }
       });
 
-      resizeObserver.observe(frame);
+      resizeObserver.observe(wrap);
     }
 
     return () => {
@@ -274,18 +328,23 @@ function EmailFrame({ html, muted = false }) {
 
       imageCleanups.forEach((cleanup) => cleanup());
     };
-  }, [srcDoc]);
+  }, [srcDoc, responsive]);
 
   return (
-    <iframe
-      ref={frameRef}
-      className="clb-email-frame"
-      title="Email content"
-      srcDoc={srcDoc}
-      sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
-      style={{ height }}
-      scrolling="no"
-    />
+    <div
+      ref={wrapRef}
+      className="clb-email-frame-wrap"
+      style={{ height: wrapHeight }}
+    >
+      <iframe
+        ref={frameRef}
+        className="clb-email-frame"
+        title="Email content"
+        srcDoc={srcDoc}
+        sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+        scrolling="no"
+      />
+    </div>
   );
 }
 
@@ -347,6 +406,11 @@ function htmlToPlainText(html) {
     const container = document.createElement("div");
 
     container.innerHTML = html;
+
+    // <style> ka CSS text preview / quote check me na aaye
+    container
+      .querySelectorAll("style, script, title")
+      .forEach((node) => node.remove());
 
     return (container.textContent || container.innerText || "")
       .replace(/\u00a0/g, " ")
