@@ -7,13 +7,10 @@ const {
   getCurrentUser,
   updateCurrentUser,
   logoutUser,
+  getSocketToken,
 } = require("../controllers/authController");
 
-const {
-  protect,
-} = require(
-  "../middleware/authMiddleware"
-);
+const { protect } = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
@@ -64,7 +61,7 @@ router.get(
     prompt: "consent",
 
     session: false,
-  })
+  }),
 );
 
 /* =========================================================
@@ -76,41 +73,35 @@ router.get(
   passport.authenticate("google", {
     session: false,
 
-    failureRedirect:
-      `${process.env.CLIENT_URL}/login?error=google_auth_failed`,
+    failureRedirect: `${process.env.CLIENT_URL}/login?error=google_auth_failed`,
   }),
 
-  googleAuthCallback
+  googleAuthCallback,
 );
 
 /* =========================================================
    GET CURRENT USER
 ========================================================= */
 
-router.get(
-  "/me",
-  protect,
-  getCurrentUser
-);
+router.get("/me", protect, getCurrentUser);
 
 /* =========================================================
    UPDATE CURRENT USER
 ========================================================= */
 
-router.put(
-  "/me",
-  protect,
-  updateCurrentUser
-);
+router.put("/me", protect, updateCurrentUser);
+
+/* =========================================================
+   SOCKET TOKEN
+   (Socket.IO auth ke liye chhota token)
+========================================================= */
+
+router.get("/socket-token", protect, getSocketToken);
 
 /* =========================================================
    LOGOUT
 ========================================================= */
 
-router.post(
-  "/logout",
-  protect,
-  logoutUser
-);
+router.post("/logout", protect, logoutUser);
 
 module.exports = router;
