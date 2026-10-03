@@ -403,6 +403,21 @@
 }
 
 /* =========================================================
+   EMAIL FRAME (isolated iframe, see EmailFrame in EmailPreview.jsx)
+========================================================= */
+
+.clb-email-frame {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  border: 0;
+  border-radius: 10px;
+  background: #ffffff;
+  overflow: hidden;
+}
+
+/* =========================================================
    HTML EMAIL
 ========================================================= */
 

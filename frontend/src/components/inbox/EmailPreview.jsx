@@ -1,10 +1,4 @@
-import {
-  useState,
-  useMemo,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-} from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 
 import toast from "react-hot-toast";
 
@@ -110,55 +104,140 @@ function LinkifiedText({ text = "" }) {
 }
 
 /* ========================================
-   FIT HTML TO WIDTH
+   EMAIL FRAME (isolated iframe)
 
-   Agar email ka content container se chauda hai
-   toh use scale karke screen width mein fit kar deta
-   hai (Gmail app jaisa), taaki left-right scroll
-   na karna pade.
+   HTML email ko sandboxed iframe me render karte hain
+   (Gmail web bhi aisa hi karta hai). Fayde:
+
+   1. App ki CSS email ke layout ko nahi bigad sakti
+      (pehle table columns me text ek-ek letter me toot raha tha).
+   2. Email ki apni <style> / media queries iframe ki width ke
+      hisaab se chalti hain, isliye responsive emails chhoti
+      screen par apne aap stack ho jate hain.
+   3. Email ki CSS app me leak nahi hoti.
+
+   sandbox me "allow-scripts" NAHI hai, isliye email ke andar
+   koi script chal hi nahi sakti. "allow-same-origin" sirf isliye
+   hai ki hum height naap sakein.
+
+   Agar fir bhi koi fixed-width email chauda ho, to use scale
+   karke width me fit kar dete hain (left-right scroll nahi).
 ======================================== */
 
-function FitHtml({ html, className = "" }) {
-  const wrapRef = useRef(null);
-  const innerRef = useRef(null);
+function buildEmailDocument(html, muted = false) {
+  const textColor = muted ? "#5f6368" : "#202124";
 
-  useLayoutEffect(() => {
-    const wrap = wrapRef.current;
-    const inner = innerRef.current;
+  return `<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<base target="_blank">
+<style>
+  html { background: #ffffff; }
+  body {
+    margin: 0;
+    padding: 12px;
+    box-sizing: border-box;
+    background: #ffffff;
+    color: ${textColor};
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    overflow-wrap: break-word;
+  }
+  img { max-width: 100%; height: auto; }
+  a { color: #1a73e8; }
+</style>
+</head>
+<body>${html}</body>
+</html>`;
+}
 
-    if (!wrap || !inner) {
+function EmailFrame({ html, muted = false }) {
+  const frameRef = useRef(null);
+  const [height, setHeight] = useState(80);
+
+  const srcDoc = useMemo(
+    () => buildEmailDocument(html, muted),
+    [html, muted],
+  );
+
+  useEffect(() => {
+    const frame = frameRef.current;
+
+    if (!frame) {
       return undefined;
     }
 
+    let resizeObserver = null;
     let lastWidth = 0;
+    let timer = null;
+    let imageCleanups = [];
 
     function fit() {
-      // reset
-      inner.style.transform = "none";
-      inner.style.width = "";
-      wrap.style.height = "";
+      const doc = frame.contentDocument;
+      const root = doc?.documentElement;
+      const body = doc?.body;
 
-      const available = wrap.clientWidth;
-      const needed = inner.scrollWidth;
+      if (!root || !body) {
+        return;
+      }
+
+      // reset, taaki natural size naap sakein
+      body.style.transform = "none";
+      body.style.width = "";
+
+      const available = frame.clientWidth;
+      const needed = root.scrollWidth;
+
+      let scale = 1;
 
       if (available > 0 && needed > available + 1) {
-        const scale = available / needed;
+        scale = available / needed;
 
-        inner.style.width = `${needed}px`;
-        inner.style.transformOrigin = "top left";
-        inner.style.transform = `scale(${scale})`;
-        wrap.style.height = `${inner.scrollHeight * scale}px`;
+        body.style.width = `${needed}px`;
+        body.style.transformOrigin = "0 0";
+        body.style.transform = `scale(${scale})`;
       }
+
+      // body.offsetHeight: content ki height (root.scrollHeight iframe ki
+      // current height se kam nahi hoti, isliye wo use nahi karte)
+      setHeight(Math.ceil(body.offsetHeight * scale) + 2);
     }
 
-    fit();
+    function handleLoad() {
+      const doc = frame.contentDocument;
 
-    // Sirf width badalne par dobara fit karo (height change se loop na bane)
-    let observer = null;
+      if (!doc) {
+        return;
+      }
 
+      fit();
+
+      // Images late load hoti hain, tab height badalti hai
+      imageCleanups = Array.from(doc.querySelectorAll("img")).map((img) => {
+        img.addEventListener("load", fit);
+
+        return () => img.removeEventListener("load", fit);
+      });
+
+      // Fonts / late layout ke liye ek baar aur
+      timer = setTimeout(fit, 350);
+    }
+
+    frame.addEventListener("load", handleLoad);
+
+    // srcdoc kabhi kabhi listener lagne se pehle load ho chuka hota hai
+    if (frame.contentDocument?.readyState === "complete") {
+      handleLoad();
+    }
+
+    // Container ki width badli (rotate / resize) => dobara fit
     if (typeof ResizeObserver !== "undefined") {
-      observer = new ResizeObserver(() => {
-        const width = wrap.clientWidth;
+      resizeObserver = new ResizeObserver(() => {
+        const width = frame.clientWidth;
 
         if (width !== lastWidth) {
           lastWidth = width;
@@ -166,31 +245,34 @@ function FitHtml({ html, className = "" }) {
         }
       });
 
-      observer.observe(wrap);
+      resizeObserver.observe(frame);
     }
 
-    // Images late load hoti hain, tab size badal jata hai
-    const images = Array.from(inner.querySelectorAll("img"));
-
-    images.forEach((img) => img.addEventListener("load", fit));
-
     return () => {
-      if (observer) {
-        observer.disconnect();
+      frame.removeEventListener("load", handleLoad);
+
+      if (resizeObserver) {
+        resizeObserver.disconnect();
       }
 
-      images.forEach((img) => img.removeEventListener("load", fit));
+      if (timer) {
+        clearTimeout(timer);
+      }
+
+      imageCleanups.forEach((cleanup) => cleanup());
     };
-  }, [html]);
+  }, [srcDoc]);
 
   return (
-    <div ref={wrapRef} className="clb-email-fit">
-      <div
-        ref={innerRef}
-        className={className}
-        dangerouslySetInnerHTML={{ __html: html }}
-      />
-    </div>
+    <iframe
+      ref={frameRef}
+      className="clb-email-frame"
+      title="Email content"
+      srcDoc={srcDoc}
+      sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+      style={{ height }}
+      scrolling="no"
+    />
   );
 }
 
@@ -622,10 +704,7 @@ function ThreadMessage({ message, isLatest, attachments = [] }) {
             {hasRealContent ? (
               isHtml ? (
                 mainHtml ? (
-                  <FitHtml
-                    html={mainHtml}
-                    className="clb-email-preview__html"
-                  />
+                  <EmailFrame html={mainHtml} />
                 ) : (
                   <div className="clb-email-preview__text">
                     No readable message content.
@@ -669,10 +748,7 @@ function ThreadMessage({ message, isLatest, attachments = [] }) {
               {showQuotedText && (
                 <div className="clb-thread-message__quoted-content">
                   {isHtml ? (
-                    <FitHtml
-                      html={quotedHtml}
-                      className="clb-email-preview__html clb-email-preview__quoted-html"
-                    />
+                    <EmailFrame html={quotedHtml} muted />
                   ) : (
                     <div className="clb-email-preview__text clb-email-preview__quoted-text">
                       <LinkifiedText text={quotedText} />
