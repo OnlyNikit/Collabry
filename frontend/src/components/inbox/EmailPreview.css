@@ -737,7 +737,7 @@
   }
 
   .clb-email-preview__body {
-    padding: var(--clb-space-sm);
+    padding: 0px;
     font-size: 0.88rem;
   }
 
