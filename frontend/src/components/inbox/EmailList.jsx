@@ -1,12 +1,7 @@
-import { createPortal } from "react-dom";
-
 import EmailListItem from "./EmailListItem";
 import EmailListItemSkeleton from "../common/emailListLoader";
 
-import { useEmails } from "../../context/EmailContext";
-
 import "./EmailList.css";
-import "./EmailListLoading.css";
 
 function EmailList({
   emails = [],
@@ -18,20 +13,6 @@ function EmailList({
   loadingMore = false,
   onLoadMore,
 }) {
-  /*
-    Click hote hi context activeEmailId set kar deta hai aur
-    isThreadReady = false. Jab tak thread load ho raha hai,
-    chhoti screen par list ke upar loader dikhao.
-    (Desktop par ye CSS se hidden rehta hai, kyunki wahan
-    preview side mein khud loader dikhata hai.)
-  */
-  const { activeEmailId: pendingEmailId, isThreadReady } = useEmails();
-
-  const isOpeningEmail = Boolean(pendingEmailId) && !isThreadReady;
-
-  // DEBUG (zarurat ho toh uncomment karo, click par console dekho):
-  // console.log("[EmailList]", { pendingEmailId, isThreadReady, isOpeningEmail });
-
   function handleSelectEmail(emailOrId) {
     if (typeof onSelect !== "function") {
       return;
@@ -113,26 +94,6 @@ function EmailList({
           </button>
         </div>
       )}
-
-      {/*
-        Portal: overlay seedha document.body mein render hota hai,
-        taaki parent ke overflow / transform / z-index se kat na jaye.
-      */}
-      {isOpeningEmail &&
-        typeof document !== "undefined" &&
-        createPortal(
-          <div
-            className="clb-email-list__pending"
-            role="status"
-            aria-live="polite"
-          >
-            <div className="clb-email-list__pending-box">
-              <span className="clb-email-list__spinner" />
-              <span>Loading conversation...</span>
-            </div>
-          </div>,
-          document.body,
-        )}
     </div>
   );
 }

@@ -53,20 +53,20 @@ function Inbox() {
   ======================================== */
 
   const {
-  emails,           // "viewEmails" ki jagah
-  activeEmailId,
-  activeEmail,
-  selectEmail,
-  markAsRead,
-  clearActiveEmail,
-  currentView,
-  changeView,
-  loading,
-  loadingMore,
-  error,
-  hasMoreEmails,
-  loadMoreEmails,
-} = useEmails();
+    emails, // "viewEmails" ki jagah
+    activeEmailId,
+    activeEmail,
+    selectEmail,
+    markAsRead,
+    clearActiveEmail,
+    currentView,
+    changeView,
+    loading,
+    loadingMore,
+    error,
+    hasMoreEmails,
+    loadMoreEmails,
+  } = useEmails();
 
   /* ========================================
   CURRENT URL VIEW
@@ -81,6 +81,29 @@ function Inbox() {
   ======================================== */
 
   const viewConfig = useMemo(() => VIEW_CONFIG[currentUrlView], [currentUrlView]);
+
+  /* ========================================
+  PREVIEW EMAIL
+
+  Click ke turant baad context me activeEmail abhi
+  set ho raha hota hai, isliye list wale record ko
+  fallback rakho. Preview kabhi "Select an email"
+  nahi dikhayega, seedha loader dikhayega.
+  ======================================== */
+
+  const previewEmail = useMemo(() => {
+    if (activeEmail) {
+      return activeEmail;
+    }
+
+    if (!activeEmailId) {
+      return null;
+    }
+
+    return (
+      emails.find((email) => String(email.id) === String(activeEmailId)) || null
+    );
+  }, [activeEmail, activeEmailId, emails]);
 
   /* ========================================
   MOBILE STATE
@@ -157,28 +180,45 @@ function Inbox() {
 
   /* ========================================
   SELECT EMAIL
+
+  FIX: pehle yahan `await selectEmail()` ke BAAD
+  mobile preview khulta tha, isliye thread load hone
+  tak list hi dikhti rehti thi.
+
+  Ab click hote hi:
+    1. mobile par preview turant khulta hai
+    2. selectEmail() start hota hai (await nahi)
+       -> context turant activeEmailId set karta hai
+          aur isThreadReady = false, to preview ke
+          andar "Loading conversation..." loader dikhta hai
+    3. thread load hone ke baad unread email read mark hota hai
   ======================================== */
 
-  async function handleSelectEmail(emailId) {
-    try {
-      const selectedEmail = emails.find((email) => email.id === emailId); // viewEmails -> emails
+  function handleSelectEmail(emailId) {
+    const selectedEmail = emails.find(
+      (email) => String(email.id) === String(emailId),
+    );
 
-      await selectEmail(emailId);
-
-      if (selectedEmail && selectedEmail.unread) {
-        try {
-          await markAsRead(emailId);
-        } catch (markError) {
-          console.error("Failed to mark email as read:", markError);
-        }
-      }
-
-      if (isMobileView) {
-        setMobileView("preview");
-      }
-    } catch (selectError) {
-      console.error("Failed to select email:", selectError);
+    // 1) Turant preview kholo
+    if (isMobileView) {
+      setMobileView("preview");
     }
+
+    // 2) Thread load shuru karo (await nahi karna)
+    selectEmail(emailId)
+      .then(async () => {
+        // 3) Thread aane ke baad read mark karo
+        if (selectedEmail && selectedEmail.unread) {
+          try {
+            await markAsRead(emailId);
+          } catch (markError) {
+            console.error("Failed to mark email as read:", markError);
+          }
+        }
+      })
+      .catch((selectError) => {
+        console.error("Failed to select email:", selectError);
+      });
   }
 
   /* ========================================
@@ -186,6 +226,9 @@ function Inbox() {
   ======================================== */
 
   function handleBackToList() {
+    // Load beech me chhod diya ho toh wo bhi cancel ho jaye
+    clearActiveEmail();
+
     setMobileView("list");
   }
 
@@ -225,7 +268,7 @@ function Inbox() {
         {/* EMAIL PREVIEW */}
 
         <section className="clb-inbox__mobile-preview">
-          <EmailPreview email={activeEmail} />
+          <EmailPreview email={previewEmail} />
         </section>
       </div>
     );
@@ -253,7 +296,7 @@ function Inbox() {
 
       {!isMobileView && (
         <section className="clb-inbox__preview-pane">
-          <EmailPreview email={activeEmail} />
+          <EmailPreview email={previewEmail} />
         </section>
       )}
 
