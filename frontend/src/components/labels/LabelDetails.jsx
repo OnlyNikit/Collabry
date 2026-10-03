@@ -1,8 +1,8 @@
-import { useMemo, useEffect } from "react";
+import { useMemo, useEffect, useState } from "react";
 
 import { Link, useParams } from "react-router-dom";
 
-import { ArrowLeft, Tag } from "lucide-react";
+import { ArrowLeft, Tag, ChevronLeft } from "lucide-react";
 
 import EmailList from "../../components/inbox/EmailList";
 import EmailPreview from "../../components/inbox/EmailPreview";
@@ -18,6 +18,10 @@ import "./LabelDetails.css";
 function LabelDetail() {
   const { labelId } = useParams();
 
+  // Mobile only: true = preview dikhao, false = list dikhao.
+  // Sirf user ke click par true hota hai (auto-select se nahi).
+  const [mobilePreviewOpen, setMobilePreviewOpen] = useState(false);
+
   /* =====================================
      CONTEXT
   ===================================== */
@@ -25,32 +29,16 @@ function LabelDetail() {
   const { getLabel, loading: labelsLoading } = useLabels();
 
   const {
-    // FIX: use the full shared pool (all views) to search across
-    // every email for this label — that part was already correct.
     emails,
     loading: emailsLoading,
-
-    // FIX: these come from the SAME context Inbox.jsx uses. Selecting
-    // through selectEmail() is what actually fetches an email's full
-    // body/thread — that's the piece that was missing before, which
-    // is why content only showed up for emails already opened in Inbox.
     activeEmailId,
     activeEmail,
     selectEmail,
     clearActiveEmail,
   } = useEmails();
 
-  const {
-    getEmailLabels,
-    fetchEmailLabels,
-    // FIX: getEmailLabels() ALWAYS returns an array (defaults to []),
-    // it never returns undefined — so the old `existingLabels ===
-    // undefined` check below never fired, meaning this page's own
-    // per-email label fetch never actually ran unless AllLabels had
-    // already loaded that email's labels first. isEmailLabelsLoaded()
-    // is the real "have we fetched this yet" check.
-    isEmailLabelsLoaded,
-  } = useEmailLabels();
+  const { getEmailLabels, fetchEmailLabels, isEmailLabelsLoaded } =
+    useEmailLabels();
 
   /* =====================================
      GET CURRENT LABEL
@@ -100,10 +88,6 @@ function LabelDetail() {
 
       const emailLabelIds = getEmailLabels(emailId);
 
-      /*
-        Labels are still loading.
-      */
-
       if (!Array.isArray(emailLabelIds)) {
         return false;
       }
@@ -114,23 +98,16 @@ function LabelDetail() {
 
   /* =====================================
      RESET SELECTION WHEN LABEL CHANGES
-
-     FIX: clears the SHARED context selection (not a local
-     one), so switching labels doesn't leave a stale email
-     from a different label (or from Inbox) selected.
   ===================================== */
 
   useEffect(() => {
     clearActiveEmail();
+    setMobilePreviewOpen(false);
   }, [labelId, clearActiveEmail]);
 
   /* =====================================
      SELECT FIRST EMAIL WHEN FILTERED
      EMAILS CHANGE
-
-     FIX: calls the context's selectEmail() instead of just
-     setting a local id — this is what actually fetches the
-     email's full body/thread from the API.
   ===================================== */
 
   useEffect(() => {
@@ -155,16 +132,15 @@ function LabelDetail() {
 
   /* =====================================
      HANDLE EMAIL SELECTION
-
-     FIX: routes through the shared context's selectEmail()
-     — same function Inbox.jsx uses — so the full email body
-     loads no matter which page you opened it from.
   ===================================== */
 
   function handleSelectEmail(emailId) {
     if (!emailId) {
       return;
     }
+
+    // Mobile par list hide karke preview dikhao
+    setMobilePreviewOpen(true);
 
     selectEmail(emailId).catch((error) => {
       console.error("Failed to select email:", error);
@@ -238,11 +214,12 @@ function LabelDetail() {
           INBOX
       =============================== */}
 
-      <div className="clb-label-detail__inbox">
-        {/* ===============================
-            EMAIL LIST
-        =============================== */}
-
+      <div
+        className={`clb-label-detail__inbox ${
+          mobilePreviewOpen ? "clb-label-detail__inbox--preview-open" : ""
+        }`}
+      >
+        {/* EMAIL LIST */}
         <section className="clb-label-detail__list">
           <EmailList
             emails={filteredEmails}
@@ -251,17 +228,20 @@ function LabelDetail() {
           />
         </section>
 
-        {/* ===============================
-            EMAIL PREVIEW
-        =============================== */}
-
+        {/* EMAIL PREVIEW */}
         <section className="clb-label-detail__preview">
+          {/* Sirf mobile par dikhega */}
+          <button
+            type="button"
+            className="clb-label-detail__mobile-back"
+            onClick={() => setMobilePreviewOpen(false)}
+          >
+            <ChevronLeft size={18} />
+            Back to emails
+          </button>
+
           {activeEmail ? (
             <EmailPreview
-              /*
-                Force a fresh preview whenever the selected
-                email changes.
-              */
               key={String(activeEmailId || "")}
               email={activeEmail}
             />
