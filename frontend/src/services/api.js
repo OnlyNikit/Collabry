@@ -2,7 +2,14 @@ import axios from "axios";
 
 import { getActingAsId } from "../context/ActingAsContext";
 
-const RAW_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
+/*
+  Production: relative URL ("/api/...") taaki request Vercel rewrite se
+  Render tak jaye aur cookie first-party rahe.
+  Development: localhost backend.
+*/
+const RAW_BASE_URL = import.meta.env.PROD
+  ? ""
+  : import.meta.env.VITE_API_URL || "http://localhost:8080";
 
 const api = axios.create({
   baseURL: `${RAW_BASE_URL}/api`,
