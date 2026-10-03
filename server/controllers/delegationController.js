@@ -161,6 +161,18 @@ const revoke = async (req, res) => {
   d.status = "revoked";
   d.revokedAt = new Date();
   await d.save();
+
+  // Realtime: stop sending the owner's live events to the delegate's open
+  // tabs, and tell those tabs to go back to their own mailbox.
+  if (global.io && d.delegate) {
+    const delegateRoom = `self:${d.delegate}`;
+
+    global.io.in(delegateRoom).socketsLeave(`user:${d.owner}`);
+    global.io
+      .in(delegateRoom)
+      .emit("mailbox:revoked", { ownerId: String(d.owner) });
+  }
+
   res.json({ message: "Access revoked" });
 };
 

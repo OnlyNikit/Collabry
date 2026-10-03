@@ -6,6 +6,7 @@ const cookieParser = require("cookie-parser");
 const passport = require("passport");
 const http = require("http");
 const jwt = require("jsonwebtoken");
+const mongoose = require("mongoose");
 const rateLimit = require("express-rate-limit"); /* SHARE */
 const { Server } = require("socket.io");
 
@@ -30,13 +31,14 @@ const { initShareSocket } = require("./utils/shareSocket");
 /* DELEGATION (shared inbox access) */
 const delegationRoutes = require("./routes/delegationRoutes");
 const { actingAs } = require("./middleware/actingAs");
+const { Delegation } = require("./models/Delegation");
 // Adjust the path/name if your auth middleware file is different
 const { protect } = require("./middleware/authMiddleware");
 
 require("./config/google");
 
 const app = express();
-app.set("trust proxy", 1); 
+app.set("trust proxy", 1);
 const server = http.createServer(app);
 
 app.use(
@@ -274,6 +276,20 @@ io.use((socket, next) => {
 
 /* =========================================================
    SOCKET.IO CONNECTION
+
+   Rooms:
+   - user:<id>  live events for that user's mailbox/notifications
+   - self:<id>  every connection of that user (used to reach all of a
+                delegate's tabs, e.g. when access is revoked)
+
+   Delegated mailbox:
+   A client can send "mailbox:watch" { ownerId } to work inside a mailbox
+   that was shared with it. The server re-checks the delegation (active +
+   read permission) before moving THAT connection into the owner's room.
+   While watching the owner, that connection leaves its own room so the
+   user's own events never get mixed into the owner's lists.
+   Other connections of the same user (for example the notifications
+   socket) are not affected and stay on the user's own room.
 ========================================================= */
 
 io.on("connection", (socket) => {
@@ -287,6 +303,60 @@ io.on("connection", (socket) => {
   const room = `user:${userId}`;
 
   socket.join(room);
+  socket.join(`self:${userId}`);
+
+  let watchingOwnerId = null;
+
+  const stopWatching = () => {
+    if (!watchingOwnerId) {
+      return;
+    }
+
+    socket.leave(`user:${watchingOwnerId}`);
+    watchingOwnerId = null;
+  };
+
+  socket.on("mailbox:watch", async (payload, ack) => {
+    const reply = typeof ack === "function" ? ack : () => {};
+
+    try {
+      const ownerId = payload?.ownerId ? String(payload.ownerId) : null;
+
+      // Back to the user's own mailbox
+      if (!ownerId || ownerId === userId) {
+        stopWatching();
+        socket.join(room);
+
+        return reply({ ok: true, mailbox: "me" });
+      }
+
+      if (!mongoose.isValidObjectId(ownerId)) {
+        return reply({ ok: false, message: "Invalid mailbox" });
+      }
+
+      const delegation = await Delegation.findOne({
+        owner: ownerId,
+        delegate: userId,
+        status: "active",
+      });
+
+      if (!delegation || !delegation.can("read")) {
+        return reply({ ok: false, message: "No access" });
+      }
+
+      stopWatching();
+
+      socket.leave(room);
+      socket.join(`user:${ownerId}`);
+      watchingOwnerId = ownerId;
+
+      return reply({ ok: true, mailbox: ownerId });
+    } catch (error) {
+      console.error("[SOCKET] mailbox:watch failed:", error?.message || error);
+
+      return reply({ ok: false, message: "Failed" });
+    }
+  });
 
   console.log(`[SOCKET] User connected ${socket.id} -> ${room}`);
 

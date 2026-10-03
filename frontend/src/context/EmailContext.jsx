@@ -15,6 +15,9 @@ import { useToast } from "./ToastContext";
    (ProfileAccounts bhi usi me owner save karta hai) */
 import { getActingOwnerId, useMailbox } from "./MailboxContext";
 
+/* Delegated mailbox: socket ko sahi mailbox ke realtime room me rakhta hai */
+import attachMailboxRoomSync from "../utils/mailboxSocketSync";
+
 const EmailsContext = createContext(null);
 
 /* =========================================================
@@ -408,6 +411,9 @@ EMAILS PROVIDER (inner)
 
 function EmailsProviderInner({ children }) {
   const { showToast } = useToast();
+
+  /* Delegated mailbox: access hatne par apni inbox par wapas jaane ke liye */
+  const { refreshShared } = useMailbox();
 
   /* ========================================
      NORMALIZED EMAIL STORE
@@ -1322,20 +1328,24 @@ function EmailsProviderInner({ children }) {
   /* ========================================
      REALTIME GMAIL UPDATES
 
-     Socket sirf logged-in user ke apne room (user:<id>) se judta hai.
-     Delegated mode me owner ki mailbox dikh rahi hoti hai, isliye
-     us waqt apni mails ke realtime events ignore karne ke liye
-     socket banate hi nahi.
+     Socket har mailbox me banta hai (apni ya delegated).
+     attachMailboxRoomSync server ko batata hai ki ye socket kiski
+     mailbox me hai:
+       - apni mailbox     -> socket apne room (user:<id>) me rehta hai
+       - delegated mailbox -> server is socket ko owner ke room me bhejta hai
+                              (delegation + read permission check ke baad),
+                              isliye owner ke naye / sent mail live aate hain
   ======================================== */
 
   useEffect(() => {
-    /* FIX: MailboxContext wala owner id check */
-    if (getActingOwnerId()) {
-      return undefined;
-    }
-
     /* Token ke saath authenticated socket (Render se seedha) */
     const socket = createAuthedSocket();
+
+    /*
+      Sahi mailbox ke room me rakho (connect / reconnect par bhi).
+      Access hatne par refreshShared apni inbox par wapas le jaata hai.
+    */
+    const detachMailboxSync = attachMailboxRoomSync(socket, refreshShared);
 
     /*
       Open thread ko silently dobara fetch karo.
@@ -1500,13 +1510,15 @@ function EmailsProviderInner({ children }) {
         threadRefreshTimerRef.current = null;
       }
 
+      detachMailboxSync();
+
       socket.off("gmail:email-updated", upsertRealtimeEmail);
       socket.off("gmail:email-deleted", handleDeleted);
       socket.disconnect();
     };
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clearActiveEmail, syncEmailMembershipToViews]);
+  }, [clearActiveEmail, syncEmailMembershipToViews, refreshShared]);
 
   /* ========================================
      CONTEXT VALUE
