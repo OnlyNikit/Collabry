@@ -135,7 +135,11 @@ function buildEmailDocument(html, muted = false) {
 <meta name="color-scheme" content="light">
 <base target="_blank">
 <style>
-  html { background: #ffffff; }
+  html {
+    background: #ffffff;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
   body {
     margin: 0;
     padding: 12px;
@@ -147,7 +151,16 @@ function buildEmailDocument(html, muted = false) {
     line-height: 1.5;
     overflow-wrap: break-word;
   }
-  img { max-width: 100%; height: auto; }
+  img {
+    max-width: 100% !important;
+    height: auto !important;
+  }
+  table { max-width: 100%; }
+  pre {
+    max-width: 100%;
+    white-space: pre-wrap;
+  }
+  video, iframe, embed { max-width: 100%; }
   a { color: #1a73e8; }
 </style>
 </head>
@@ -1420,6 +1433,7 @@ function EmailPreview({ email }) {
           name: email.sender || "",
           email: email.senderEmail || "",
           subject: email.subject || "",
+
           threadId: email.threadId || currentEmailId || "",
         }}
       />

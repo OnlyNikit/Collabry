@@ -80,6 +80,13 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: var(--clb-space-md);
+  min-width: 0;
+}
+
+/* Sender name + email wala left block shrink ho sake */
+.clb-email-preview__sender-row > div:first-child {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .clb-email-preview__header h2 {
@@ -103,6 +110,18 @@
   color: var(--clb-text-muted);
   font-size: 0.78rem;
   white-space: nowrap;
+}
+
+/* =========================================================
+   MAIN HEADER ACTIONS (time + summarize)
+========================================================= */
+
+.clb-email-preview__header-actions {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--clb-space-sm);
+  max-width: 100%;
 }
 
 /* =========================================================
@@ -190,6 +209,28 @@
 }
 
 /* =========================================================
+   THREAD MESSAGE HEADER (toggle + summarize button)
+========================================================= */
+
+.clb-thread-message__header {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+  padding-right: var(--clb-space-sm);
+}
+
+.clb-thread-message__header > .clb-thread-message__toggle {
+  flex: 1 1 auto;
+  width: auto;
+  min-width: 0;
+}
+
+.clb-thread-message__header > :not(.clb-thread-message__toggle) {
+  flex-shrink: 0;
+}
+
+/* =========================================================
    THREAD TOGGLE
 ========================================================= */
 
@@ -265,10 +306,12 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--clb-space-sm);
+  min-width: 0;
 }
 
 .clb-thread-message__sender-name {
   display: block;
+  min-width: 0;
   overflow: hidden;
   color: var(--clb-text);
   font-family: var(--clb-font-display);
@@ -392,17 +435,6 @@
 }
 
 /* =========================================================
-   FIT WRAPPER (used by FitHtml in EmailPreview.jsx)
-========================================================= */
-
-.clb-email-fit {
-  width: 100%;
-  max-width: 100%;
-  min-width: 0;
-  overflow: hidden;
-}
-
-/* =========================================================
    EMAIL FRAME (isolated iframe, see EmailFrame in EmailPreview.jsx)
 ========================================================= */
 
@@ -418,147 +450,16 @@
 }
 
 /* =========================================================
-   HTML EMAIL
-========================================================= */
-
-.clb-email-preview__html {
-  width: 100%;
-  max-width: 100%;
-  box-sizing: border-box;
-  color: var(--clb-text);
-  overflow-x: hidden;
-
-  /*
-    IMPORTANT: "overflow-wrap: anywhere" / "word-break: break-word"
-    table cells ki min-content width ko 0 kar dete hain, jisse
-    2-column layout me text ka column 1 letter chauda reh jata hai
-    (har letter alag line me). "break-word" sirf lambe words todta
-    hai aur layout ko nahi bigadta.
-  */
-  overflow-wrap: break-word;
-  line-height: 1.7;
-}
-
-/* Email ka apna layout rehne do, sirf box-sizing consistent rakho */
-.clb-email-preview__html * {
-  box-sizing: border-box;
-}
-
-.clb-email-preview__html p {
-  margin: 0 0 1rem;
-}
-
-.clb-email-preview__html h1,
-.clb-email-preview__html h2,
-.clb-email-preview__html h3,
-.clb-email-preview__html h4,
-.clb-email-preview__html h5,
-.clb-email-preview__html h6 {
-  color: var(--clb-text);
-  line-height: 1.35;
-  overflow-wrap: break-word;
-}
-
-.clb-email-preview__html h1 {
-  font-size: 1.5rem;
-}
-
-.clb-email-preview__html h2 {
-  font-size: 1.3rem;
-}
-
-.clb-email-preview__html h3 {
-  font-size: 1.1rem;
-}
-
-.clb-email-preview__html ul,
-.clb-email-preview__html ol {
-  padding-left: 1.5rem;
-}
-
-.clb-email-preview__html li {
-  margin-bottom: 0.35rem;
-}
-
-/* =========================================================
-   LINKS
-========================================================= */
-
-.clb-email-preview__html a {
-  color: var(--clb-primary);
-  overflow-wrap: break-word;
-}
-
-/* =========================================================
-   IMAGES / MEDIA
-========================================================= */
-
-.clb-email-preview__html img {
-  max-width: 100%;
-  height: auto !important;
-}
-
-.clb-email-preview__html video,
-.clb-email-preview__html iframe {
-  max-width: 100%;
-  height: auto;
-}
-
-/* =========================================================
-   TABLES
-========================================================= */
-
-.clb-email-preview__html table {
-  max-width: 100%;
-  border-collapse: collapse;
-}
-
-/* =========================================================
-   BLOCKQUOTE
-========================================================= */
-
-.clb-email-preview__html blockquote {
-  margin: 1rem 0;
-  padding: 0.75rem 1rem;
-  border-left: 3px solid var(--clb-border);
-  color: var(--clb-text-muted);
-}
-
-/* =========================================================
-   HR
-========================================================= */
-
-.clb-email-preview__html hr {
-  border: none;
-  border-top: 1px solid var(--clb-border);
-  margin: 1.25rem 0;
-}
-
-/* =========================================================
-   CODE
-========================================================= */
-
-.clb-email-preview__html pre {
-  max-width: 100%;
-  padding: 0.75rem;
-  white-space: pre-wrap;
-  overflow-x: hidden;
-  border-radius: 8px;
-  background: rgba(0, 0, 0, 0.08);
-}
-
-.clb-email-preview__html code {
-  overflow-wrap: break-word;
-}
-
-/* =========================================================
    ATTACHMENTS
 ========================================================= */
 
 .clb-thread-message__attachments {
+  min-width: 0;
+  max-width: 100%;
   margin-top: var(--clb-space-md);
   padding-top: var(--clb-space-sm);
   border-top: 1px solid var(--clb-border);
+  overflow-x: hidden;
 }
 
 /* =========================================================
@@ -706,6 +607,7 @@
   border-radius: 12px;
   color: var(--clb-pink);
   font-size: 0.85rem;
+  overflow-wrap: anywhere;
 }
 
 /* =========================================================
@@ -797,12 +699,23 @@
     gap: 0.25rem;
   }
 
+  .clb-email-preview__sender-row > div:first-child {
+    width: 100%;
+  }
+
   .clb-email-preview__header h2 {
     font-size: 1rem;
   }
 
   .clb-email-preview__sender-email {
     font-size: 0.78rem;
+  }
+
+  .clb-email-preview__header-actions {
+    width: 100%;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.4rem;
   }
 
   .clb-email-preview__time {
@@ -813,6 +726,12 @@
   .clb-email-preview__body {
     padding: var(--clb-space-sm);
     font-size: 0.88rem;
+  }
+
+  .clb-thread-message__header {
+    align-items: flex-start;
+    padding-top: 0.25rem;
+    padding-right: 0.4rem;
   }
 
   .clb-thread-message__content {
@@ -827,6 +746,10 @@
     flex-direction: column;
     align-items: flex-start;
     gap: 0.2rem;
+  }
+
+  .clb-thread-message__sender-name {
+    max-width: 100%;
   }
 
   .clb-thread-message__time {
@@ -847,16 +770,8 @@
     justify-content: center;
   }
 
-  .clb-email-preview__html h1 {
-    font-size: 1.3rem;
-  }
-
-  .clb-email-preview__html h2 {
-    font-size: 1.15rem;
-  }
-
-  .clb-email-preview__html h3 {
-    font-size: 1.05rem;
+  .clb-email-preview__error {
+    margin: 0 var(--clb-space-sm) var(--clb-space-sm);
   }
 }
 
