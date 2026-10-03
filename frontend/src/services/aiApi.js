@@ -1,4 +1,33 @@
+/* Delegated mailbox: acting-as owner ki id (EmailContext bhi yahi use karta hai) */
+import { getActingOwnerId } from "../context/MailboxContext";
+
 const API_URL = import.meta.env.VITE_API_URL;
+
+/* =========================================================
+   HEADERS
+
+   FIX: pehle yahan "X-Acting-As" header nahi jaata tha.
+   Isliye delegated inbox me AI request backend par aapki
+   APNI mailbox me email dhoondti thi aur "Email not found"
+   (404) aata tha. Ab EmailContext ki tarah ye header har
+   AI request ke saath jaata hai.
+========================================================= */
+
+function buildHeaders({ json = false } = {}) {
+  const headers = {};
+
+  if (json) {
+    headers["Content-Type"] = "application/json";
+  }
+
+  const actingOwnerId = getActingOwnerId();
+
+  if (actingOwnerId) {
+    headers["X-Acting-As"] = actingOwnerId;
+  }
+
+  return headers;
+}
 
 /* =========================================================
    DRAFT HELPER
@@ -8,7 +37,7 @@ async function postForDraft(endpoint, payload) {
   const response = await fetch(`${API_URL}${endpoint}`, {
     method: "POST",
     credentials: "include",
-    headers: { "Content-Type": "application/json" },
+    headers: buildHeaders({ json: true }),
     body: JSON.stringify(payload),
   });
 
@@ -43,7 +72,7 @@ async function postForSummary(endpoint, emptyMessage) {
   const response = await fetch(`${API_URL}${endpoint}`, {
     method: "POST",
     credentials: "include",
-    headers: { "Content-Type": "application/json" },
+    headers: buildHeaders({ json: true }),
   });
 
   let data = null;
