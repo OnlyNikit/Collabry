@@ -1,18 +1,24 @@
 @import '../../style/token.css';
 
-/* ---------- Backdrop ---------- */
+/* =========================================================
+   DEFAULT (bade screens) - pehle jaisa modal
+   ========================================================= */
 .clb-compose-backdrop {
   position: fixed;
   inset: 0;
+
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
 
   background: rgba(15, 11, 30, 0.7);
   backdrop-filter: blur(2px);
 
   display: flex;
-  align-items: flex-end;   /* mobile: bottom sheet */
-  justify-content: center;
+  align-items: flex-end;
+  justify-content: flex-end;
 
-  padding: 0;
+  padding: var(--clb-space-lg);
   box-sizing: border-box;
 
   /* Sidebar se upar */
@@ -21,45 +27,40 @@
   animation: clb-fade-in 0.2s var(--clb-ease) both;
 }
 
-/* ---------- Modal ---------- */
 .clb-compose-modal {
   position: relative;
   display: flex;
   flex-direction: column;
 
-  width: 100%;
-  max-width: 100%;
-  box-sizing: border-box;
+  width: min(100vw, 100%);
+  max-height: calc(100vh - 32px);
+  max-height: calc(100dvh - 32px);
 
-  /* dvh = mobile browser ki real visible height */
-  max-height: 92vh;
-  max-height: 92dvh;
+  overflow: hidden; /* scroll sirf form ke andar */
 
   background: var(--clb-surface);
   border: 1px solid var(--clb-border);
-  border-bottom: none;
   border-radius: 16px 16px 0 0;
   box-shadow: 0 -20px 50px -10px rgba(0, 0, 0, 0.5);
 
-  overflow: hidden; /* scroll sirf form ke andar hoga */
   z-index: 100000;
 
   animation: clb-slide-up 0.25s var(--clb-ease) both;
 }
 
-/* ---------- Header (hamesha visible) ---------- */
+/* ---------- Header ---------- */
 .clb-compose-modal__header {
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--clb-space-sm) var(--clb-space-md);
+  padding: var(--clb-space-md);
   border-bottom: 1px solid var(--clb-border);
 }
 
 .clb-compose-modal__header h2 {
   font-family: var(--clb-font-display);
-  font-size: 1.2rem;
+  font-size: 1.4rem;
   margin: 0;
 }
 
@@ -68,29 +69,26 @@
   border: none;
   color: var(--clb-text-muted);
   cursor: pointer;
-  font-size: 1.4rem;
+  font-size: 1.7rem;
   line-height: 1;
-  padding: 0.25em;
 }
 
 .clb-compose-modal__close:hover {
   color: var(--clb-text);
 }
 
-/* ---------- Form (scrollable area) ---------- */
+/* ---------- Form ---------- */
 .clb-compose-modal__form {
   display: flex;
   flex-direction: column;
   gap: var(--clb-space-sm);
 
   flex: 1 1 auto;
-  min-height: 0;           /* flex child ko scroll karne ke liye zaruri */
+  min-height: 0;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 
   padding: var(--clb-space-md);
-  /* iPhone notch / home bar ke liye */
-  padding-bottom: calc(var(--clb-space-md) + env(safe-area-inset-bottom, 0px));
 }
 
 .clb-compose-modal__form input,
@@ -104,9 +102,9 @@
   padding: 0.7em var(--clb-space-sm);
   color: var(--clb-text);
   font-family: var(--clb-font-body);
-  font-size: 1rem;         /* 16px = iOS par auto-zoom nahi hoga */
+  font-size: 1.2rem;
   outline: none;
-  resize: none;
+  resize: vertical;
 }
 
 .clb-compose-modal__form input:focus,
@@ -127,13 +125,11 @@
 
 .clb-ai-editor textarea {
   display: block;
-  /* rows attribute ko override: screen ke hisaab se height */
-  height: clamp(140px, 28dvh, 280px);
-  /* right padding taaki ✨ button text ke upar na aaye */
+  /* ✨ button text ke upar na aaye */
   padding-right: 3.2rem;
 }
 
-/* ---------- Actions ---------- */
+/* ---------- Actions / messages ---------- */
 .clb-compose-modal__actions {
   display: flex;
   gap: var(--clb-space-sm);
@@ -153,38 +149,60 @@
   text-align: center;
 }
 
-/* ---------- Bade screens (tablet / desktop) ---------- */
-@media (min-width: 640px) {
+/* =========================================================
+   CHHOTE SCREENS - full screen, no margin, chhota font
+   ========================================================= */
+@media (max-width: 640px) {
   .clb-compose-backdrop {
-    justify-content: flex-end;     /* Gmail jaisa bottom-right */
-    padding: var(--clb-space-lg);
+    padding: 0;
+    align-items: stretch;
+    justify-content: stretch;
   }
 
   .clb-compose-modal {
-    width: 520px;
-    max-height: calc(100dvh - 2 * var(--clb-space-lg));
-    border-bottom: 1px solid var(--clb-border);
-    border-radius: 16px;
+    width: 100%;
+    height: 100%;
+    max-height: none;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .clb-compose-modal__header {
+    padding: var(--clb-space-sm) var(--clb-space-md);
   }
 
   .clb-compose-modal__header h2 {
-    font-size: 1.4rem;
+    font-size: 1.15rem;
+  }
+
+  .clb-compose-modal__close {
+    font-size: 1.3rem;
+    padding: 0.25em;
+  }
+
+  .clb-compose-modal__form {
+    padding: var(--clb-space-sm) var(--clb-space-md);
+    /* iPhone home bar ke liye */
+    padding-bottom: calc(var(--clb-space-sm) + env(safe-area-inset-bottom, 0px));
+  }
+
+  .clb-compose-modal__form input,
+  .clb-compose-modal__form textarea {
+    font-size: 1rem; /* 16px: iOS par focus pe zoom nahi hoga */
+    resize: none;
+  }
+
+  /* Message box bachi hui poori height le */
+  .clb-ai-editor {
+    flex: 1 1 auto;
+    min-height: 140px;
+    display: flex;
   }
 
   .clb-ai-editor textarea {
-    height: 260px;
-  }
-}
-
-/* ---------- Bahut chhote ya landscape screen ---------- */
-@media (max-height: 520px) {
-  .clb-compose-modal {
-    max-height: 100dvh;
-    border-radius: 0;
-  }
-
-  .clb-ai-editor textarea {
-    height: 100px;
+    height: 100%;
+    flex: 1;
   }
 }
 
