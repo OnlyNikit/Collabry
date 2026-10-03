@@ -8,7 +8,9 @@ import {
 
 const AuthContext = createContext(null);
 
-const API_URL ="http://localhost:8080/api";
+const API_URL = import.meta.env.PROD
+  ? "/api"
+  : `${import.meta.env.VITE_API_URL || "http://localhost:8080"}/api`;
 
 export function AuthProvider({ children }) {
   const [user, setUser] =
