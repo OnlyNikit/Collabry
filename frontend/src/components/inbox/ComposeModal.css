@@ -1,24 +1,18 @@
 @import '../../style/token.css';
 
+/* ---------- Backdrop ---------- */
 .clb-compose-backdrop {
   position: fixed;
-
   inset: 0;
 
-  width: 100vw;
-  height: 100vh;
-
   background: rgba(15, 11, 30, 0.7);
-
   backdrop-filter: blur(2px);
 
   display: flex;
+  align-items: flex-end;   /* mobile: bottom sheet */
+  justify-content: center;
 
-  align-items: flex-end;
-  justify-content: flex-end;
-
-  padding: var(--clb-space-lg);
-
+  padding: 0;
   box-sizing: border-box;
 
   /* Sidebar se upar */
@@ -27,41 +21,45 @@
   animation: clb-fade-in 0.2s var(--clb-ease) both;
 }
 
+/* ---------- Modal ---------- */
 .clb-compose-modal {
   position: relative;
+  display: flex;
+  flex-direction: column;
 
-  width: min(100vw, 100%);
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 
-  max-height: calc(100vh - 32px);
-
-  overflow-y: auto;
+  /* dvh = mobile browser ki real visible height */
+  max-height: 92vh;
+  max-height: 92dvh;
 
   background: var(--clb-surface);
-
   border: 1px solid var(--clb-border);
-
+  border-bottom: none;
   border-radius: 16px 16px 0 0;
-
   box-shadow: 0 -20px 50px -10px rgba(0, 0, 0, 0.5);
 
+  overflow: hidden; /* scroll sirf form ke andar hoga */
   z-index: 100000;
 
   animation: clb-slide-up 0.25s var(--clb-ease) both;
 }
 
-/* बाकी CSS same रहेगा */
-
+/* ---------- Header (hamesha visible) ---------- */
 .clb-compose-modal__header {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--clb-space-md);
+  padding: var(--clb-space-sm) var(--clb-space-md);
   border-bottom: 1px solid var(--clb-border);
 }
 
 .clb-compose-modal__header h2 {
   font-family: var(--clb-font-display);
-  font-size:1.4rem;
+  font-size: 1.2rem;
   margin: 0;
 }
 
@@ -70,32 +68,45 @@
   border: none;
   color: var(--clb-text-muted);
   cursor: pointer;
-  font-size: 1.7rem;
+  font-size: 1.4rem;
   line-height: 1;
+  padding: 0.25em;
 }
 
 .clb-compose-modal__close:hover {
   color: var(--clb-text);
 }
 
+/* ---------- Form (scrollable area) ---------- */
 .clb-compose-modal__form {
   display: flex;
   flex-direction: column;
   gap: var(--clb-space-sm);
+
+  flex: 1 1 auto;
+  min-height: 0;           /* flex child ko scroll karne ke liye zaruri */
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+
   padding: var(--clb-space-md);
+  /* iPhone notch / home bar ke liye */
+  padding-bottom: calc(var(--clb-space-md) + env(safe-area-inset-bottom, 0px));
 }
 
 .clb-compose-modal__form input,
 .clb-compose-modal__form textarea {
+  width: 100%;
+  box-sizing: border-box;
+
   background: var(--clb-surface-2);
   border: 1px solid var(--clb-border);
   border-radius: 10px;
   padding: 0.7em var(--clb-space-sm);
   color: var(--clb-text);
   font-family: var(--clb-font-body);
-  font-size: 1.2rem;
+  font-size: 1rem;         /* 16px = iOS par auto-zoom nahi hoga */
   outline: none;
-  resize: vertical;
+  resize: none;
 }
 
 .clb-compose-modal__form input:focus,
@@ -108,20 +119,79 @@
   color: var(--clb-text-muted);
 }
 
+/* ---------- Textarea + AI button ---------- */
+.clb-ai-editor {
+  position: relative;
+  width: 100%;
+}
+
+.clb-ai-editor textarea {
+  display: block;
+  /* rows attribute ko override: screen ke hisaab se height */
+  height: clamp(140px, 28dvh, 280px);
+  /* right padding taaki ✨ button text ke upar na aaye */
+  padding-right: 3.2rem;
+}
+
+/* ---------- Actions ---------- */
 .clb-compose-modal__actions {
   display: flex;
   gap: var(--clb-space-sm);
   padding-top: var(--clb-space-xs);
 }
 
-@keyframes clb-fade-in {
-  from {
-    opacity: 0;
+.clb-compose-modal__error {
+  margin: 0;
+  color: #f87171;
+  font-size: 0.9rem;
+}
+
+.clb-compose-modal__success {
+  margin: 0;
+  color: #22c55e;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+/* ---------- Bade screens (tablet / desktop) ---------- */
+@media (min-width: 640px) {
+  .clb-compose-backdrop {
+    justify-content: flex-end;     /* Gmail jaisa bottom-right */
+    padding: var(--clb-space-lg);
   }
 
-  to {
-    opacity: 1;
+  .clb-compose-modal {
+    width: 520px;
+    max-height: calc(100dvh - 2 * var(--clb-space-lg));
+    border-bottom: 1px solid var(--clb-border);
+    border-radius: 16px;
   }
+
+  .clb-compose-modal__header h2 {
+    font-size: 1.4rem;
+  }
+
+  .clb-ai-editor textarea {
+    height: 260px;
+  }
+}
+
+/* ---------- Bahut chhote ya landscape screen ---------- */
+@media (max-height: 520px) {
+  .clb-compose-modal {
+    max-height: 100dvh;
+    border-radius: 0;
+  }
+
+  .clb-ai-editor textarea {
+    height: 100px;
+  }
+}
+
+/* ---------- Animations ---------- */
+@keyframes clb-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 @keyframes clb-slide-up {
@@ -129,15 +199,8 @@
     transform: translateY(24px);
     opacity: 0;
   }
-
   to {
     transform: translateY(0);
     opacity: 1;
   }
-}
-.clb-compose-modal__success {
-  margin: 0;
-  color: #22c55e;
-  font-size: 0.9rem;
-  text-align: center;
 }
