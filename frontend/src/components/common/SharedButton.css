@@ -1,0 +1,480 @@
+/* =========================================================
+   SHARE BUTTON
+========================================================= */
+
+.clb-share {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.clb-share *,
+.clb-share *::before,
+.clb-share *::after {
+  box-sizing: border-box;
+}
+
+/* ---------- TRIGGER (chhota secondary button) ---------- */
+
+.clb-share__trigger {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  height: 2.5rem;
+  padding: 0 1rem;
+  border: 1px solid var(--clb-border, #e6dfe4);
+  border-radius: var(--clb-radius-md, 12px);
+  background: var(--clb-surface, #ffffff);
+  color: var(--clb-text, #1f1f2b);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    color 0.2s ease,
+    background 0.2s ease;
+}
+
+.clb-share__trigger:hover,
+.clb-share__trigger[aria-expanded="true"] {
+  border-color: var(--clb-pink, #e84a8a);
+  color: var(--clb-pink, #e84a8a);
+  background: rgba(232, 74, 138, 0.07);
+}
+
+.clb-share__trigger:focus-visible {
+  outline: 2px solid var(--clb-pink, #e84a8a);
+  outline-offset: 2px;
+}
+
+.clb-share__trigger--on {
+  border-color: rgba(31, 143, 78, 0.4);
+}
+
+.clb-share__dot {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 11px;
+  height: 11px;
+  border: 2px solid var(--clb-surface, #ffffff);
+  border-radius: 50%;
+  background: #1f8f4e;
+}
+
+/* ---------- BACKDROP (mobile only) ---------- */
+
+.clb-share__backdrop {
+  display: none;
+}
+
+/* ---------- POPOVER (desktop) ---------- */
+
+.clb-share__popover {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 340px;
+  max-width: calc(100vw - 24px);
+  padding: 16px;
+  border: 1px solid var(--clb-border, #ece6ea);
+  border-radius: 16px;
+  background: var(--clb-surface, #ffffff);
+  box-shadow: 0 18px 48px rgba(31, 31, 43, 0.18);
+  animation: clb-share-pop 0.16s ease-out;
+}
+
+@keyframes clb-share-pop {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes clb-share-sheet {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes clb-share-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.clb-share__head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.clb-share__head-icon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(232, 74, 138, 0.12);
+  color: var(--clb-pink, #e84a8a);
+}
+
+.clb-share__head h4 {
+  margin: 0 0 2px;
+  font-size: 0.95rem;
+}
+
+.clb-share__head p {
+  margin: 0;
+  color: var(--clb-text-muted, #6e6a78);
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+.clb-share__cta {
+  height: 2.6rem;
+  border: none;
+  border-radius: 10px;
+  background: var(--clb-pink, #e84a8a);
+  color: #ffffff;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.clb-share__cta:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.clb-share__cta:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.clb-share__field {
+  display: flex;
+  gap: 8px;
+}
+
+.clb-share__field input {
+  flex: 1;
+  min-width: 0;
+  height: 2.5rem;
+  padding: 0 12px;
+  border: 1px solid var(--clb-border, #ece6ea);
+  border-radius: 10px;
+  background: var(--clb-bg, #faf7f9);
+  color: var(--clb-text, #1f1f2b);
+  font: inherit;
+  font-size: 0.8rem;
+  text-overflow: ellipsis;
+}
+
+.clb-share__field input:focus {
+  outline: 2px solid rgba(232, 74, 138, 0.35);
+  outline-offset: 0;
+}
+
+.clb-share__copy {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 6px;
+  height: 2.5rem;
+  padding: 0 14px;
+  border: none;
+  border-radius: 10px;
+  background: var(--clb-pink, #e84a8a);
+  color: #ffffff;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.clb-share__copy--done {
+  background: #1f8f4e;
+}
+
+.clb-share__links {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--clb-border, #ece6ea);
+}
+
+.clb-share__links button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 2px;
+  border: none;
+  background: none;
+  color: var(--clb-text-muted, #6e6a78);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.clb-share__links button:hover:not(:disabled) {
+  color: var(--clb-pink, #e84a8a);
+}
+
+.clb-share__links .clb-share__links-danger:hover:not(:disabled) {
+  color: #d64545;
+}
+
+.clb-share__links button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.clb-share__error {
+  margin: 0;
+  color: #d64545;
+  font-size: 0.8rem;
+}
+
+/* =========================================================
+   PAGE HEADER ACTIONS (Tracker + Collaborations)
+========================================================= */
+
+.clb-page-actions {
+  display: flex;
+  align-items: center; /* chhota Share, bade Create ke beech me */
+  justify-content: flex-end;
+  flex-shrink: 0;
+  gap: 12px;
+}
+
+/* Create button: bada primary */
+.clb-page-actions > .clb-btn.clb-btn--primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 3rem;
+  padding: 0 1.5rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* ---------- TABLET / MOBILE (720px tak) ---------- */
+
+@media (max-width: 720px) {
+  .clb-page-actions {
+    width: 100%;
+    gap: 10px;
+  }
+
+  .clb-page-actions > .clb-share {
+    flex: 0 0 auto;
+  }
+
+  /* Create baaki poori width leta hai */
+  .clb-page-actions > .clb-btn.clb-btn--primary {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  /* popover -> bottom sheet */
+  .clb-share__backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: block;
+    background: rgba(20, 16, 28, 0.45);
+    animation: clb-share-fade 0.2s ease-out;
+  }
+
+  .clb-share__popover {
+    position: fixed;
+    top: auto;
+    right: 12px;
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    left: 12px;
+    z-index: 1001;
+    width: auto;
+    max-width: none;
+    padding: 18px;
+    border-radius: 18px;
+    animation: clb-share-sheet 0.2s ease-out;
+  }
+
+  .clb-share__field input {
+    font-size: 16px; /* iOS zoom na kare */
+  }
+}
+
+/* ---------- CHHOTI SCREEN (480px tak): Share = square icon ---------- */
+
+@media (max-width: 480px) {
+  .clb-share__label {
+    display: none;
+  }
+
+  .clb-share__trigger {
+    width: 3rem;
+    height: 3rem; /* Create ki height ke barabar */
+    padding: 0;
+  }
+
+  .clb-page-actions > .clb-btn.clb-btn--primary {
+    padding: 0 1rem;
+    font-size: 0.9rem;
+  }
+}
+/* =========================================================
+   PAGE HEADER ACTIONS (Tracker + Collaborations)
+========================================================= */
+
+.clb-page-actions {
+  display: flex;
+  flex: 0 0 auto;            /* header me squeeze na ho */
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  width: auto;
+}
+
+/* Share: chhota, content jitna hi width */
+.clb-page-actions > .clb-share {
+  flex: 0 0 auto;
+  width: auto;
+}
+
+.clb-page-actions .clb-share__trigger {
+  width: auto;
+  min-width: 0;
+  max-width: none;
+  flex: none;
+}
+
+/* Create: bada primary, kabhi circle / squeeze nahi hoga */
+.clb-page-actions > .clb-btn.clb-btn--primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex: 0 0 auto;
+  width: auto;
+  min-width: max-content;    /* text kabhi nahi katega */
+  max-width: none;
+  height: 3rem;
+  padding: 0 1.5rem;
+  border-radius: var(--clb-radius-md, 12px); /* circle fix */
+  aspect-ratio: auto;
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* ---------- TABLET / MOBILE (720px tak) ---------- */
+
+@media (max-width: 720px) {
+  .clb-page-actions {
+    width: 100%;
+    gap: 10px;
+  }
+
+  /* Create baaki poori width leta hai */
+  .clb-page-actions > .clb-btn.clb-btn--primary {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 0 1.25rem;
+  }
+
+  /* popover -> bottom sheet */
+  .clb-share__backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: block;
+    background: rgba(20, 16, 28, 0.45);
+    animation: clb-share-fade 0.2s ease-out;
+  }
+
+  .clb-share__popover {
+    position: fixed;
+    top: auto;
+    right: 12px;
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    left: 12px;
+    z-index: 1001;
+    width: auto;
+    max-width: none;
+    padding: 18px;
+    border-radius: 18px;
+    animation: clb-share-sheet 0.2s ease-out;
+  }
+
+  .clb-share__field input {
+    font-size: 16px; /* iOS zoom na kare */
+  }
+}
+
+/* ---------- CHHOTI SCREEN (480px tak): Share = square icon ---------- */
+
+@media (max-width: 480px) {
+  .clb-share__label {
+    display: none;
+  }
+
+  .clb-page-actions .clb-share__trigger {
+    width: 3rem;
+    height: 3rem;            /* Create ki height ke barabar */
+    padding: 0;
+  }
+
+  .clb-page-actions > .clb-btn.clb-btn--primary {
+    padding: 0 1rem;
+    font-size: 0.9rem;
+  }
+}
+
+/* ---------- VERY SMALL (360px tak) ---------- */
+
+@media (max-width: 360px) {
+  .clb-page-actions {
+    gap: 8px;
+  }
+
+  .clb-page-actions > .clb-btn.clb-btn--primary {
+    padding: 0 0.75rem;
+    font-size: 0.85rem;
+    gap: 6px;
+  }
+}

@@ -1,0 +1,573 @@
+@import "../../style/token.css";
+
+/* =========================================================
+   EDITOR WRAPPER (textarea + AI button)
+========================================================= */
+
+.clb-ai-editor {
+  --clb-ai-radius: 12px;
+
+  position: relative;
+  width: 100%;
+  border-radius: var(--clb-ai-radius);
+  transition: box-shadow 0.3s var(--clb-ease);
+}
+
+/* Har jagah ke textarea radius se match karne ke liye */
+.clb-reply-box .clb-ai-editor {
+  --clb-ai-radius: 14px;
+}
+
+.clb-compose-modal .clb-ai-editor {
+  --clb-ai-radius: 10px;
+}
+
+/* Corner button ke neeche text na chhupe */
+.clb-ai-editor > textarea {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  padding-top: 54px;
+}
+
+/* =========================================================
+   LOADER: textarea ke border par ghumta gradient
+
+   Wrapper par JS "clb-ai-editor--loading" class lagata hai.
+========================================================= */
+
+@property --clb-ai-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+.clb-ai-editor::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  z-index: 3;
+
+  padding: 2px;
+  border-radius: calc(var(--clb-ai-radius) + 1px);
+
+  background: conic-gradient(
+    from var(--clb-ai-angle),
+    transparent 0deg,
+    transparent 150deg,
+    var(--clb-pink) 250deg,
+    var(--clb-gold) 330deg,
+    transparent 360deg
+  );
+
+  /* Sirf border ring dikhao, andar ka hissa nahi */
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box exclude,
+    linear-gradient(#000 0 0);
+
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s var(--clb-ease);
+}
+
+.clb-ai-editor--loading {
+  box-shadow: 0 0 28px -8px var(--clb-pink-dim);
+}
+
+.clb-ai-editor--loading::before {
+  opacity: 1;
+  animation: clb-ai-spin 1.8s linear infinite;
+}
+
+.clb-ai-editor--loading > textarea {
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+@keyframes clb-ai-spin {
+  to {
+    --clb-ai-angle: 360deg;
+  }
+}
+
+/* =========================================================
+   ROOT + BAR (top-right corner)
+========================================================= */
+
+/* Static: popover wrapper (.clb-ai-editor) ke hisaab se position hota hai */
+.clb-ai-writer {
+  position: static;
+}
+
+.clb-ai-writer__bar {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 5;
+
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* =========================================================
+   TRIGGER BUTTON
+========================================================= */
+
+.clb-ai-writer__trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+
+  padding: 0.42rem 0.85rem;
+
+  font-family: var(--clb-font-body);
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+
+  color: var(--clb-pink);
+
+  background: var(--clb-surface-2);
+  border: 1px solid var(--clb-pink-dim);
+  border-radius: 999px;
+
+  cursor: pointer;
+
+  transition:
+    transform 0.2s var(--clb-ease),
+    background 0.2s var(--clb-ease),
+    color 0.2s var(--clb-ease),
+    border-color 0.2s var(--clb-ease),
+    box-shadow 0.2s var(--clb-ease);
+}
+
+.clb-ai-writer__trigger:hover:not(:disabled) {
+  color: #17102b;
+  background: var(--clb-gradient);
+  border-color: transparent;
+  transform: translateY(-0.7px);
+  box-shadow: 0 8px 22px -8px var(--clb-pink);
+
+  /* fix */
+  background-clip: padding-box;
+}
+
+.clb-ai-writer__trigger:active:not(:disabled) {
+  transform: translateY(0) scale(0.97);
+}
+
+.clb-ai-writer__trigger:focus-visible,
+.clb-ai-writer__undo:focus-visible,
+.clb-ai-writer__close:focus-visible,
+.clb-ai-writer__tone:focus-visible,
+.clb-ai-writer__generate:focus-visible,
+.clb-ai-writer__cancel:focus-visible {
+  outline: 2px solid var(--clb-gold);
+  outline-offset: 2px;
+}
+
+.clb-ai-writer__trigger:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.clb-ai-writer__trigger--busy {
+  color: var(--clb-gold);
+  border-color: var(--clb-gold-dim);
+  opacity: 1;
+  cursor: progress;
+}
+
+.clb-ai-writer__trigger--busy .clb-ai-writer__icon {
+  animation: clb-ai-pulse 1s ease-in-out infinite;
+}
+
+.clb-ai-writer__icon {
+  flex-shrink: 0;
+}
+
+@keyframes clb-ai-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  50% {
+    transform: scale(0.8);
+    opacity: 0.6;
+  }
+}
+
+/* =========================================================
+   UNDO
+========================================================= */
+
+.clb-ai-writer__undo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+
+  padding: 0.42rem 0.7rem;
+
+  font-family: var(--clb-font-body);
+  font-size: 0.76rem;
+  font-weight: 500;
+  line-height: 1;
+
+  color: var(--clb-text-muted);
+
+  background: transparent;
+  border: 1px solid var(--clb-border);
+  border-radius: 999px;
+
+  cursor: pointer;
+
+  transition:
+    color 0.2s var(--clb-ease),
+    background 0.2s var(--clb-ease);
+}
+
+.clb-ai-writer__undo:hover:not(:disabled) {
+  color: var(--clb-text);
+  background: var(--clb-surface-2);
+}
+
+/* =========================================================
+   POPOVER
+========================================================= */
+
+.clb-ai-writer__popover {
+  position: absolute;
+  top: 52px;
+  right: 10px;
+  z-index: 20;
+
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+
+  width: min(380px, calc(100% - 20px));
+  box-sizing: border-box;
+
+  padding: 1rem;
+
+  color: var(--clb-text);
+
+  background: linear-gradient(
+    145deg,
+    rgba(36, 29, 63, 0.98),
+    rgba(26, 21, 48, 0.98)
+  );
+
+  border: 1px solid var(--clb-border);
+  border-radius: 16px;
+
+  box-shadow: 0 24px 60px -12px rgba(0, 0, 0, 0.6);
+
+  transform-origin: top right;
+  animation: clb-ai-pop 0.22s var(--clb-ease) both;
+}
+
+@keyframes clb-ai-pop {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.97);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.clb-ai-writer__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.clb-ai-writer__title {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+
+  font-family: var(--clb-font-display);
+  font-size: 0.98rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.clb-ai-writer__title svg {
+  color: var(--clb-pink);
+}
+
+.clb-ai-writer__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 28px;
+  height: 28px;
+  padding: 0;
+
+  color: var(--clb-text-muted);
+
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+
+  cursor: pointer;
+
+  transition:
+    color 0.2s var(--clb-ease),
+    background 0.2s var(--clb-ease);
+}
+
+.clb-ai-writer__close:hover {
+  color: var(--clb-text);
+  background: rgba(245, 243, 255, 0.08);
+}
+
+.clb-ai-writer__label {
+  font-family: var(--clb-font-body);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--clb-text-muted);
+}
+
+/* ".clb-compose-modal__form textarea" ki bhaari styling se bachne ke liye
+   selector thoda specific rakha hai */
+.clb-ai-writer__popover .clb-ai-writer__input {
+  width: 100%;
+  min-height: 84px;
+  box-sizing: border-box;
+
+  padding: 0.7rem 0.85rem;
+
+  font-family: var(--clb-font-body);
+  font-size: 0.88rem;
+  line-height: 1.55;
+
+  color: var(--clb-text);
+
+  background: rgba(15, 11, 30, 0.7);
+  border: 1px solid var(--clb-border);
+  border-radius: 12px;
+
+  outline: none;
+  resize: vertical;
+
+  transition:
+    border-color 0.2s var(--clb-ease),
+    box-shadow 0.2s var(--clb-ease);
+}
+
+.clb-ai-writer__popover .clb-ai-writer__input::placeholder {
+  color: var(--clb-text-muted);
+}
+
+.clb-ai-writer__popover .clb-ai-writer__input:focus {
+  border-color: var(--clb-pink);
+  box-shadow: 0 0 0 3px rgba(255, 107, 157, 0.12);
+}
+
+/* =========================================================
+   TONE CHIPS
+========================================================= */
+
+.clb-ai-writer__tones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.clb-ai-writer__tone {
+  padding: 0.38rem 0.8rem;
+
+  font-family: var(--clb-font-body);
+  font-size: 0.76rem;
+  font-weight: 500;
+  line-height: 1;
+
+  color: var(--clb-text-muted);
+
+  background: transparent;
+  border: 1px solid var(--clb-border);
+  border-radius: 999px;
+
+  cursor: pointer;
+
+  transition:
+    color 0.2s var(--clb-ease),
+    background 0.2s var(--clb-ease),
+    border-color 0.2s var(--clb-ease);
+}
+
+.clb-ai-writer__tone:hover {
+  color: var(--clb-text);
+  border-color: var(--clb-pink-dim);
+}
+
+.clb-ai-writer__tone--active {
+  color: var(--clb-pink);
+  background: var(--clb-pink-dim);
+  border-color: var(--clb-pink);
+}
+
+/* =========================================================
+   ERROR + ACTIONS + HINT
+========================================================= */
+
+.clb-ai-writer__error {
+  margin: 0;
+  padding: 0.6rem 0.75rem;
+
+  font-size: 0.8rem;
+  color: #ff9aaa;
+
+  background: rgba(255, 80, 100, 0.1);
+  border: 1px solid rgba(255, 80, 100, 0.3);
+  border-radius: 10px;
+}
+
+.clb-ai-writer__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.clb-ai-writer__generate {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+
+  flex: 1;
+
+  padding: 0.65rem 1rem;
+
+  font-family: var(--clb-font-body);
+  font-size: 0.86rem;
+  font-weight: 600;
+  line-height: 1;
+
+  color: #17102b;
+
+  background: var(--clb-gradient);
+  border: none;
+  border-radius: 999px;
+
+  cursor: pointer;
+
+  transition:
+    transform 0.2s var(--clb-ease),
+    box-shadow 0.2s var(--clb-ease);
+}
+
+.clb-ai-writer__generate:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 26px -8px var(--clb-pink);
+}
+
+.clb-ai-writer__generate:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.clb-ai-writer__cancel {
+  padding: 0.65rem 1rem;
+
+  font-family: var(--clb-font-body);
+  font-size: 0.86rem;
+  font-weight: 500;
+  line-height: 1;
+
+  color: var(--clb-text-muted);
+
+  background: transparent;
+  border: 1px solid var(--clb-border);
+  border-radius: 999px;
+
+  cursor: pointer;
+
+  transition:
+    color 0.2s var(--clb-ease),
+    background 0.2s var(--clb-ease);
+}
+
+.clb-ai-writer__cancel:hover {
+  color: var(--clb-text);
+  background: rgba(245, 243, 255, 0.06);
+}
+
+.clb-ai-writer__hint {
+  margin: 0;
+  font-size: 0.72rem;
+  color: var(--clb-text-muted);
+}
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 600px) {
+  .clb-ai-writer__bar {
+    top: 8px;
+    right: 8px;
+  }
+
+  .clb-ai-writer__popover {
+    top: 48px;
+    right: 8px;
+    left: 8px;
+    width: auto;
+    padding: 0.85rem;
+  }
+
+  .clb-ai-writer__actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .clb-ai-writer__generate,
+  .clb-ai-writer__cancel {
+    width: 100%;
+    padding: 0.75rem 1rem;
+  }
+}
+
+/* Bahut chhoti screen par sirf icon dikhao */
+@media (max-width: 380px) {
+  .clb-ai-writer__trigger-label,
+  .clb-ai-writer__undo span {
+    display: none;
+  }
+
+  .clb-ai-writer__trigger,
+  .clb-ai-writer__undo {
+    padding: 0.5rem 0.6rem;
+  }
+}
+
+/* =========================================================
+   REDUCED MOTION
+========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  .clb-ai-writer__popover,
+  .clb-ai-writer__trigger--busy .clb-ai-writer__icon {
+    animation: none;
+  }
+
+  .clb-ai-editor--loading::before {
+    animation-duration: 6s;
+  }
+}

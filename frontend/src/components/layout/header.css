@@ -1,5 +1,9 @@
 @import "../../style/token.css";
 
+/* =========================================================
+   HEADER
+========================================================= */
+
 .clb-header {
   height: 72px;
 
@@ -15,11 +19,16 @@
   border-bottom: 1px solid var(--clb-border);
 
   width: 100%;
+
+  position: relative;
+
+  z-index: 50;
 }
+
 
 /* =========================================================
    HAMBURGER
-   ========================================================= */
+========================================================= */
 
 .clb-header__menu-btn {
   display: none;
@@ -44,37 +53,78 @@
 
   transition:
     background 0.2s var(--clb-ease),
+    border-color 0.2s var(--clb-ease),
     transform 0.2s var(--clb-ease);
 }
 
 .clb-header__menu-btn:hover {
   background: var(--clb-pink-dim);
 
+  border-color: var(--clb-pink);
+
   transform: translateY(-1px);
 }
 
+.clb-header__menu-btn:active {
+  transform: translateY(0);
+}
+
+
 /* =========================================================
-   SEARCH
-   ========================================================= */
+   SEARCH WRAPPER
+========================================================= */
 
 .clb-header__search {
+  position: relative;
+
   display: flex;
   align-items: center;
 
-  gap: var(--clb-space-xs);
-
   flex: 1;
+
+  width: 100%;
 
   max-width: 700px;
 
-  padding: 0.65rem 1rem;
+  min-width: 0;
 
   background: var(--clb-bg);
 
   border: 1px solid var(--clb-border);
 
   border-radius: 12px;
+
+  transition:
+    border-color 0.2s var(--clb-ease),
+    box-shadow 0.2s var(--clb-ease),
+    background 0.2s var(--clb-ease);
 }
+
+.clb-header__search:focus-within {
+  border-color: var(--clb-pink);
+
+  box-shadow:
+    0 0 0 3px var(--clb-pink-dim);
+
+  background: var(--clb-surface);
+}
+
+
+/* =========================================================
+   SEARCH FORM
+========================================================= */
+
+.clb-header__search form {
+  width: 100%;
+
+  display: flex;
+  align-items: center;
+}
+
+
+/* =========================================================
+   SEARCH ICON
+========================================================= */
 
 .clb-header__search-icon {
   flex-shrink: 0;
@@ -82,12 +132,22 @@
   color: var(--clb-text-muted);
 }
 
+
+/* =========================================================
+   SEARCH INPUT
+========================================================= */
+
 .clb-header__search input {
   width: 100%;
+
+  height: 44px;
+
+  padding: 0 14px 0 42px;
 
   background: transparent;
 
   border: none;
+
   outline: none;
 
   color: var(--clb-text);
@@ -95,24 +155,186 @@
   font-family: var(--clb-font-body);
 
   font-size: 0.9rem;
+
+  line-height: 1;
 }
 
 .clb-header__search input::placeholder {
   color: var(--clb-text-muted);
+
+  opacity: 0.8;
 }
 
+.clb-header__search input::-webkit-search-cancel-button {
+  display: none;
+}
+
+
 /* =========================================================
-   ACTIONS
-   ========================================================= */
+   SEARCH CLEAR BUTTON
+========================================================= */
+
+.clb-header__search form > button {
+  color: var(--clb-text-muted);
+
+  transition:
+    color 0.2s var(--clb-ease),
+    background 0.2s var(--clb-ease);
+
+  border-radius: 7px;
+}
+
+.clb-header__search form > button:hover {
+  color: var(--clb-text);
+
+  background: var(--clb-surface-2);
+}
+
+
+/* =========================================================
+   SEARCH RESULTS DROPDOWN
+========================================================= */
+
+.clb-header__search-results {
+  width: 100%;
+
+  max-width: 800px;
+
+  color: var(--clb-text);
+
+  background: var(--clb-surface) !important;
+
+  border: 1px solid var(--clb-border) !important;
+
+  border-radius: 14px !important;
+
+  box-shadow:
+    0 18px 45px rgba(0, 0, 0, 0.25) !important;
+
+  overflow: hidden;
+
+  animation:
+    clb-search-dropdown-in
+    0.16s ease-out;
+}
+
+@keyframes clb-search-dropdown-in {
+  from {
+    opacity: 0;
+
+    transform: translateY(-5px);
+  }
+
+  to {
+    opacity: 1;
+
+    transform: translateY(0);
+  }
+}
+
+
+/* =========================================================
+   SEARCH RESULT SCROLL AREA
+========================================================= */
+
+.clb-header__search-results > div {
+  scrollbar-width: thin;
+
+  scrollbar-color:
+    var(--clb-border)
+    transparent;
+}
+
+.clb-header__search-results > div::-webkit-scrollbar {
+  width: 6px;
+}
+
+.clb-header__search-results > div::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.clb-header__search-results > div::-webkit-scrollbar-thumb {
+  background: var(--clb-border);
+
+  border-radius: 999px;
+}
+
+
+/* =========================================================
+   SEARCH RESULT BUTTON
+========================================================= */
+
+.clb-header__search-results button {
+  color: var(--clb-text);
+
+  font-family: var(--clb-font-body);
+
+  transition:
+    background 0.15s var(--clb-ease);
+}
+
+.clb-header__search-results button:hover {
+  background: var(--clb-surface-2) !important;
+}
+
+
+/* =========================================================
+   SEARCH RESULT ICON
+========================================================= */
+
+.clb-header__search-results button > div:first-child {
+  flex-shrink: 0;
+
+  color: var(--clb-pink);
+
+  background: var(--clb-pink-dim) !important;
+}
+
+
+/* =========================================================
+   SEARCH RESULT SUBJECT
+========================================================= */
+
+.clb-header__search-results strong {
+  color: var(--clb-text);
+
+  font-weight: 600;
+}
+
+
+/* =========================================================
+   SEARCH RESULT SECONDARY TEXT
+========================================================= */
+
+.clb-header__search-results button div {
+  min-width: 0;
+}
+
+.clb-header__search-results button div div {
+  color: var(--clb-text-muted);
+}
+
+
+/* =========================================================
+   HEADER ACTIONS
+========================================================= */
 
 .clb-header__actions {
   display: flex;
+
   align-items: center;
 
   gap: var(--clb-space-sm);
 
   margin-left: auto;
+
+  flex-shrink: 0;
 }
+
+
+/* =========================================================
+   ICON BUTTON
+========================================================= */
 
 .clb-header__icon-btn {
   position: relative;
@@ -124,6 +346,8 @@
   align-items: center;
   justify-content: center;
 
+  flex-shrink: 0;
+
   background: transparent;
 
   border: 1px solid var(--clb-border);
@@ -133,11 +357,31 @@
   color: var(--clb-text);
 
   cursor: pointer;
+
+  font-size: 18px;
+
+  transition:
+    background 0.2s var(--clb-ease),
+    border-color 0.2s var(--clb-ease),
+    transform 0.2s var(--clb-ease);
 }
 
 .clb-header__icon-btn:hover {
   background: var(--clb-surface-2);
+
+  border-color: var(--clb-border-strong, var(--clb-border));
+
+  transform: translateY(-1px);
 }
+
+.clb-header__icon-btn:active {
+  transform: translateY(0);
+}
+
+
+/* =========================================================
+   NOTIFICATION BADGE
+========================================================= */
 
 .clb-header__badge {
   position: absolute;
@@ -160,21 +404,86 @@
 
   color: #17102b;
 
+  border: 2px solid var(--clb-surface);
+
   font-size: 0.65rem;
 
+  line-height: 1;
+
   font-weight: 700;
+
+  pointer-events: none;
 }
 
-.clb-header__user {
+
+/* =========================================================
+   PROFILE
+========================================================= */
+
+.clb-header__profile {
+  position: relative;
+
+  flex-shrink: 0;
+}
+
+
+/* =========================================================
+   PROFILE BUTTON
+========================================================= */
+
+.clb-header__profile-btn {
   display: flex;
+
   align-items: center;
 
-  gap: var(--clb-space-xs);
+  gap: 0.65rem;
+
+  min-height: 42px;
+
+  padding: 0.2rem 0.35rem;
+
+  background: transparent;
+
+  color: var(--clb-text);
+
+  border: 1px solid transparent;
+
+  border-radius: 10px;
+
+  cursor: pointer;
+
+  font-family: var(--clb-font-body);
+
+  transition:
+    background 0.2s var(--clb-ease),
+    border-color 0.2s var(--clb-ease);
 }
+
+.clb-header__profile-btn:hover {
+  background: var(--clb-surface-2);
+
+  border-color: var(--clb-border);
+}
+
+.clb-header__profile-btn:focus-visible {
+  outline: none;
+
+  border-color: var(--clb-pink);
+
+  box-shadow:
+    0 0 0 3px var(--clb-pink-dim);
+}
+
+
+/* =========================================================
+   PROFILE AVATAR
+========================================================= */
 
 .clb-header__avatar {
   width: 38px;
   height: 38px;
+
+  flex-shrink: 0;
 
   display: flex;
   align-items: center;
@@ -182,22 +491,192 @@
 
   border-radius: 50%;
 
+  object-fit: cover;
+
+  overflow: hidden;
+
   background: var(--clb-gradient);
 
   color: #17102b;
 
+  font-size: 0.9rem;
+
   font-weight: 700;
 }
 
-.clb-header__name {
-  font-size: 0.9rem;
+.clb-header__avatar--fallback {
+  background: var(--clb-gradient);
+
+  color: #17102b;
+}
+
+
+/* =========================================================
+   PROFILE INFO
+========================================================= */
+
+.clb-header__profile-info {
+  min-width: 0;
+
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: flex-start;
+
+  text-align: left;
+
+  line-height: 1.2;
+}
+
+.clb-header__profile-name {
+  max-width: 150px;
+
+  overflow: hidden;
+
+  text-overflow: ellipsis;
+
+  white-space: nowrap;
+
+  color: var(--clb-text);
+
+  font-size: 0.88rem;
+
+  font-weight: 600;
+}
+
+.clb-header__profile-email {
+  max-width: 150px;
+
+  margin-top: 3px;
+
+  overflow: hidden;
+
+  text-overflow: ellipsis;
+
+  white-space: nowrap;
+
+  color: var(--clb-text-muted);
+
+  font-size: 0.72rem;
+}
+
+
+/* =========================================================
+   PROFILE DROPDOWN
+========================================================= */
+
+.clb-header__profile-dropdown {
+  position: absolute;
+
+  top: calc(100% + 10px);
+
+  right: -40px;
+
+  width: 200%;
+
+  padding: 0.45rem;
+
+  background: var(--clb-surface);
+
+  border: 1px solid var(--clb-border);
+
+  border-radius: 14px;
+
+  z-index: 1000;
+
+  box-shadow:
+    0 20px 45px rgba(0, 0, 0, 0.3);
+
+  animation:
+    clb-profile-dropdown-in
+    0.16s ease-out;
+}
+
+@keyframes clb-profile-dropdown-in {
+  from {
+    opacity: 0;
+
+    transform: translateY(-5px);
+  }
+
+  to {
+    opacity: 1;
+
+    transform: translateY(0);
+  }
+}
+
+
+/* =========================================================
+   PROFILE DROPDOWN ITEM
+========================================================= */
+
+.clb-header__dropdown-item {
+  width: 100%;
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 0.7rem;
+
+  padding: 0.7rem 0.75rem;
+
+  background: transparent;
+
+  color: var(--clb-text-muted);
+
+  border: none;
+
+  border-radius: 9px;
+
+  cursor: pointer;
+
+  font-family: var(--clb-font-body);
+
+  font-size: 0.85rem;
+
+  text-align: left;
+
+  transition:
+    background 0.2s var(--clb-ease),
+    color 0.2s var(--clb-ease);
+}
+
+.clb-header__dropdown-item:hover {
+  background: var(--clb-surface-2);
 
   color: var(--clb-text);
 }
 
+.clb-header__dropdown-item:focus-visible {
+  outline: none;
+
+  background: var(--clb-pink-dim);
+
+  color: var(--clb-text);
+}
+
+
+/* =========================================================
+   DROPDOWN ICONS
+========================================================= */
+
+.clb-header__dropdown-item svg {
+  flex-shrink: 0;
+
+  color: var(--clb-text-muted);
+}
+
+.clb-header__dropdown-item:hover svg {
+  color: var(--clb-pink);
+}
+
+
 /* =========================================================
    BELOW 1960PX
-   ========================================================= */
+========================================================= */
 
 @media (max-width: 1960px) {
   .clb-header__menu-btn {
@@ -205,11 +684,12 @@
   }
 }
 
+
 /* =========================================================
    TABLET
-   ========================================================= */
+========================================================= */
 
-@media (max-width: 768px) {
+@media (max-width: 900px) {
   .clb-header {
     padding: 0 var(--clb-space-md);
   }
@@ -217,11 +697,20 @@
   .clb-header__search {
     max-width: none;
   }
+
+  .clb-header__profile-info {
+    display: none;
+  }
+
+  .clb-header__profile-btn {
+    padding: 0.2rem;
+  }
 }
+
 
 /* =========================================================
    MOBILE
-   ========================================================= */
+========================================================= */
 
 @media (max-width: 600px) {
   .clb-header {
@@ -232,325 +721,96 @@
     padding: 0 var(--clb-space-sm);
   }
 
-  .clb-header__search {
-    padding: 0.55rem 0.75rem;
-  }
-
-  .clb-header__search input {
-    font-size: 0.8rem;
-  }
-
-  .clb-header__name {
-    display: none;
-  }
-
-  .clb-header__user {
-    display: none;
-  }
-}
-
-@media (max-width: 400px) {
-  .clb-header__search input::placeholder {
-    font-size: 0;
-  }
-
-  .clb-header__search input::placeholder::before {
-    content: "Search";
+  .clb-header__menu-btn,
+  .clb-header__icon-btn {
+    width: 40px;
+    height: 40px;
   }
 
   .clb-header__search {
     min-width: 0;
+
+    border-radius: 10px;
+  }
+
+  .clb-header__search input {
+    height: 40px;
+
+    font-size: 0.8rem;
+
+    padding-left: 38px;
+  }
+
+  .clb-header__search-results {
+    position: fixed !important;
+
+    top: 68px !important;
+
+    left: 10px !important;
+    right: 10px !important;
+
+    width: auto !important;
+
+    max-width: none !important;
+  }
+
+  .clb-header__actions {
+    gap: 6px;
+  }
+
+  .clb-header__profile-dropdown {
+    right: 0;
+
+    width: 200px;
   }
 }
-/* =========================================================
-PROFILE DROPDOWN
-========================================================= */
-
-.clb-header__profile {
-position: relative;
-}
-
-.clb-header__user {
-border: none;
-background: transparent;
-color: var(--clb-text);
-cursor: pointer;
-
-display: flex;
-align-items: center;
-gap: 0.65rem;
-
-padding: 0.4rem;
-border-radius: 10px;
-
-font-family: var(--clb-font-body);
-
-transition:
-background 0.2s var(--clb-ease);
-}
-
-.clb-header__user:hover {
-background: var(--clb-surface-2);
-}
-
-/* Dropdown */
-
-.clb-header__profile-menu {
-position: absolute;
-
-top: calc(100% + 0.75rem);
-right: 0;
-
-width: 220px;
-
-background: var(--clb-surface);
-
-border: 1px solid var(--clb-border);
-
-border-radius: 14px;
-
-padding: 0.5rem;
-
-z-index: 100;
-
-box-shadow:
-0 20px 45px rgba(0, 0, 0, 0.35);
-}
-
-/* User information */
-
-.clb-header__profile-info {
-display: flex;
-align-items: center;
-gap: 0.75rem;
-
-padding: 0.75rem;
-}
-
-.clb-header__profile-info strong {
-display: block;
-
-font-size: 0.9rem;
-
-color: var(--clb-text);
-}
-
-.clb-header__profile-info span:not(
-.clb-header__profile-avatar
-) {
-display: block;
-
-margin-top: 0.15rem;
-
-font-size: 0.75rem;
-
-color: var(--clb-text-muted);
-}
-
-.clb-header__profile-avatar {
-width: 34px;
-height: 34px;
-
-border-radius: 50%;
-
-display: flex;
-align-items: center;
-justify-content: center;
-
-background: var(--clb-pink-dim);
-
-color: var(--clb-pink);
-}
-
-/* Divider */
-
-.clb-header__profile-divider {
-height: 1px;
-
-background: var(--clb-border);
-
-margin: 0.4rem 0;
-}
-
-/* Logout */
-
-.clb-header__logout {
-width: 100%;
-
-border: none;
-
-background: transparent;
-
-color: var(--clb-text-muted);
-
-cursor: pointer;
-
-display: flex;
-align-items: center;
-gap: 0.7rem;
-
-padding: 0.75rem;
-
-border-radius: 9px;
-
-font-family: var(--clb-font-body);
-
-text-align: left;
-
-transition:
-background 0.2s var(--clb-ease),
-color 0.2s var(--clb-ease);
-}
-
-.clb-header__logout:hover {
-background: var(--clb-pink-dim);
-
-color: var(--clb-pink);
-}
-/* =========================================================
-   REAL USER PROFILE IMAGE
-========================================================= */
-
-.clb-header__avatar-image {
-  width: 38px;
-  height: 38px;
-
-  border-radius: 50%;
-
-  object-fit: cover;
-
-  display: block;
-
-  flex-shrink: 0;
-}
-
-
-.clb-header__profile-image {
-  width: 38px;
-  height: 38px;
-
-  border-radius: 50%;
-
-  object-fit: cover;
-
-  display: block;
-
-  flex-shrink: 0;
-}
 
 
 /* =========================================================
-   PROFILE ACTION
+   SMALL MOBILE
+========================================================= */
+@media (max-width: 450px) {
+  .clb-header {
+    gap: 6px;
+
+    padding: 0 8px;
+  }
+
+  .clb-header__menu-btn,
+  .clb-header__icon-btn {
+    width: 38px;
+    height: 38px;
+  }
+
+  .clb-header__search input {
+    padding-left: 36px;
+
+    font-size: 0.78rem;
+
+    /* Lamba placeholder chhoti screen pe "Search emails, sen…" ban jayega,
+       kategi nahi */
+    text-overflow: ellipsis;
+  }
+}
+
+/* =========================================================
+   VERY SMALL MOBILE
 ========================================================= */
 
-.clb-header__profile-action {
-  width: 100%;
+@media (max-width: 360px) {
+  .clb-header__actions {
+    gap: 4px;
+  }
 
-  border: none;
+  .clb-header__menu-btn,
+  .clb-header__icon-btn {
+    width: 36px;
+    height: 36px;
+  }
 
-  background: transparent;
+  .clb-header__search-results {
+    left: 6px !important;
 
-  color: var(--clb-text-muted);
-
-  cursor: pointer;
-
-  display: flex;
-
-  align-items: center;
-
-  gap: 0.7rem;
-
-  padding: 0.75rem;
-
-  border-radius: 9px;
-
-  font-family: var(--clb-font-body);
-
-  text-align: left;
-
-  transition:
-    background 0.2s var(--clb-ease),
-    color 0.2s var(--clb-ease);
-}
-
-
-.clb-header__profile-action:hover {
-  background: var(--clb-surface-2);
-
-  color: var(--clb-text);
-}
-/* =========================================
-   REAL PROFILE IMAGE
-========================================= */
-
-.clb-header__avatar {
-  overflow: hidden;
-}
-
-.clb-header__avatar img {
-  width: 100%;
-  height: 100%;
-
-  object-fit: cover;
-
-  border-radius: 50%;
-
-  display: block;
-}
-
-.clb-header__profile-avatar {
-  overflow: hidden;
-}
-
-.clb-header__profile-avatar img {
-  width: 100%;
-  height: 100%;
-
-  object-fit: cover;
-
-  border-radius: 50%;
-
-  display: block;
-}
-
-/* =========================================
-   PROFILE MENU ITEM
-========================================= */
-
-.clb-header__menu-item {
-  width: 100%;
-
-  border: none;
-
-  background: transparent;
-
-  color: var(--clb-text-muted);
-
-  cursor: pointer;
-
-  display: flex;
-
-  align-items: center;
-
-  gap: 0.7rem;
-
-  padding: 0.75rem;
-
-  border-radius: 9px;
-
-  font-family: var(--clb-font-body);
-
-  text-align: left;
-
-  transition:
-    background 0.2s var(--clb-ease),
-    color 0.2s var(--clb-ease);
-}
-
-.clb-header__menu-item:hover {
-  background:
-    var(--clb-surface-2);
-
-  color:
-    var(--clb-text);
+    right: 6px !important;
+  }
 }

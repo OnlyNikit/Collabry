@@ -1,63 +1,202 @@
-@import '../../style/token.css';
-
 .clb-attachments {
   display: flex;
   flex-direction: column;
-  gap: var(--clb-space-xs);
+  gap: 8px;
+  margin-top: 12px;
 }
 
 .clb-attachments__label {
-  font-size: 0.78rem;
-  color: var(--clb-text-muted);
   margin: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  opacity: 0.7;
 }
 
 .clb-attachments__list {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--clb-space-xs);
+  gap: 10px;
 }
 
+/* ---------- CHIP ---------- */
+
 .clb-attachment-chip {
-  display: flex;
-  align-items: center;
-  gap: var(--clb-space-xs);
-  background: var(--clb-surface-2);
-  border: 1px solid var(--clb-border);
+  display: inline-flex;
+  align-items: stretch;
+  max-width: 280px;
+  background: rgba(128, 128, 128, 0.1);
+  border: 1px solid rgba(128, 128, 128, 0.3);
   border-radius: 10px;
-  padding: 0.5em 0.8em;
-  cursor: pointer;
-  transition: transform 0.15s var(--clb-ease), border-color 0.15s var(--clb-ease);
-  max-width: 220px;
+  overflow: hidden;
+  transition: border-color 0.15s ease;
 }
 
 .clb-attachment-chip:hover {
-  transform: translateY(-2px);
-  border-color: var(--clb-pink-dim);
+  border-color: rgba(128, 128, 128, 0.65);
+}
+
+.clb-attachment-chip__main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  padding: 8px 10px;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.clb-attachment-chip__main:disabled {
+  cursor: default;
+  opacity: 0.6;
 }
 
 .clb-attachment-chip__icon {
-  font-size: 1.2rem;
   flex-shrink: 0;
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+.clb-attachment-chip__thumb {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 6px;
 }
 
 .clb-attachment-chip__body {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
   min-width: 0;
 }
 
 .clb-attachment-chip__name {
-  font-size: 0.82rem;
-  color: var(--clb-text);
-  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 150px;
+  white-space: nowrap;
+  font-size: 0.85rem;
+  font-weight: 500;
 }
 
 .clb-attachment-chip__size {
-  font-size: 0.72rem;
-  color: var(--clb-text-muted);
+  font-size: 0.75rem;
+  opacity: 0.65;
+}
+
+.clb-attachment-chip__download {
+  flex-shrink: 0;
+  width: 38px;
+  font-size: 0.95rem;
+  color: inherit;
+  background: transparent;
+  border: none;
+  border-left: 1px solid rgba(128, 128, 128, 0.3);
+  cursor: pointer;
+}
+
+.clb-attachment-chip__download:hover:not(:disabled) {
+  background: rgba(128, 128, 128, 0.2);
+}
+
+.clb-attachment-chip__download:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* ---------- PREVIEW MODAL ---------- */
+
+.clb-attachment-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.72);
+}
+
+.clb-attachment-modal__panel {
+  display: flex;
+  flex-direction: column;
+  width: min(960px, 100%);
+  max-height: 100%;
+  height: min(720px, 100%);
+  background: #1e1e1e;
+  color: #f5f5f5;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.clb-attachment-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.clb-attachment-modal__title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.clb-attachment-modal__actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 8px;
+}
+
+.clb-attachment-modal__btn {
+  padding: 6px 12px;
+  font: inherit;
+  font-size: 0.85rem;
+  color: inherit;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.clb-attachment-modal__btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.clb-attachment-modal__body {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  padding: 12px;
+  overflow: auto;
+}
+
+.clb-attachment-modal__body img,
+.clb-attachment-modal__body video {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.clb-attachment-modal__body audio {
+  width: min(480px, 100%);
+}
+
+.clb-attachment-modal__frame {
+  width: 100%;
+  height: 100%;
+  background: #fff;
+  border: none;
+  border-radius: 6px;
 }

@@ -1,1562 +1,1551 @@
-  import {
-    createContext,
-    useContext,
-    useEffect,
-    useMemo,
-    useState,
-    useCallback,
-    useRef,
-  } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  useCallback,
+  useRef,
+} from "react";
 
-  const EmailsContext = createContext(null);
+import { io } from "socket.io-client";
+import { useToast } from "./ToastContext";
 
-  const API_URL = import.meta.env.VITE_API_URL || "";
+/* FIX: acting-as ka single source of truth ab MailboxContext hai
+   (ProfileAccounts bhi usi me owner save karta hai) */
+import { getActingOwnerId, useMailbox } from "./MailboxContext";
 
-  /* =========================================================
-    CONSTANTS
-  ========================================================= */
+const EmailsContext = createContext(null);
 
-  const DEFAULT_MAX_RESULTS = 100;
-  const MAX_RESULTS_LIMIT = 100;
-  const POLLING_INTERVAL = 30000;
+const API_URL = import.meta.env.VITE_API_URL;
 
-  /* =========================================================
-    VIEW FILTERS (used for the actual Gmail API query)
-  ========================================================= */
+/* =========================================================
+CONSTANTS
+========================================================= */
 
-  const getViewFilters = (view = "inbox") => {
-    switch (view) {
-      case "unread":
-        return {
-          labelIds: "INBOX",
-          query: "is:unread",
-        };
+const DEFAULT_MAX_RESULTS = 25;
+const MAX_RESULTS_LIMIT = 50;
+const BODY_FIELDS = ["body", "bodyHtml", "bodyText"];
 
-      case "starred":
-        return {
-          labelIds: "STARRED",
-        };
+/* Realtime event ke baad thread refresh se pehle chhota wait,
+   taaki ek saath aane wale events ek hi refresh me merge ho jayein */
+const THREAD_REFRESH_DELAY_MS = 250;
 
-      case "sent":
-        return {
-          labelIds: "SENT",
-        };
+/* =========================================================
+VIEW FILTERS
+========================================================= */
 
-      case "drafts":
-        return {
-          labelIds: "DRAFT",
-        };
+const getViewFilters = (view = "inbox") => {
+  switch (view) {
+    case "unread":
+      return { labelIds: "INBOX", query: "is:unread" };
+    case "starred":
+      return { labelIds: "STARRED" };
+    case "sent":
+      return { labelIds: "SENT" };
+    case "drafts":
+      return { labelIds: "DRAFT" };
+    case "trash":
+      return { labelIds: "TRASH" };
+    case "inbox":
+    default:
+      return { labelIds: "INBOX" };
+  }
+};
 
-      case "trash":
-        return {
-          labelIds: "TRASH",
-        };
+/* =========================================================
+CLIENT-SIDE VIEW MEMBERSHIP
+========================================================= */
 
-      case "inbox":
-      default:
-        return {
-          labelIds: "INBOX",
-        };
-    }
-  };
+const emailMatchesView = (email, view) => {
+  if (!email) return false;
 
-  /* =========================================================
-    VIEW MATCHER (used client-side, against the cached pool)
+  const labels = Array.isArray(email.labels) ? email.labels : [];
 
-    FIX: previously every view switch wiped allEmails and
-    re-fetched from the network. Now allEmails accumulates
-    everything we've ever fetched (merged by id), and we
-    derive the emails for whichever view is currently active
-    by filtering that shared pool with this function. This is
-    what lets Inbox/Unread/Sent/etc. show instantly on repeat
-    visits without a network round-trip.
-  ========================================================= */
+  switch (view) {
+    case "unread":
+      return labels.includes("INBOX") && Boolean(email.unread);
+    case "starred":
+      return Boolean(email.starred) || labels.includes("STARRED");
+    case "sent":
+      return labels.includes("SENT");
+    case "drafts":
+      return labels.includes("DRAFT");
+    case "trash":
+      return labels.includes("TRASH");
+    case "inbox":
+    default:
+      return labels.includes("INBOX");
+  }
+};
 
-  const matchesView = (email, view = "inbox") => {
-    const labels = Array.isArray(email?.labels) ? email.labels : [];
+/* =========================================================
+HELPERS
+========================================================= */
 
-    switch (view) {
-      case "unread":
-        return labels.includes("INBOX") && Boolean(email?.unread);
+const getEmailTimestamp = (email = {}) => {
+  if (email.internalDate) {
+    const value = Number(email.internalDate);
+    if (!Number.isNaN(value) && value > 0) return value;
+  }
 
-      case "starred":
-        return labels.includes("STARRED");
+  if (email.timestamp) {
+    const value = Number(email.timestamp);
+    if (!Number.isNaN(value) && value > 0) return value;
+  }
 
-      case "sent":
-        return labels.includes("SENT");
+  if (email.date) {
+    const value = new Date(email.date).getTime();
+    if (!Number.isNaN(value)) return value;
+  }
 
-      case "drafts":
-        return labels.includes("DRAFT");
+  return 0;
+};
 
-      case "trash":
-        return labels.includes("TRASH");
+const normalizeLabels = (labels) => {
+  if (!Array.isArray(labels)) return [];
+  return [...new Set(labels.filter(Boolean))];
+};
 
-      case "inbox":
-      default:
-        return labels.includes("INBOX");
-    }
-  };
+const addLabel = (labels = [], label) => normalizeLabels([...labels, label]);
 
-  /* =========================================================
-    HELPERS
-  ========================================================= */
+const removeLabel = (labels = [], label) =>
+  normalizeLabels(labels.filter((item) => item !== label));
 
-  const getEmailTimestamp = (email = {}) => {
-    if (email.internalDate) {
-      const value = Number(email.internalDate);
+/* Email me kisi bhi form me (html / text / body) content hai? */
+const hasEmailBody = (email) =>
+  BODY_FIELDS.some(
+    (field) => typeof email?.[field] === "string" && email[field].trim(),
+  );
 
-      if (!Number.isNaN(value) && value > 0) {
-        return value;
-      }
-    }
+/* =========================================================
+FORM DATA (attachments ke saath send/reply)
 
-    if (email.timestamp) {
-      const value = Number(email.timestamp);
+Arrays (cc, bcc) JSON string ban kar jate hain;
+backend ka parseList() unhe wapas array bana deta hai.
+========================================================= */
 
-      if (!Number.isNaN(value) && value > 0) {
-        return value;
-      }
-    }
+const buildFormData = (fields = {}, attachments = []) => {
+  const formData = new FormData();
 
-    if (email.date) {
-      const value = new Date(email.date).getTime();
+  Object.entries(fields).forEach(([key, value]) => {
+    if (value === undefined || value === null) return;
 
-      if (!Number.isNaN(value)) {
-        return value;
-      }
-    }
+    formData.append(
+      key,
+      Array.isArray(value) ? JSON.stringify(value) : String(value),
+    );
+  });
 
-    return 0;
-  };
+  attachments.forEach((file) => {
+    formData.append("attachments", file, file.name);
+  });
 
-  const normalizeLabels = (labels) => {
-    if (!Array.isArray(labels)) {
-      return [];
-    }
+  return formData;
+};
 
-    return [...new Set(labels.filter(Boolean))];
-  };
+/* =========================================================
+NORMALIZE EMAIL
+========================================================= */
 
-  const addLabel = (labels = [], label) => {
-    return normalizeLabels([...labels, label]);
-  };
+const normalizeEmail = (email = {}) => {
+  const rawBody =
+    email.body?.html ||
+    email.body?.text ||
+    (typeof email.body === "string" ? email.body : "");
 
-  const removeLabel = (labels = [], label) => {
-    return normalizeLabels(labels.filter((item) => item !== label));
-  };
+  const timestamp =
+    email.timestamp || email.internalDate || getEmailTimestamp(email);
 
-  /* =========================================================
-    EXTRACT EMAILS FROM API RESPONSE
-  ========================================================= */
+  const labels = normalizeLabels(email.labels || email.labelIds);
 
-  const extractEmailsFromResponse = (response) => {
-    if (Array.isArray(response)) {
-      return response;
-    }
+  const isRead =
+    typeof email.isRead === "boolean"
+      ? email.isRead
+      : !labels.includes("UNREAD");
 
-    if (Array.isArray(response?.data?.emails)) {
-      return response.data.emails;
-    }
+  const isStarred =
+    typeof email.isStarred === "boolean"
+      ? email.isStarred
+      : labels.includes("STARRED");
 
-    if (Array.isArray(response?.emails)) {
-      return response.emails;
-    }
+  const isImportant =
+    typeof email.isImportant === "boolean"
+      ? email.isImportant
+      : labels.includes("IMPORTANT");
 
-    if (Array.isArray(response?.data)) {
-      return response.data;
-    }
+  return {
+    ...email,
 
-    if (Array.isArray(response?.messages)) {
-      return response.messages;
-    }
+    id: email.id || email.messageId || "",
 
-    if (Array.isArray(response?.data?.messages)) {
-      return response.data.messages;
-    }
+    threadId: email.threadId || email.id || email.messageId || "",
 
-    return [];
-  };
+    sender:
+      email.from?.name || email.from?.email || email.sender || "Unknown Sender",
 
-  /* =========================================================
-    EXTRACT RESPONSE META
-  ========================================================= */
-
-  const getResponseData = (response) => {
-    if (response?.data && !Array.isArray(response.data)) {
-      return response.data;
-    }
-
-    return response || {};
-  };
-
-  /* =========================================================
-    NORMALIZE EMAIL
-  ========================================================= */
-
-  const normalizeEmail = (email = {}) => {
-    const rawBody =
-      email.body?.html ||
-      email.body?.text ||
-      email.bodyHtml ||
-      email.bodyText ||
-      (typeof email.body === "string" ? email.body : "");
-
-    const timestamp = getEmailTimestamp(email);
-
-    const labels = normalizeLabels(email.labels || email.labelIds || []);
-
-    const isRead =
-      typeof email.isRead === "boolean"
-        ? email.isRead
-        : typeof email.unread === "boolean"
-          ? !email.unread
-          : !labels.includes("UNREAD");
-
-    const isStarred =
-      typeof email.isStarred === "boolean"
-        ? email.isStarred
-        : typeof email.starred === "boolean"
-          ? email.starred
-          : labels.includes("STARRED");
-
-    const isImportant =
-      typeof email.isImportant === "boolean"
-        ? email.isImportant
-        : typeof email.important === "boolean"
-          ? email.important
-          : labels.includes("IMPORTANT");
-
-    const senderEmail =
+    senderEmail:
       email.from?.email ||
       email.senderEmail ||
-      (typeof email.from === "string" ? email.from : "");
+      (typeof email.from === "string" ? email.from : ""),
 
-    const sender =
-      email.from?.name ||
-      email.from?.email ||
-      email.sender ||
-      email.fromName ||
-      senderEmail ||
-      "Unknown Sender";
+    unread: !isRead,
+    starred: isStarred,
+    important: isImportant,
 
-    const emailId = email.id || email.messageId || email.message?.id || "";
+    isRead,
+    isStarred,
+    isImportant,
 
-    const threadId = email.threadId || email.thread?.id || emailId;
+    time: email.date ? new Date(email.date).toLocaleString() : email.time || "",
 
-    return {
-      ...email,
+    timestamp,
 
-      id: emailId,
+    body: rawBody,
 
-      threadId,
+    bodyText:
+      email.bodyText ||
+      email.body?.text ||
+      (typeof email.body === "string" ? email.body : ""),
 
-      sender,
+    bodyHtml: email.bodyHtml || email.body?.html || "",
 
-      senderEmail,
+    attachments: Array.isArray(email.attachments) ? email.attachments : [],
 
-      unread: !isRead,
+    labels,
+  };
+};
 
-      starred: isStarred,
+/* =========================================================
+MERGE EMAIL RECORD
 
-      important: isImportant,
+An incoming record with an EMPTY body (list API, socket
+update, etc.) must never wipe a body that was already loaded.
+========================================================= */
 
-      isRead,
+const mergeEmailRecord = (existing, incoming) => {
+  if (!existing) {
+    return incoming;
+  }
 
-      isStarred,
+  const merged = {
+    ...existing,
+    ...incoming,
 
-      isImportant,
-
-      subject: email.subject || email.snippet || "(No Subject)",
-
-      time: email.date
-        ? new Date(email.date).toLocaleString()
-        : email.time || "",
-
-      timestamp,
-
-      date: email.date || email.internalDate || null,
-
-      body: rawBody,
-
-      bodyText:
-        email.bodyText ||
-        email.body?.text ||
-        (typeof email.body === "string" ? email.body : ""),
-
-      bodyHtml: email.bodyHtml || email.body?.html || "",
-
-      attachments: Array.isArray(email.attachments) ? email.attachments : [],
-
-      labels,
-    };
+    labels: Array.isArray(incoming.labels)
+      ? normalizeLabels(incoming.labels)
+      : existing.labels || [],
   };
 
-  /* =========================================================
-    REMOVE DUPLICATES
-  ========================================================= */
+  BODY_FIELDS.forEach((field) => {
+    const value = incoming[field];
+    const incomingIsEmpty = typeof value !== "string" || !value.trim();
 
-  const removeDuplicates = (emails = []) => {
-    const map = new Map();
+    if (incomingIsEmpty && existing[field]) {
+      merged[field] = existing[field];
+    }
+  });
 
-    emails.forEach((email) => {
-      if (!email?.id) {
-        return;
-      }
+  if (!incoming.attachments?.length && existing.attachments?.length) {
+    merged.attachments = existing.attachments;
+  }
 
-      const existing = map.get(email.id);
+  return merged;
+};
 
-      map.set(email.id, { ...existing, ...email });
-    });
+const upsertEmailsIntoMap = (prevMap, emailsArray = []) => {
+  if (!emailsArray.length) {
+    return prevMap;
+  }
 
-    return Array.from(map.values());
-  };
+  const next = { ...prevMap };
 
-  /* =========================================================
-    MERGE EMAILS
-  ========================================================= */
+  emailsArray.forEach((email) => {
+    if (!email?.id) return;
+    next[email.id] = mergeEmailRecord(next[email.id], email);
+  });
 
-  const mergeEmails = (previous = [], incoming = []) => {
-    const map = new Map();
+  return next;
+};
 
-    previous.forEach((email) => {
-      if (email?.id) {
-        map.set(email.id, email);
-      }
-    });
+/* =========================================================
+REMOVE DUPLICATES
+========================================================= */
 
-    incoming.forEach((email) => {
-      if (!email?.id) {
-        return;
-      }
+const removeDuplicates = (emails = []) => {
+  const map = new Map();
 
-      const existing = map.get(email.id);
+  emails.forEach((email) => {
+    if (!email?.id) return;
+    map.set(email.id, mergeEmailRecord(map.get(email.id), email));
+  });
 
-      map.set(email.id, {
-        ...existing,
-        ...email,
+  return Array.from(map.values());
+};
 
-        labels: Array.isArray(email.labels)
-          ? normalizeLabels(email.labels)
-          : existing?.labels || [],
-      });
-    });
+/* =========================================================
+SORT THREAD MESSAGES
+========================================================= */
 
-    return Array.from(map.values());
-  };
+const sortThreadMessages = (messages = []) =>
+  [...messages].sort((a, b) => getEmailTimestamp(a) - getEmailTimestamp(b));
 
-  /* =========================================================
-    SYNC EMAILS
-  ========================================================= */
+/* =========================================================
+GROUP EMAILS BY THREAD
+========================================================= */
 
-  const syncEmails = (previous = [], incoming = []) => {
-    return mergeEmails(previous, incoming).sort(
-      (a, b) => getEmailTimestamp(b) - getEmailTimestamp(a),
-    );
-  };
+const groupEmailsByThread = (emails = []) => {
+  const threadMap = new Map();
 
-  /* =========================================================
-    SORT THREAD MESSAGES
-  ========================================================= */
+  emails.forEach((email) => {
+    const threadKey = email.threadId || email.id;
 
-  const sortThreadMessages = (messages = []) => {
-    return [...messages].sort(
-      (a, b) => getEmailTimestamp(a) - getEmailTimestamp(b),
-    );
-  };
+    if (!threadKey) return;
 
-  /* =========================================================
-    GROUP EMAILS BY THREAD
-  ========================================================= */
+    const existing = threadMap.get(threadKey);
 
-  const groupEmailsByThread = (emails = []) => {
-    const threadMap = new Map();
-
-    emails.forEach((email) => {
-      const threadKey = email.threadId || email.id;
-
-      if (!threadKey) {
-        return;
-      }
-
-      const existing = threadMap.get(threadKey);
-
-      if (!existing) {
-        threadMap.set(threadKey, {
-          ...email,
-
-          threadCount: 1,
-
-          threadEmails: [email],
-
-          unread: Boolean(email.unread),
-        });
-
-        return;
-      }
-
-      const allThreadEmails = sortThreadMessages([
-        ...existing.threadEmails,
-        email,
-      ]);
-
-      const latestEmail = allThreadEmails[allThreadEmails.length - 1];
-
+    if (!existing) {
       threadMap.set(threadKey, {
-        ...latestEmail,
-
-        threadCount: allThreadEmails.length,
-
-        threadEmails: allThreadEmails,
-
-        unread: allThreadEmails.some((item) => item.unread),
+        ...email,
+        threadCount: 1,
+        threadEmails: [email],
+        unread: Boolean(email.unread),
       });
+      return;
+    }
+
+    const allThreadEmails = sortThreadMessages([
+      ...existing.threadEmails,
+      email,
+    ]);
+
+    const latestEmail = allThreadEmails[allThreadEmails.length - 1];
+
+    threadMap.set(threadKey, {
+      ...latestEmail,
+      threadCount: allThreadEmails.length,
+      threadEmails: allThreadEmails,
+      unread: allThreadEmails.some((item) => item.unread),
+    });
+  });
+
+  return Array.from(threadMap.values()).sort(
+    (a, b) => getEmailTimestamp(b) - getEmailTimestamp(a),
+  );
+};
+
+/* =========================================================
+EXTRACT THREAD MESSAGES
+========================================================= */
+
+const extractThreadMessages = (response) => {
+  const data = response?.data || {};
+
+  if (Array.isArray(data.messages)) return data.messages;
+  if (Array.isArray(data.thread)) return data.thread;
+  if (Array.isArray(data.thread?.messages)) return data.thread.messages;
+  if (Array.isArray(data.email?.messages)) return data.email.messages;
+
+  return [];
+};
+
+/* =========================================================
+EMAILS PROVIDER (inner)
+========================================================= */
+
+function EmailsProviderInner({ children }) {
+  const { showToast } = useToast();
+
+  /* ========================================
+     NORMALIZED EMAIL STORE
+  ======================================== */
+
+  const [emailsById, setEmailsById] = useState({});
+
+  /* ========================================
+     PER-VIEW CACHE
+  ======================================== */
+
+  const [viewCache, setViewCache] = useState({});
+
+  /* ========================================
+     CURRENT VIEW
+  ======================================== */
+
+  const [currentView, setCurrentView] = useState("inbox");
+
+  /* ========================================
+     REFS
+  ======================================== */
+
+  const isLoadingMoreRef = useRef(false);
+  const latestThreadRequestRef = useRef(0);
+  const selectTokenRef = useRef(0);
+  const activeEmailIdRef = useRef(null);
+  const activeThreadIdRef = useRef(null);
+  const activeThreadRef = useRef([]);
+  const loadEmailThreadRef = useRef(null);
+  const threadRefreshTimerRef = useRef(null);
+  const emailsByIdRef = useRef({});
+  const viewCacheRef = useRef({});
+  const currentViewRef = useRef("inbox");
+
+  useEffect(() => {
+    emailsByIdRef.current = emailsById;
+  }, [emailsById]);
+
+  useEffect(() => {
+    viewCacheRef.current = viewCache;
+  }, [viewCache]);
+
+  useEffect(() => {
+    currentViewRef.current = currentView;
+  }, [currentView]);
+
+  /* ========================================
+     CURRENT VIEW DATA
+  ======================================== */
+
+  const currentViewData = viewCache[currentView] || {
+    ids: [],
+    nextPageToken: null,
+    resultSizeEstimate: 0,
+    loaded: false,
+  };
+
+  const rawViewEmails = useMemo(
+    () => currentViewData.ids.map((id) => emailsById[id]).filter(Boolean),
+    [currentViewData.ids, emailsById],
+  );
+
+  const viewEmails = useMemo(
+    () => groupEmailsByThread(rawViewEmails),
+    [rawViewEmails],
+  );
+
+  /* ========================================
+     ACTIVE EMAIL
+  ======================================== */
+
+  const [activeEmailId, setActiveEmailId] = useState(null);
+
+  /* ========================================
+     THREAD STATE
+  ======================================== */
+
+  const [activeThread, setActiveThread] = useState([]);
+  const [activeThreadId, setActiveThreadId] = useState(null);
+  const [threadLoading, setThreadLoading] = useState(false);
+  const [threadError, setThreadError] = useState(null);
+
+  /*
+    true ONLY after the full thread for the
+    currently selected email has finished
+    loading (success or failure).
+  */
+  const [isThreadReady, setIsThreadReady] = useState(false);
+
+  useEffect(() => {
+    activeEmailIdRef.current = activeEmailId;
+  }, [activeEmailId]);
+
+  useEffect(() => {
+    activeThreadIdRef.current = activeThreadId;
+  }, [activeThreadId]);
+
+  useEffect(() => {
+    activeThreadRef.current = activeThread;
+  }, [activeThread]);
+
+  /* ========================================
+     GENERAL STATE
+  ======================================== */
+
+  const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [error, setError] = useState(null);
+
+  /* ========================================
+     API REQUEST HELPER
+
+     FormData body ke liye Content-Type khud set nahi karna:
+     browser multipart boundary ke saath apne aap lagata hai.
+
+     Delegated mode me "X-Acting-As" header owner ki id ke saath jaata hai,
+     backend ka actingAs middleware usi se owner ki mailbox serve karta hai.
+  ======================================== */
+
+  const apiRequest = useCallback(async (endpoint, options = {}) => {
+    const headers = { ...options.headers };
+
+    const isFormData =
+      typeof FormData !== "undefined" && options.body instanceof FormData;
+
+    if (options.body && !isFormData) {
+      headers["Content-Type"] = "application/json";
+    }
+
+    /* FIX: MailboxContext se owner id (key: collabry_acting_as) */
+    const actingOwnerId = getActingOwnerId();
+
+    if (actingOwnerId) {
+      headers["X-Acting-As"] = actingOwnerId;
+    }
+
+    const response = await fetch(`${API_URL}${endpoint}`, {
+      ...options,
+      credentials: "include",
+      headers,
     });
 
-    return Array.from(threadMap.values()).sort(
-      (a, b) => getEmailTimestamp(b) - getEmailTimestamp(a),
-    );
-  };
+    const contentType = response.headers.get("content-type") || "";
 
-  /* =========================================================
-    EXTRACT THREAD MESSAGES
-  ========================================================= */
+    let data = null;
 
-  const extractThreadMessages = (response) => {
-    const data = response?.data || response || {};
-
-    if (Array.isArray(data.messages)) {
-      return data.messages;
+    if (contentType.includes("application/json")) {
+      data = await response.json();
+    } else {
+      const text = await response.text();
+      data = text ? { message: text } : null;
     }
 
-    if (Array.isArray(data.thread)) {
-      return data.thread;
+    if (!response.ok) {
+      throw new Error(
+        data?.message ||
+          data?.error?.message ||
+          data?.error ||
+          "Request failed",
+      );
     }
 
-    if (Array.isArray(data.thread?.messages)) {
-      return data.thread.messages;
-    }
-
-    if (Array.isArray(data.email?.messages)) {
-      return data.email.messages;
-    }
-
-    if (Array.isArray(response?.messages)) {
-      return response.messages;
-    }
-
-    return [];
-  };
-
-  /* =========================================================
-    EMAILS PROVIDER
-  ========================================================= */
-
-  export function EmailsProvider({ children }) {
-    /* ========================================
-      RAW EMAIL STATE
-      One shared pool for every view — merged by id, never
-      wiped on view switch. This is the cache.
-    ======================================== */
-
-    const [allEmails, setAllEmails] = useState([]);
-
-    /* ========================================
-      CURRENT VIEW
-    ======================================== */
-
-    const [currentView, setCurrentView] = useState("inbox");
-
-    /* ========================================
-      PER-VIEW CACHE BOOKKEEPING
-
-      FIX: tracks which views have already been fetched at
-      least once, and each view's own pagination token, so
-      switching back to a previously-visited view doesn't
-      trigger a blocking network fetch.
-    ======================================== */
-
-    const fetchedViewsRef = useRef(new Set());
-
-    const [nextPageTokens, setNextPageTokens] = useState({});
-
-    const [resultSizeEstimates, setResultSizeEstimates] = useState({});
-
-    /* ========================================
-      REFS
-    ======================================== */
-
-    const isPollingRef = useRef(false);
-
-    const isLoadingMoreRef = useRef(false);
-
-    const latestThreadRequestRef = useRef(0);
-
-    /* ========================================
-      GROUPED EMAILS (full pool, all views combined —
-      Labels pages rely on this being unfiltered)
-    ======================================== */
-
-    const emails = useMemo(
-      () => groupEmailsByThread(allEmails),
-      [allEmails],
-    );
-
-    /* ========================================
-      EMAILS FOR THE CURRENT VIEW ONLY
-
-      FIX: this is what Inbox.jsx should render — the shared
-      pool filtered down to whichever view (inbox/unread/
-      sent/...) is currently active, computed client-side so
-      no re-fetch is needed once the underlying data exists.
-    ======================================== */
-
-    const viewEmails = useMemo(
-      () => emails.filter((email) => matchesView(email, currentView)),
-      [emails, currentView],
-    );
-
-    /* ========================================
-      ACTIVE EMAIL
-    ======================================== */
-
-    const [activeEmailId, setActiveEmailId] = useState(null);
-
-    /* ========================================
-      THREAD STATE
-    ======================================== */
-
-    const [activeThread, setActiveThread] = useState([]);
-
-    const [activeThreadId, setActiveThreadId] = useState(null);
-
-    const [threadLoading, setThreadLoading] = useState(false);
-
-    const [threadError, setThreadError] = useState(null);
-
-    /* ========================================
-      GENERAL STATE
-    ======================================== */
-
-    const [loading, setLoading] = useState(false);
-
-    const [loadingMore, setLoadingMore] = useState(false);
-
-    const [error, setError] = useState(null);
-
-    /* ========================================
-      API REQUEST HELPER
-    ======================================== */
-
-    const apiRequest = useCallback(async (endpoint, options = {}) => {
-      const headers = {
-        ...options.headers,
-      };
-
-      if (options.body) {
-        headers["Content-Type"] = "application/json";
-      }
-
-      const url = `${API_URL}${endpoint}`;
-
-      const response = await fetch(url, {
-        ...options,
-
-        credentials: "include",
-
-        headers,
-      });
-
-      const contentType = response.headers.get("content-type") || "";
-
-      let data = null;
-
-      if (contentType.includes("application/json")) {
-        data = await response.json();
-      } else {
-        const text = await response.text();
-
-        data = text ? { message: text } : null;
-      }
-
-      if (!response.ok) {
-        throw new Error(
-          data?.message ||
-            data?.error?.message ||
-            data?.error ||
-            "Request failed",
-        );
-      }
-
-      return data;
-    }, []);
-
-    /* ========================================
-      LOAD EMAIL LIST
-
-      FIX: options.view is now required by every caller
-      (changeView / loadMoreEmails / the polling effect) so
-      each view's own pageToken/resultSizeEstimate is tracked
-      separately. And — the key fix — allEmails is ALWAYS
-      merged, never replaced, so switching views no longer
-      throws away what was already fetched for other views.
-    ======================================== */
-
-    const loadEmails = useCallback(
-      async (options = {}) => {
-        const view = options.view || "inbox";
-
-        const isSilent = Boolean(options.silent);
-
-        const isPagination = Boolean(options.pageToken);
-
-        try {
-          if (isPagination) {
-            setLoadingMore(true);
-          } else if (!isSilent) {
-            setLoading(true);
-
-            setError(null);
-          }
-
-          const params = new URLSearchParams();
-
-          const requestedMax = Number(
-            options.maxResults || DEFAULT_MAX_RESULTS,
-          );
-
-          const safeMaxResults = Math.min(
-            Math.max(
-              Number.isFinite(requestedMax)
-                ? Math.floor(requestedMax)
-                : DEFAULT_MAX_RESULTS,
-              1,
-            ),
-            MAX_RESULTS_LIMIT,
-          );
-
-          params.set("maxResults", String(safeMaxResults));
-
-          if (options.pageToken) {
-            params.set("pageToken", options.pageToken);
-          }
-
-          if (options.labelIds) {
-            const labels = Array.isArray(options.labelIds)
-              ? options.labelIds.join(",")
-              : options.labelIds;
-
-            params.set("labelIds", labels);
-          }
-
-          if (typeof options.query === "string" && options.query.trim()) {
-            params.set("query", options.query.trim());
-          }
-
-          const queryString = params.toString();
-
-          const endpoint = `/api/emails${queryString ? `?${queryString}` : ""}`;
-
-          const response = await apiRequest(endpoint);
-
-          const rawEmails = extractEmailsFromResponse(response);
-
-          const resultEmails = rawEmails
-            .map(normalizeEmail)
-            .filter((email) => email.id);
-
-          /*
-            FIX: always merge into the shared pool, regardless of
-            whether this was a fresh view load, a pagination
-            request, or a silent background refresh. Nothing gets
-            wiped, so previously-loaded views stay cached.
-          */
-          setAllEmails((previous) => syncEmails(previous, resultEmails));
-
-          const responseData = getResponseData(response);
-
-          setNextPageTokens((previous) => ({
-            ...previous,
-            [view]: responseData?.nextPageToken || response?.nextPageToken || null,
-          }));
-
-          setResultSizeEstimates((previous) => ({
-            ...previous,
-            [view]:
-              responseData?.resultSizeEstimate ||
-              response?.resultSizeEstimate ||
-              resultEmails.length ||
-              0,
-          }));
-
-          return resultEmails;
-        } catch (requestError) {
-          console.error("Failed to load emails:", requestError);
-
-          if (!isSilent) {
-            setError(requestError.message || "Failed to load emails");
-          }
-
-          throw requestError;
-        } finally {
-          if (isPagination) {
-            setLoadingMore(false);
-          }
-
-          if (!isSilent && !isPagination) {
-            setLoading(false);
-          }
+    return data;
+  }, []);
+
+  /* ========================================
+     SYNC EMAIL MEMBERSHIP
+  ======================================== */
+
+  const syncEmailMembershipToViews = useCallback((email) => {
+    if (!email?.id) return;
+
+    setViewCache((previous) => {
+      let changed = false;
+      const next = { ...previous };
+
+      for (const viewKey of Object.keys(next)) {
+        const cache = next[viewKey];
+
+        if (!cache?.loaded) continue;
+
+        const shouldBeIn = emailMatchesView(email, viewKey);
+        const currentlyIn = cache.ids.includes(email.id);
+
+        if (shouldBeIn && !currentlyIn) {
+          next[viewKey] = { ...cache, ids: [...cache.ids, email.id] };
+          changed = true;
+        } else if (!shouldBeIn && currentlyIn) {
+          next[viewKey] = {
+            ...cache,
+            ids: cache.ids.filter((id) => id !== email.id),
+          };
+          changed = true;
         }
-      },
-      [apiRequest],
-    );
-
-    /* ========================================
-      CLEAR ACTIVE EMAIL
-    ======================================== */
-
-    const clearActiveEmail = useCallback(() => {
-      latestThreadRequestRef.current += 1;
-
-      setActiveEmailId(null);
-
-      setActiveThread([]);
-
-      setActiveThreadId(null);
-
-      setThreadError(null);
-
-      setThreadLoading(false);
-    }, []);
-
-    /* ========================================
-      CHANGE VIEW
-
-      FIX: no longer wipes allEmails/nextPageToken. If this
-      view was already fetched once this session, switch to
-      it instantly from cache and refresh quietly in the
-      background (silent: true — doesn't touch `loading`).
-      Only views being visited for the very first time do a
-      blocking fetch.
-    ======================================== */
-
-    const changeView = useCallback(
-      async (view = "inbox") => {
-        const normalizedView = view || "inbox";
-
-        setCurrentView(normalizedView);
-
-        clearActiveEmail();
-
-        const filters = getViewFilters(normalizedView);
-
-        const alreadyFetched = fetchedViewsRef.current.has(normalizedView);
-
-        if (alreadyFetched) {
-          loadEmails({
-            view: normalizedView,
-
-            maxResults: DEFAULT_MAX_RESULTS,
-
-            ...filters,
-
-            silent: true,
-          }).catch((refreshError) => {
-            console.error(
-              `Background refresh failed for view "${normalizedView}":`,
-              refreshError,
-            );
-          });
-
-          return;
-        }
-
-        try {
-          await loadEmails({
-            view: normalizedView,
-
-            maxResults: DEFAULT_MAX_RESULTS,
-
-            ...filters,
-          });
-
-          fetchedViewsRef.current.add(normalizedView);
-        } catch (changeViewError) {
-          console.error("Failed to change email view:", changeViewError);
-        }
-      },
-      [loadEmails, clearActiveEmail],
-    );
-
-    /* ========================================
-      LOAD MORE EMAILS (pagination is per-view)
-    ======================================== */
-
-    const loadMoreEmails = useCallback(async () => {
-      const tokenForView = nextPageTokens[currentView];
-
-      if (!tokenForView) {
-        return [];
       }
 
-      if (isLoadingMoreRef.current) {
-        return [];
-      }
+      return changed ? next : previous;
+    });
+  }, []);
 
-      isLoadingMoreRef.current = true;
+  /* ========================================
+     FETCH VIEW EMAILS
+  ======================================== */
+
+  const fetchViewEmails = useCallback(
+    async (view, options = {}) => {
+      const isSilent = Boolean(options.silent);
+      const isPagination = Boolean(options.pageToken);
 
       try {
-        const filters = getViewFilters(currentView);
-
-        return await loadEmails({
-          view: currentView,
-
-          maxResults: DEFAULT_MAX_RESULTS,
-
-          pageToken: tokenForView,
-
-          ...filters,
-        });
-      } finally {
-        isLoadingMoreRef.current = false;
-      }
-    }, [nextPageTokens, currentView, loadEmails]);
-
-    const hasMoreEmails = Boolean(nextPageTokens[currentView]);
-
-    /* ========================================
-      LOAD SINGLE EMAIL
-    ======================================== */
-
-    const loadEmailById = useCallback(
-      async (emailId) => {
-        if (!emailId) {
-          throw new Error("Email ID is required");
+        if (isPagination) {
+          setLoadingMore(true);
+        } else if (!isSilent) {
+          setLoading(true);
+          setError(null);
         }
 
-        const response = await apiRequest(
-          `/api/emails/${encodeURIComponent(emailId)}`,
+        const filters = getViewFilters(view);
+        const params = new URLSearchParams();
+
+        const requestedMax = Number(options.maxResults || DEFAULT_MAX_RESULTS);
+
+        const safeMaxResults = Math.min(
+          Math.max(
+            Number.isFinite(requestedMax)
+              ? Math.floor(requestedMax)
+              : DEFAULT_MAX_RESULTS,
+            1,
+          ),
+          MAX_RESULTS_LIMIT,
         );
 
-        const rawEmail =
-          response?.data?.email || response?.email || response?.data || null;
+        params.set("maxResults", String(safeMaxResults));
 
-        if (!rawEmail || Array.isArray(rawEmail)) {
-          throw new Error("Email not found");
+        if (options.pageToken) params.set("pageToken", options.pageToken);
+        if (filters.labelIds) params.set("labelIds", filters.labelIds);
+        if (filters.query) params.set("query", filters.query);
+
+        const queryString = params.toString();
+        const endpoint = `/api/emails${queryString ? `?${queryString}` : ""}`;
+
+        const response = await apiRequest(endpoint);
+
+        const rawEmails = Array.isArray(response?.data?.emails)
+          ? response.data.emails
+          : [];
+
+        const resultEmails = rawEmails
+          .map(normalizeEmail)
+          .filter((email) => email.id);
+
+        setEmailsById((previous) =>
+          upsertEmailsIntoMap(previous, resultEmails),
+        );
+
+        const newIds = resultEmails.map((email) => email.id);
+
+        setViewCache((previous) => {
+          const existing = previous[view] || {
+            ids: [],
+            nextPageToken: null,
+            resultSizeEstimate: 0,
+            loaded: false,
+          };
+
+          const mergedIds = isPagination
+            ? Array.from(new Set([...existing.ids, ...newIds]))
+            : newIds;
+
+          return {
+            ...previous,
+            [view]: {
+              ids: mergedIds,
+              nextPageToken: response?.data?.nextPageToken || null,
+              resultSizeEstimate: response?.data?.resultSizeEstimate || 0,
+              loaded: true,
+            },
+          };
+        });
+
+        return resultEmails;
+      } catch (requestError) {
+        console.error(`Failed to load "${view}" emails:`, requestError);
+
+        if (!isSilent) {
+          setError(requestError.message);
         }
 
-        const fullEmail = normalizeEmail(rawEmail);
+        throw requestError;
+      } finally {
+        if (isPagination) {
+          setLoadingMore(false);
+        }
 
-        setAllEmails((previous) => syncEmails(previous, [fullEmail]));
+        if (!isSilent && !isPagination) {
+          setLoading(false);
+        }
+      }
+    },
+    [apiRequest],
+  );
 
-        return fullEmail;
-      },
-      [apiRequest],
-    );
+  /* ========================================
+     CLEAR ACTIVE EMAIL
+  ======================================== */
 
-    /* ========================================
-      LOAD EMAIL THREAD
-    ======================================== */
+  const clearActiveEmail = useCallback(() => {
+    latestThreadRequestRef.current += 1;
+    selectTokenRef.current += 1;
 
-    const loadEmailThread = useCallback(
-      async (emailId, options = {}) => {
-        const silent = Boolean(options.silent);
+    /* Pending realtime thread-refresh bhi cancel karo */
+    if (threadRefreshTimerRef.current) {
+      clearTimeout(threadRefreshTimerRef.current);
+      threadRefreshTimerRef.current = null;
+    }
 
-        const requestId = latestThreadRequestRef.current + 1;
+    setActiveEmailId(null);
+    setActiveThread([]);
+    setActiveThreadId(null);
+    setThreadError(null);
+    setThreadLoading(false);
+    setIsThreadReady(false);
+  }, []);
 
-        latestThreadRequestRef.current = requestId;
+  /* ========================================
+     CHANGE VIEW
+  ======================================== */
 
-        try {
-          if (!emailId) {
-            if (latestThreadRequestRef.current === requestId) {
-              setActiveThread([]);
+  const changeView = useCallback(
+    async (view = "inbox") => {
+      const normalizedView = view || "inbox";
 
-              setActiveThreadId(null);
-            }
+      setCurrentView(normalizedView);
+      clearActiveEmail();
 
-            return [];
-          }
+      const cached = viewCacheRef.current[normalizedView];
 
-          if (!silent) {
-            setThreadLoading(true);
+      if (cached?.loaded) return;
 
-            setThreadError(null);
-          }
+      try {
+        await fetchViewEmails(normalizedView, {
+          maxResults: DEFAULT_MAX_RESULTS,
+        });
+      } catch (changeViewError) {
+        console.error(`Failed to load ${normalizedView}:`, changeViewError);
+      }
+    },
+    [fetchViewEmails, clearActiveEmail],
+  );
 
-          const response = await apiRequest(
-            `/api/emails/${encodeURIComponent(emailId)}/thread`,
-          );
+  /* ========================================
+     LOAD MORE EMAILS
+  ======================================== */
 
-          const messages = extractThreadMessages(response);
+  const loadMoreEmails = useCallback(async () => {
+    const nextPageToken = currentViewData.nextPageToken;
 
-          const normalizedThread = messages
-            .map(normalizeEmail)
-            .filter((email) => email.id);
+    if (!nextPageToken) return [];
+    if (isLoadingMoreRef.current) return [];
 
-          const uniqueThread = removeDuplicates(normalizedThread);
+    isLoadingMoreRef.current = true;
 
-          const sortedThread = sortThreadMessages(uniqueThread);
+    try {
+      return await fetchViewEmails(currentView, {
+        maxResults: DEFAULT_MAX_RESULTS,
+        pageToken: nextPageToken,
+      });
+    } finally {
+      isLoadingMoreRef.current = false;
+    }
+  }, [currentView, currentViewData.nextPageToken, fetchViewEmails]);
 
-          const responseData = getResponseData(response);
+  const hasMoreEmails = Boolean(currentViewData.nextPageToken);
 
-          const threadId =
-            responseData?.threadId ||
-            responseData?.id ||
-            sortedThread[0]?.threadId ||
-            null;
+  /* ========================================
+     LOAD SINGLE EMAIL
+  ======================================== */
 
+  const loadEmailById = useCallback(
+    async (emailId) => {
+      if (!emailId) {
+        throw new Error("Email ID is required");
+      }
+
+      const response = await apiRequest(
+        `/api/emails/${encodeURIComponent(emailId)}`,
+      );
+
+      const rawEmail = response?.data?.email;
+
+      if (!rawEmail) {
+        throw new Error("Email not found");
+      }
+
+      const fullEmail = normalizeEmail(rawEmail);
+
+      setEmailsById((previous) => upsertEmailsIntoMap(previous, [fullEmail]));
+
+      syncEmailMembershipToViews(fullEmail);
+
+      return fullEmail;
+    },
+    [apiRequest, syncEmailMembershipToViews],
+  );
+
+  /* ========================================
+     LOAD EMAIL THREAD
+  ======================================== */
+
+  const loadEmailThread = useCallback(
+    async (emailId, options = {}) => {
+      const silent = Boolean(options.silent);
+
+      const requestId = latestThreadRequestRef.current + 1;
+      latestThreadRequestRef.current = requestId;
+
+      try {
+        if (!emailId) {
           if (latestThreadRequestRef.current === requestId) {
-            setActiveThread(sortedThread);
-
-            setActiveThreadId(threadId);
-
-            if (sortedThread.length > 0) {
-              const selectedExists = sortedThread.some(
-                (item) => item.id === emailId,
-              );
-
-              if (!selectedExists) {
-                setActiveEmailId(
-                  sortedThread[sortedThread.length - 1]?.id || null,
-                );
-              }
-            }
-          }
-
-          if (sortedThread.length > 0) {
-            setAllEmails((previous) => syncEmails(previous, sortedThread));
-          }
-
-          return sortedThread;
-        } catch (requestError) {
-          console.error("Failed to load email thread:", requestError);
-
-          if (latestThreadRequestRef.current === requestId && !silent) {
-            setThreadError(requestError.message);
-
             setActiveThread([]);
-
             setActiveThreadId(null);
           }
 
-          throw requestError;
-        } finally {
-          if (latestThreadRequestRef.current === requestId && !silent) {
-            setThreadLoading(false);
+          return [];
+        }
+
+        if (!silent) {
+          setThreadLoading(true);
+          setThreadError(null);
+        }
+
+        const response = await apiRequest(
+          `/api/emails/${encodeURIComponent(emailId)}/thread`,
+        );
+
+        const messages = extractThreadMessages(response);
+
+        const normalizedThread = messages
+          .map(normalizeEmail)
+          .filter((email) => email.id);
+
+        const uniqueThread = removeDuplicates(normalizedThread);
+        const sortedThread = sortThreadMessages(uniqueThread);
+
+        const threadId =
+          response?.data?.threadId ||
+          response?.data?.id ||
+          sortedThread[0]?.threadId ||
+          null;
+
+        if (latestThreadRequestRef.current === requestId) {
+          setActiveThread(sortedThread);
+          setActiveThreadId(threadId);
+
+          if (sortedThread.length > 0) {
+            const selectedExists = sortedThread.some(
+              (item) => item.id === emailId,
+            );
+
+            if (!selectedExists) {
+              setActiveEmailId(
+                sortedThread[sortedThread.length - 1]?.id || null,
+              );
+            }
           }
         }
-      },
-      [apiRequest],
-    );
 
-    /* ========================================
-      SELECT EMAIL
-
-      This is the function that actually fetches an email's
-      full body/thread. Every page that lets the user open an
-      email (Inbox, LabelDetail, ...) must call this — not just
-      read an email object out of a locally-filtered list —
-      otherwise the preview has no body to show.
-    ======================================== */
-
-    const selectEmail = useCallback(
-      async (emailId) => {
-        if (!emailId) {
-          clearActiveEmail();
-
-          return null;
-        }
-
-        setActiveEmailId(emailId);
-
-        try {
-          const thread = await loadEmailThread(emailId);
-
-          const selectedFromThread = thread.find(
-            (email) => email.id === emailId,
+        if (sortedThread.length > 0) {
+          setEmailsById((previous) =>
+            upsertEmailsIntoMap(previous, sortedThread),
           );
 
-          if (selectedFromThread) {
-            return selectedFromThread;
-          }
-
-          return await loadEmailById(emailId);
-        } catch (requestError) {
-          console.error("Failed to select email:", requestError);
-
-          return null;
+          sortedThread.forEach((email) => syncEmailMembershipToViews(email));
         }
-      },
-      [loadEmailThread, loadEmailById, clearActiveEmail],
-    );
 
-    /* ========================================
-      ACTIVE EMAIL
-    ======================================== */
+        return sortedThread;
+      } catch (requestError) {
+        console.error("Failed to load email thread:", requestError);
 
-    const activeEmail = useMemo(() => {
-      if (!activeEmailId) {
-        return null;
+        if (latestThreadRequestRef.current === requestId && !silent) {
+          setThreadError(requestError.message);
+          setActiveThread([]);
+          setActiveThreadId(null);
+        }
+
+        throw requestError;
+      } finally {
+        if (latestThreadRequestRef.current === requestId && !silent) {
+          setThreadLoading(false);
+        }
       }
+    },
+    [apiRequest, syncEmailMembershipToViews],
+  );
 
-      const threadEmail = activeThread.find(
-        (email) => email.id === activeEmailId,
-      );
+  /* Realtime (socket) effect ko hamesha latest loadEmailThread chahiye */
+  useEffect(() => {
+    loadEmailThreadRef.current = loadEmailThread;
+  }, [loadEmailThread]);
 
-      if (threadEmail) {
-        return threadEmail;
-      }
+  /* ========================================
+     SELECT EMAIL
+  ======================================== */
 
-      return allEmails.find((email) => email.id === activeEmailId) || null;
-    }, [allEmails, activeThread, activeEmailId]);
-
-    /* ========================================
-      ACTIVE THREAD EMAIL
-    ======================================== */
-
-    const activeThreadEmail = useMemo(() => {
-      if (!activeEmailId) {
-        return null;
-      }
-
-      return (
-        activeThread.find((email) => email.id === activeEmailId) ||
-        activeEmail ||
-        null
-      );
-    }, [activeThread, activeEmailId, activeEmail]);
-
-    /* ========================================
-      UPDATE LOCAL EMAIL
-    ======================================== */
-
-    const updateEmail = useCallback((emailId, updates = {}) => {
+  const selectEmail = useCallback(
+    async (emailId) => {
       if (!emailId) {
-        return;
+        clearActiveEmail();
+        return null;
       }
 
-      const applyUpdate = (email) => {
-        if (email.id !== emailId) {
-          return email;
+      const token = ++selectTokenRef.current;
+
+      latestThreadRequestRef.current += 1;
+
+      setActiveEmailId(emailId);
+      setActiveThread([]);
+      setActiveThreadId(null);
+      setThreadError(null);
+      setThreadLoading(true);
+      setIsThreadReady(false);
+
+      try {
+        const thread = await loadEmailThread(emailId);
+
+        const selectedFromThread = thread.find((email) => email.id === emailId);
+
+        if (selectedFromThread) {
+          return selectedFromThread;
         }
 
-        return {
-          ...email,
-          ...updates,
+        return await loadEmailById(emailId);
+      } catch (requestError) {
+        console.error("Failed to select email:", requestError);
+        return null;
+      } finally {
+        // Only the latest click is allowed to mark the thread ready
+        if (selectTokenRef.current === token) {
+          setThreadLoading(false);
+          setIsThreadReady(true);
+        }
+      }
+    },
+    [loadEmailThread, loadEmailById, clearActiveEmail],
+  );
 
-          labels: Array.isArray(updates.labels)
-            ? normalizeLabels(updates.labels)
-            : email.labels,
-        };
-      };
+  /* ========================================
+     ACTIVE EMAIL
+  ======================================== */
 
-      setAllEmails((previous) => previous.map(applyUpdate));
+  const activeEmail = useMemo(() => {
+    if (!activeEmailId) return null;
 
-      setActiveThread((previous) => previous.map(applyUpdate));
-    }, []);
+    const threadEmail = activeThread.find(
+      (email) => email.id === activeEmailId,
+    );
 
-    /* ========================================
-      MARK AS READ
-    ======================================== */
+    if (threadEmail) return threadEmail;
 
-    const markAsRead = useCallback(
-      async (emailId) => {
-        await apiRequest(`/api/emails/${encodeURIComponent(emailId)}/read`, {
+    return emailsById[activeEmailId] || null;
+  }, [emailsById, activeThread, activeEmailId]);
+
+  /* ========================================
+     ACTIVE THREAD EMAIL
+  ======================================== */
+
+  const activeThreadEmail = useMemo(() => {
+    if (!activeEmailId) return null;
+
+    return (
+      activeThread.find((email) => email.id === activeEmailId) ||
+      activeEmail ||
+      null
+    );
+  }, [activeThread, activeEmailId, activeEmail]);
+
+  /* ========================================
+     APPLY PATCH
+  ======================================== */
+
+  const patchEmail = useCallback(
+    (emailId, patch) => {
+      const existing = emailsByIdRef.current[emailId];
+
+      const updated = existing
+        ? { ...existing, ...patch }
+        : { id: emailId, ...patch };
+
+      setEmailsById((previous) => ({
+        ...previous,
+        [emailId]: mergeEmailRecord(previous[emailId], updated),
+      }));
+
+      setActiveThread((previous) =>
+        previous.map((email) =>
+          email.id === emailId ? { ...email, ...patch } : email,
+        ),
+      );
+
+      syncEmailMembershipToViews(updated);
+
+      return updated;
+    },
+    [syncEmailMembershipToViews],
+  );
+
+  /* ========================================
+     GENERIC PATCH ACTION
+     (read / unread / star / unstar / archive / inbox)
+  ======================================== */
+
+  const runPatchAction = useCallback(
+    async (emailId, action, buildPatch, successMessage, failMessage) => {
+      try {
+        await apiRequest(
+          `/api/emails/${encodeURIComponent(emailId)}/${action}`,
+          { method: "PATCH" },
+        );
+
+        const existing = emailsByIdRef.current[emailId];
+
+        patchEmail(emailId, buildPatch(existing));
+
+        showToast(successMessage, "success", 3000);
+      } catch (actionError) {
+        showToast(`❌ ${actionError?.message || failMessage}`, "error", 5000);
+
+        throw actionError;
+      }
+    },
+    [apiRequest, patchEmail, showToast],
+  );
+
+  const markAsRead = useCallback(
+    (emailId) =>
+      runPatchAction(
+        emailId,
+        "read",
+        (existing) => ({
+          unread: false,
+          isRead: true,
+          labels: removeLabel(existing?.labels, "UNREAD"),
+        }),
+        "Email marked as read.",
+        "Failed to mark email as read.",
+      ),
+    [runPatchAction],
+  );
+
+  const markAsUnread = useCallback(
+    (emailId) =>
+      runPatchAction(
+        emailId,
+        "unread",
+        (existing) => ({
+          unread: true,
+          isRead: false,
+          labels: addLabel(existing?.labels, "UNREAD"),
+        }),
+        "Email marked as unread.",
+        "Failed to mark email as unread.",
+      ),
+    [runPatchAction],
+  );
+
+  const starEmail = useCallback(
+    (emailId) =>
+      runPatchAction(
+        emailId,
+        "star",
+        (existing) => ({
+          starred: true,
+          isStarred: true,
+          labels: addLabel(existing?.labels, "STARRED"),
+        }),
+        "Email starred successfully.",
+        "Failed to star email.",
+      ),
+    [runPatchAction],
+  );
+
+  const unstarEmail = useCallback(
+    (emailId) =>
+      runPatchAction(
+        emailId,
+        "unstar",
+        (existing) => ({
+          starred: false,
+          isStarred: false,
+          labels: removeLabel(existing?.labels, "STARRED"),
+        }),
+        "Email unstarred successfully.",
+        "Failed to unstar email.",
+      ),
+    [runPatchAction],
+  );
+
+  const archiveEmail = useCallback(
+    (emailId) =>
+      runPatchAction(
+        emailId,
+        "archive",
+        (existing) => ({
+          labels: removeLabel(existing?.labels, "INBOX"),
+        }),
+        "Email archived successfully.",
+        "Failed to archive email.",
+      ),
+    [runPatchAction],
+  );
+
+  const moveToInbox = useCallback(
+    (emailId) =>
+      runPatchAction(
+        emailId,
+        "inbox",
+        (existing) => ({
+          labels: addLabel(existing?.labels, "INBOX"),
+        }),
+        "Email moved to inbox successfully.",
+        "Failed to move email to inbox.",
+      ),
+    [runPatchAction],
+  );
+
+  /* ========================================
+     TRASH EMAIL
+  ======================================== */
+
+  const trashEmail = useCallback(
+    async (emailId) => {
+      try {
+        await apiRequest(`/api/emails/${encodeURIComponent(emailId)}/trash`, {
           method: "PATCH",
         });
 
-        const applyRead = (email) =>
-          email.id === emailId
-            ? {
-                ...email,
+        const existing = emailsByIdRef.current[emailId];
 
-                unread: false,
-
-                isRead: true,
-
-                labels: removeLabel(email.labels, "UNREAD"),
-              }
-            : email;
-
-        setAllEmails((previous) => previous.map(applyRead));
-
-        setActiveThread((previous) => previous.map(applyRead));
-      },
-      [apiRequest],
-    );
-
-    /* ========================================
-      MARK AS UNREAD
-    ======================================== */
-
-    const markAsUnread = useCallback(
-      async (emailId) => {
-        await apiRequest(`/api/emails/${encodeURIComponent(emailId)}/unread`, {
-          method: "PATCH",
+        patchEmail(emailId, {
+          labels: normalizeLabels([
+            ...removeLabel(existing?.labels, "INBOX"),
+            "TRASH",
+          ]),
         });
 
-        const applyUnread = (email) =>
-          email.id === emailId
-            ? {
-                ...email,
-
-                unread: true,
-
-                isRead: false,
-
-                labels: addLabel(email.labels, "UNREAD"),
-              }
-            : email;
-
-        setAllEmails((previous) => previous.map(applyUnread));
-
-        setActiveThread((previous) => previous.map(applyUnread));
-      },
-      [apiRequest],
-    );
-
-    /* ========================================
-      STAR EMAIL
-    ======================================== */
-
-    const starEmail = useCallback(
-      async (emailId) => {
-        await apiRequest(`/api/emails/${encodeURIComponent(emailId)}/star`, {
-          method: "PATCH",
-        });
-
-        const applyStar = (email) =>
-          email.id === emailId
-            ? {
-                ...email,
-
-                starred: true,
-
-                isStarred: true,
-
-                labels: addLabel(email.labels, "STARRED"),
-              }
-            : email;
-
-        setAllEmails((previous) => previous.map(applyStar));
-
-        setActiveThread((previous) => previous.map(applyStar));
-      },
-      [apiRequest],
-    );
-
-    /* ========================================
-      UNSTAR EMAIL
-    ======================================== */
-
-    const unstarEmail = useCallback(
-      async (emailId) => {
-        await apiRequest(`/api/emails/${encodeURIComponent(emailId)}/unstar`, {
-          method: "PATCH",
-        });
-
-        const applyUnstar = (email) =>
-          email.id === emailId
-            ? {
-                ...email,
-
-                starred: false,
-
-                isStarred: false,
-
-                labels: removeLabel(email.labels, "STARRED"),
-              }
-            : email;
-
-        setAllEmails((previous) => previous.map(applyUnstar));
-
-        setActiveThread((previous) => previous.map(applyUnstar));
-      },
-      [apiRequest],
-    );
-
-    /* ========================================
-      ARCHIVE EMAIL
-    ======================================== */
-
-    const archiveEmail = useCallback(
-      async (emailId) => {
-        await apiRequest(`/api/emails/${encodeURIComponent(emailId)}/archive`, {
-          method: "PATCH",
-        });
-
-        const applyArchive = (email) =>
-          email.id === emailId
-            ? {
-                ...email,
-
-                labels: removeLabel(email.labels, "INBOX"),
-              }
-            : email;
-
-        setAllEmails((previous) => previous.map(applyArchive));
-
-        setActiveThread((previous) => previous.map(applyArchive));
-      },
-      [apiRequest],
-    );
-
-    /* ========================================
-      MOVE TO INBOX
-    ======================================== */
-
-    const moveToInbox = useCallback(
-      async (emailId) => {
-        await apiRequest(`/api/emails/${encodeURIComponent(emailId)}/inbox`, {
-          method: "PATCH",
-        });
-
-        const applyMove = (email) =>
-          email.id === emailId
-            ? {
-                ...email,
-
-                labels: addLabel(email.labels, "INBOX"),
-              }
-            : email;
-
-        setAllEmails((previous) => previous.map(applyMove));
-
-        setActiveThread((previous) => previous.map(applyMove));
-      },
-      [apiRequest],
-    );
-
-    /* ========================================
-      TRASH EMAIL
-    ======================================== */
-
-    const trashEmail = useCallback(
-      async (emailId) => {
-        await apiRequest(`/api/emails/${encodeURIComponent(emailId)}`, {
-          method: "DELETE",
-        });
-
-        const applyTrash = (email) =>
-          email.id === emailId
-            ? {
-                ...email,
-
-                labels: normalizeLabels([
-                  ...removeLabel(email.labels, "INBOX"),
-                  "TRASH",
-                ]),
-              }
-            : email;
-
-        setAllEmails((previous) => previous.map(applyTrash));
-
-        setActiveThread((previous) => previous.map(applyTrash));
-
-        if (activeEmailId === emailId) {
+        if (activeEmailIdRef.current === emailId) {
           clearActiveEmail();
         }
-      },
-      [apiRequest, activeEmailId, clearActiveEmail],
-    );
 
-    /* ========================================
-      SEND EMAIL
-    ======================================== */
+        showToast("Email moved to trash successfully.", "success", 3000);
+      } catch (trashError) {
+        showToast(
+          `❌ ${trashError?.message || "Failed to move email to trash."}`,
+          "error",
+          5000,
+        );
 
-    const sendEmail = useCallback(
-      async (emailData) => {
-        return await apiRequest("/api/emails/send", {
+        throw trashError;
+      }
+    },
+    [apiRequest, patchEmail, clearActiveEmail, showToast],
+  );
+
+  /* ========================================
+     SEND EMAIL
+     attachments (File[]) ho to multipart/form-data,
+     warna pehle jaisa JSON.
+  ======================================== */
+
+  const sendEmail = useCallback(
+    async (emailData = {}) => {
+      try {
+        const { attachments = [], ...fields } = emailData;
+
+        const result = await apiRequest("/api/emails/send", {
           method: "POST",
-
-          body: JSON.stringify(emailData),
+          body: attachments.length
+            ? buildFormData(fields, attachments)
+            : JSON.stringify(fields),
         });
-      },
-      [apiRequest],
-    );
 
-    /* ========================================
-      REPLY EMAIL
-    ======================================== */
-
-    const replyToEmail = useCallback(
-      async (emailId, replyData = {}) => {
-        if (!emailId) {
-          throw new Error("Email ID is required");
+        if (viewCacheRef.current.sent?.loaded) {
+          fetchViewEmails("sent", { silent: true }).catch((refreshError) => {
+            console.error(
+              "Failed to refresh Sent after sending:",
+              refreshError,
+            );
+          });
         }
+
+        showToast("Email sent successfully.", "success", 3000);
+
+        return result;
+      } catch (sendError) {
+        showToast(
+          `❌ ${sendError?.message || "Failed to send email."}`,
+          "error",
+          5000,
+        );
+
+        throw sendError;
+      }
+    },
+    [apiRequest, fetchViewEmails, showToast],
+  );
+
+  /* ========================================
+     REPLY EMAIL
+  ======================================== */
+
+  const replyToEmail = useCallback(
+    async (emailId, replyData = {}) => {
+      if (!emailId) {
+        const missingIdError = new Error("Email ID is required");
+
+        showToast(`❌ ${missingIdError.message}`, "error", 5000);
+
+        throw missingIdError;
+      }
+
+      try {
+        const {
+          text = "",
+          html = "",
+          replyAll = false,
+          attachments = [],
+        } = replyData;
+
+        const fields = {
+          text,
+          html,
+          replyAll: Boolean(replyAll),
+        };
 
         const response = await apiRequest(
           `/api/emails/${encodeURIComponent(emailId)}/reply`,
           {
             method: "POST",
-
-            body: JSON.stringify({
-              text: replyData.text || replyData.body || "",
-
-              html: replyData.html || "",
-
-              replyAll: Boolean(replyData.replyAll),
-            }),
+            body: attachments.length
+              ? buildFormData(fields, attachments)
+              : JSON.stringify(fields),
           },
         );
 
-        await loadEmailThread(emailId);
+        /*
+          Silent refresh: the thread updates in the
+          background without flashing the full-screen
+          loader. A failure here must not look like
+          the reply itself failed.
+        */
+        try {
+          await loadEmailThread(emailId, { silent: true });
+        } catch (refreshError) {
+          console.error("Failed to refresh thread after reply:", refreshError);
+        }
+
+        if (viewCacheRef.current.sent?.loaded) {
+          fetchViewEmails("sent", { silent: true }).catch((refreshError) => {
+            console.error(
+              "Failed to refresh Sent after replying:",
+              refreshError,
+            );
+          });
+        }
+
+        showToast("Reply sent successfully.", "success", 3000);
 
         return response;
-      },
-      [apiRequest, loadEmailThread],
-    );
+      } catch (replyError) {
+        showToast(
+          `❌ ${replyError?.message || "Failed to send reply."}`,
+          "error",
+          5000,
+        );
 
-    /* ========================================
-      DELETE LOCAL EMAIL
-    ======================================== */
-
-    const deleteEmail = useCallback(
-      (emailId) => {
-        setAllEmails((previous) => previous.filter((email) => email.id !== emailId));
-
-        setActiveThread((previous) => previous.filter((email) => email.id !== emailId));
-
-        if (activeEmailId === emailId) {
-          clearActiveEmail();
-        }
-      },
-      [activeEmailId, clearActiveEmail],
-    );
-
-    /* ========================================
-      UNREAD COUNT (across the full pool)
-    ======================================== */
-
-    const unreadCount = useMemo(
-      () => emails.filter((email) => email.unread).length,
-      [emails],
-    );
-
-    /* ========================================
-      KEEP A REF TO THE LATEST VIEW
-
-      FIX: the polling effect below must NOT depend on
-      currentView directly — that was the remaining bug. If it
-      did, switching views would tear down and remount the
-      effect every time, firing an extra non-silent (blocking)
-      fetch on top of whatever changeView() already did. Using
-      a ref lets the interval always read the latest view
-      without re-triggering the effect.
-    ======================================== */
-
-    const currentViewRef = useRef(currentView);
-
-    useEffect(() => {
-      currentViewRef.current = currentView;
-    }, [currentView]);
-
-    /* ========================================
-      INITIAL LOAD + POLLING
-
-      FIX: this effect now runs once (mount only) — it does
-      NOT re-run when currentView changes, so switching views
-      no longer triggers a second, redundant blocking fetch on
-      top of changeView()'s own fetch/cache logic. The interval
-      always polls whatever view is current via currentViewRef.
-    ======================================== */
-
-    useEffect(() => {
-      let intervalId;
-
-      const fetchLatestEmails = async (silent = true) => {
-        if (isPollingRef.current) {
-          return;
-        }
-
-        if (document.visibilityState === "hidden") {
-          return;
-        }
-
-        isPollingRef.current = true;
-
-        try {
-          const view = currentViewRef.current;
-
-          const filters = getViewFilters(view);
-
-          await loadEmails({
-            view,
-
-            maxResults: DEFAULT_MAX_RESULTS,
-
-            ...filters,
-
-            silent,
-          });
-
-          fetchedViewsRef.current.add(view);
-        } catch (pollingError) {
-          console.error("Failed to fetch latest emails:", pollingError);
-        } finally {
-          isPollingRef.current = false;
-        }
-      };
-
-      fetchLatestEmails(false);
-
-      intervalId = setInterval(() => {
-        fetchLatestEmails(true);
-      }, POLLING_INTERVAL);
-
-      const handleVisibilityChange = () => {
-        if (document.visibilityState === "visible") {
-          fetchLatestEmails(true);
-        }
-      };
-
-      document.addEventListener("visibilitychange", handleVisibilityChange);
-
-      return () => {
-        clearInterval(intervalId);
-
-        document.removeEventListener("visibilitychange", handleVisibilityChange);
-
-        isPollingRef.current = false;
-      };
-      // Intentionally NOT depending on currentView — see comment above.
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [loadEmails]);
-
-    /* ========================================
-      ACTIVE THREAD POLLING
-    ======================================== */
-
-    useEffect(() => {
-      if (!activeEmailId) {
-        return undefined;
+        throw replyError;
       }
+    },
+    [apiRequest, loadEmailThread, fetchViewEmails, showToast],
+  );
 
-      const intervalId = setInterval(() => {
-        if (document.visibilityState === "visible") {
-          loadEmailThread(activeEmailId, { silent: true }).catch((error) => {
-            console.error("Failed to refresh active thread:", error);
-          });
-        }
-      }, 50000);
+  /* ========================================
+     UNREAD COUNT
+  ======================================== */
 
-      return () => {
-        clearInterval(intervalId);
-      };
-    }, [activeEmailId, loadEmailThread]);
+  const unreadCount = useMemo(() => {
+    const inboxCache = viewCache.inbox;
 
-    /* ========================================
-      CONTEXT VALUE
-    ======================================== */
+    if (!inboxCache?.loaded) return 0;
 
-    const value = {
-      /* EMAIL DATA */
+    return inboxCache.ids.reduce((count, id) => {
+      const email = emailsById[id];
+      return email && !email.isRead ? count + 1 : count;
+    }, 0);
+  }, [viewCache.inbox, emailsById]);
 
-      emails,
+  /* ========================================
+     INITIAL LOAD
+  ======================================== */
 
-      viewEmails,
-
-      allEmails,
-
-      setEmails: setAllEmails,
-
-      setAllEmails,
-
-      /* CURRENT VIEW */
-
-      currentView,
-
-      changeView,
-
-      /* ACTIVE EMAIL */
-
-      activeEmailId,
-
-      activeEmail,
-
-      activeThreadEmail,
-
-      /* THREAD DATA */
-
-      activeThread,
-
-      activeThreadId,
-
-      threadLoading,
-
-      threadError,
-
-      /* GENERAL STATE */
-
-      loading,
-
-      loadingMore,
-
-      error,
-
-      nextPageToken: nextPageTokens[currentView] || null,
-
-      hasMoreEmails,
-
-      resultSizeEstimate: resultSizeEstimates[currentView] || 0,
-
-      /* LOAD FUNCTIONS */
-
-      loadEmails,
-
-      loadMoreEmails,
-
-      loadEmailById,
-
-      loadEmailThread,
-
-      selectEmail,
-
-      clearActiveEmail,
-
-      /* EMAIL ACTIONS */
-
-      markAsRead,
-
-      markAsUnread,
-
-      starEmail,
-
-      unstarEmail,
-
-      archiveEmail,
-
-      moveToInbox,
-
-      trashEmail,
-
-      sendEmail,
-
-      replyToEmail,
-
-      /* LOCAL HELPERS */
-
-      updateEmail,
-
-      deleteEmail,
-
-      unreadCount,
-    };
-
-    return (
-      <EmailsContext.Provider value={value}>{children}</EmailsContext.Provider>
+  useEffect(() => {
+    fetchViewEmails("inbox", { maxResults: DEFAULT_MAX_RESULTS }).catch(
+      (initialLoadError) => {
+        console.error("Initial email load failed:", initialLoadError);
+      },
     );
-  }
 
-  /* =========================================================
-    CUSTOM HOOK
-  ========================================================= */
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  export function useEmails() {
-    const context = useContext(EmailsContext);
+  /* ========================================
+     REALTIME GMAIL UPDATES
 
-    if (!context) {
-      throw new Error("useEmails must be used inside EmailsProvider");
+     Socket sirf logged-in user ke apne room (user:<id>) se judta hai.
+     Delegated mode me owner ki mailbox dikh rahi hoti hai, isliye
+     us waqt apni mails ke realtime events ignore karne ke liye
+     socket banate hi nahi.
+  ======================================== */
+
+  useEffect(() => {
+    /* FIX: MailboxContext wala owner id check */
+    if (getActingOwnerId()) {
+      return undefined;
     }
 
-    return context;
+    const socket = io(API_URL, {
+      withCredentials: true,
+      transports: ["websocket", "polling"],
+      autoConnect: true,
+    });
+
+    /*
+      Open thread ko silently dobara fetch karo.
+
+      Socket event sync se aata hai jo sirf metadata save karta hai
+      (body nahi). Naye message ki body thread API se aati hai
+      (backend usse Gmail se fetch karke save kar leta hai).
+    */
+    const scheduleActiveThreadRefresh = () => {
+      if (threadRefreshTimerRef.current) {
+        clearTimeout(threadRefreshTimerRef.current);
+      }
+
+      threadRefreshTimerRef.current = setTimeout(() => {
+        threadRefreshTimerRef.current = null;
+
+        const emailId = activeEmailIdRef.current;
+
+        if (!emailId) return;
+
+        loadEmailThreadRef.current?.(emailId, { silent: true }).catch(
+          (refreshError) => {
+            console.error(
+              "Failed to refresh thread after realtime update:",
+              refreshError,
+            );
+          },
+        );
+      }, THREAD_REFRESH_DELAY_MS);
+    };
+
+    const upsertRealtimeEmail = (payload) => {
+      if (!payload?.id) return;
+
+      const normalized = normalizeEmail(payload);
+
+      setEmailsById((previous) => upsertEmailsIntoMap(previous, [normalized]));
+
+      syncEmailMembershipToViews(normalized);
+
+      const belongsToActiveThread =
+        Boolean(normalized.threadId) &&
+        activeThreadIdRef.current === normalized.threadId;
+
+      if (belongsToActiveThread) {
+        const existingInThread = activeThreadRef.current.find(
+          (email) => email.id === normalized.id,
+        );
+
+        /*
+          Is message ki body abhi kahin nahi hai
+          (naya message, aur socket payload me body nahi)
+          => thread refresh karwao.
+        */
+        const needsBody =
+          !hasEmailBody(normalized) &&
+          !(existingInThread && hasEmailBody(existingInThread));
+
+        if (needsBody) {
+          scheduleActiveThreadRefresh();
+        }
+      }
+
+      setActiveThread((previous) => {
+        const exists = previous.some((email) => email.id === normalized.id);
+
+        if (!exists) {
+          if (belongsToActiveThread) {
+            /*
+              Bina body wala naya message thread me mat jodo:
+              "No message content available." flash hota hai.
+              Refresh ke baad poora message body ke saath aayega.
+            */
+            if (!hasEmailBody(normalized)) {
+              return previous;
+            }
+
+            return sortThreadMessages([...previous, normalized]);
+          }
+
+          return previous;
+        }
+
+        return previous.map((email) =>
+          email.id === normalized.id
+            ? mergeEmailRecord(email, normalized)
+            : email,
+        );
+      });
+    };
+
+    const handleDeleted = (payload) => {
+      const deletedId = payload?.id;
+
+      if (!deletedId) return;
+
+      setEmailsById((previous) => {
+        if (!(deletedId in previous)) return previous;
+
+        const next = { ...previous };
+        delete next[deletedId];
+
+        return next;
+      });
+
+      setViewCache((previous) => {
+        let changed = false;
+        const next = { ...previous };
+
+        for (const viewKey of Object.keys(next)) {
+          if (next[viewKey].ids.includes(deletedId)) {
+            next[viewKey] = {
+              ...next[viewKey],
+              ids: next[viewKey].ids.filter((id) => id !== deletedId),
+            };
+
+            changed = true;
+          }
+        }
+
+        return changed ? next : previous;
+      });
+
+      setActiveThread((previous) =>
+        previous.filter((email) => email.id !== deletedId),
+      );
+
+      if (String(activeEmailIdRef.current) === String(deletedId)) {
+        clearActiveEmail();
+      }
+    };
+
+    socket.on("connect", () => {
+      console.log("[SOCKET] Connected:", socket.id);
+    });
+
+    socket.on("disconnect", (reason) => {
+      console.log("[SOCKET] Disconnected:", reason);
+    });
+
+    socket.on("connect_error", (socketError) => {
+      console.error(
+        "[SOCKET] Connection error:",
+        socketError?.message || socketError,
+      );
+    });
+
+    socket.on("gmail:email-updated", upsertRealtimeEmail);
+    socket.on("gmail:email-deleted", handleDeleted);
+
+    socket.on("gmail:full-sync-complete", () => {
+      console.log("[SOCKET] Gmail full sync completed");
+    });
+
+    socket.on("gmail:sync-complete", () => {
+      console.log("[SOCKET] Gmail incremental sync completed");
+    });
+
+    return () => {
+      if (threadRefreshTimerRef.current) {
+        clearTimeout(threadRefreshTimerRef.current);
+        threadRefreshTimerRef.current = null;
+      }
+
+      socket.off("gmail:email-updated", upsertRealtimeEmail);
+      socket.off("gmail:email-deleted", handleDeleted);
+      socket.disconnect();
+    };
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clearActiveEmail, syncEmailMembershipToViews]);
+
+  /* ========================================
+     CONTEXT VALUE
+  ======================================== */
+
+  const value = {
+    /* EMAIL DATA */
+    viewEmails,
+    emails: viewEmails,
+
+    /* CURRENT VIEW */
+    currentView,
+    changeView,
+
+    /* ACTIVE EMAIL */
+    activeEmailId,
+    activeEmail,
+    activeThreadEmail,
+
+    /* THREAD DATA */
+    activeThread,
+    activeThreadId,
+    threadLoading,
+    threadError,
+    isThreadReady,
+
+    /* GENERAL STATE */
+    loading,
+    loadingMore,
+    error,
+    nextPageToken: currentViewData.nextPageToken,
+    hasMoreEmails,
+    resultSizeEstimate: currentViewData.resultSizeEstimate,
+
+    /* LOAD FUNCTIONS */
+    loadMoreEmails,
+    loadEmailById,
+    loadEmailThread,
+    selectEmail,
+    clearActiveEmail,
+
+    /* EMAIL ACTIONS */
+    markAsRead,
+    markAsUnread,
+    starEmail,
+    unstarEmail,
+    archiveEmail,
+    moveToInbox,
+    trashEmail,
+    sendEmail,
+    replyToEmail,
+
+    unreadCount,
+  };
+
+  return (
+    <EmailsContext.Provider value={value}>{children}</EmailsContext.Provider>
+  );
+}
+
+/* =========================================================
+EMAILS PROVIDER (public)
+
+key = kaun si mailbox khuli hai (apni ya kisi owner ki).
+Mailbox badalte hi poora provider remount hota hai, isliye
+purani mailbox ka emailsById / viewCache / active thread
+naye mailbox me leak nahi hota, aur initial inbox load
+dobara chalta hai (is baar X-Acting-As header ke saath).
+========================================================= */
+
+export function EmailsProvider({ children }) {
+  /* FIX: MailboxContext se subscribe (ActingAsContext ki jagah) */
+  const { acting } = useMailbox();
+
+  const mailboxKey = acting?.ownerId || "self";
+
+  return <EmailsProviderInner key={mailboxKey}>{children}</EmailsProviderInner>;
+}
+
+/* =========================================================
+CUSTOM HOOK
+========================================================= */
+
+export function useEmails() {
+  const context = useContext(EmailsContext);
+
+  if (!context) {
+    throw new Error("useEmails must be used inside EmailsProvider");
   }
+
+  return context;
+}

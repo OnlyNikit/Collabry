@@ -53,40 +53,20 @@ function Inbox() {
   ======================================== */
 
   const {
-    // FIX: viewEmails is the shared cache filtered down to the
-    // currently active view (inbox/unread/sent/...). This is what
-    // should be rendered — NOT the raw `emails` pool, which spans
-    // every view ever fetched this session.
-    viewEmails,
-
-    activeEmailId,
-
-    activeEmail,
-
-    selectEmail,
-
-    markAsRead,
-
-    clearActiveEmail,
-
-    currentView,
-
-    changeView,
-
-    /* Loading */
-
-    loading,
-
-    loadingMore,
-
-    error,
-
-    /* Pagination */
-
-    hasMoreEmails,
-
-    loadMoreEmails,
-  } = useEmails();
+  emails,           // "viewEmails" ki jagah
+  activeEmailId,
+  activeEmail,
+  selectEmail,
+  markAsRead,
+  clearActiveEmail,
+  currentView,
+  changeView,
+  loading,
+  loadingMore,
+  error,
+  hasMoreEmails,
+  loadMoreEmails,
+} = useEmails();
 
   /* ========================================
   CURRENT URL VIEW
@@ -181,7 +161,7 @@ function Inbox() {
 
   async function handleSelectEmail(emailId) {
     try {
-      const selectedEmail = viewEmails.find((email) => email.id === emailId);
+      const selectedEmail = emails.find((email) => email.id === emailId); // viewEmails -> emails
 
       await selectEmail(emailId);
 
@@ -283,7 +263,7 @@ function Inbox() {
 
       <section className="clb-inbox__list-pane">
         <EmailList
-          emails={viewEmails}
+          emails={emails}
           activeEmailId={activeEmailId}
           onSelect={handleSelectEmail}
           loading={loading}

@@ -1,0 +1,478 @@
+/* =========================================================
+   SUMMARIZE BUTTON
+========================================================= */
+
+.clb-summarize-wrap {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.clb-summarize-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+
+  padding: 0.45rem 0.85rem;
+
+  border: 1px solid var(--clb-pink-dim);
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--clb-pink-dim), transparent);
+
+  color: var(--clb-pink);
+  font-family: var(--clb-font-body);
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+
+  transition:
+    transform 0.25s var(--clb-ease),
+    background 0.25s var(--clb-ease),
+    box-shadow 0.25s var(--clb-ease);
+}
+
+.clb-summarize-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  background: var(--clb-pink-dim);
+}
+
+.clb-summarize-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.clb-summarize-btn--sm {
+  padding: 0.35rem 0.65rem;
+  font-size: 0.72rem;
+}
+
+.clb-summarize-btn--busy svg {
+  animation: clb-summary-spin 1.2s linear infinite;
+}
+
+/* Hint dikhte waqt button halka pulse karta hai */
+.clb-summarize-btn--hinted {
+  animation: clb-summary-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes clb-summary-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes clb-summary-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 var(--clb-pink-dim);
+  }
+
+  50% {
+    box-shadow: 0 0 0 7px transparent;
+  }
+}
+
+/* =========================================================
+   HINT POP-UP  ("You can summarize your email")
+========================================================= */
+
+.clb-summarize-hint {
+  /* fixed: parent ke overflow se kat'ta nahi.
+     top / right / maxWidth JS se aate hain (button ki jagah ke hisaab se) */
+  position: fixed;
+  z-index: 1000;
+
+  width: max-content;
+  max-width: 220px;
+
+  padding: 0.55rem 0.8rem;
+
+  border-radius: 10px;
+  background: var(--clb-gradient);
+  box-shadow: 0 10px 28px -8px rgba(0, 0, 0, 0.55);
+
+  color: #17102b;
+  font-family: var(--clb-font-body);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.35;
+  text-align: left;
+
+  pointer-events: none;
+
+  animation: clb-summary-pop 0.35s var(--clb-ease) both;
+}
+
+/* Upar button ki taraf ishara karta chhota teer */
+.clb-summarize-hint::before {
+  content: "";
+  position: absolute;
+  top: -5px;
+  right: var(--clb-hint-arrow, 14px);
+
+  width: 10px;
+  height: 10px;
+
+  background: var(--clb-pink);
+  transform: rotate(45deg);
+  border-radius: 2px;
+}
+
+@keyframes clb-summary-pop {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.92);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* =========================================================
+   SUMMARY PANEL
+========================================================= */
+
+.clb-summary {
+  margin: var(--clb-space-xs) 0 var(--clb-space-sm);
+  padding: var(--clb-space-sm);
+
+  border: 1px solid var(--clb-border);
+  border-left: 3px solid var(--clb-pink);
+  border-radius: 12px;
+  background: var(--clb-surface);
+
+  color: var(--clb-text);
+  font-family: var(--clb-font-body);
+  font-size: 0.88rem;
+  line-height: 1.55;
+
+  overflow-wrap: anywhere;
+}
+
+.clb-summary__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.clb-summary__title {
+  font-family: var(--clb-font-display);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--clb-pink);
+}
+
+.clb-summary__close {
+  border: 0;
+  background: transparent;
+  color: var(--clb-text-muted);
+  cursor: pointer;
+}
+
+.clb-summary__close:hover {
+  color: var(--clb-text);
+}
+
+.clb-summary__status,
+.clb-summary__participants {
+  margin: 0;
+  color: var(--clb-text-muted);
+}
+
+.clb-summary__overview {
+  margin: 0 0 0.75rem;
+}
+
+.clb-summary__section {
+  margin-top: 0.75rem;
+}
+
+.clb-summary__heading {
+  margin: 0 0 0.25rem;
+  font-size: 0.74rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--clb-gold);
+}
+
+.clb-summary__list {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+.clb-summary__meta {
+  color: var(--clb-text-muted);
+}
+
+.clb-summary__error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  color: var(--clb-pink);
+}
+
+.clb-summary__error button {
+  border: 1px solid var(--clb-pink-dim);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--clb-pink);
+  padding: 0.25rem 0.7rem;
+  cursor: pointer;
+}
+
+/* =========================================================
+   THREAD MESSAGE BAR
+   toggle button + summarize button side by side
+========================================================= */
+
+.clb-thread-message__header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.clb-thread-message__header .clb-thread-message__toggle {
+  flex: 1;
+  min-width: 0;
+  width: auto;
+}
+
+.clb-thread-message__header .clb-summarize-wrap {
+  margin-right: var(--clb-space-xs);
+}
+
+/* =========================================================
+   EMAIL PREVIEW HEADER (whole thread button)
+========================================================= */
+
+/* Sender row: naam/email left mein, time + Summarize button hamesha right mein */
+.clb-email-preview__header-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.clb-email-preview__sender-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: nowrap;
+  gap: 0.75rem;
+}
+
+.clb-email-preview__sender-row > div:first-child {
+  min-width: 0;
+}
+
+.clb-email-preview__sender-row h2,
+.clb-email-preview__sender-email {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.clb-email-preview__header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-shrink: 0;
+  margin-left: auto;
+  gap: 0.75rem;
+}
+
+/* =========================================================
+   RESPONSIVE
+
+   Chhoti screen: button sirf icon (round), label chhup jata hai.
+   Hint pop-up isiliye aata hai taaki user ko pata chale
+   ki ye icon kya karta hai.
+========================================================= */
+
+@media (max-width: 640px) {
+  .clb-summarize-btn,
+  .clb-summarize-btn--sm {
+    width: 2.2rem;
+    height: 2.2rem;
+    padding: 0;
+    gap: 0;
+  }
+
+  .clb-summarize-btn svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  /* Label visually chhupao, screen reader ke liye aria-label hai */
+  .clb-summarize-btn__label {
+    display: none;
+  }
+
+  .clb-email-preview__header-actions {
+    gap: 0.5rem;
+  }
+
+  /* Bahut chhoti screen par naam ko jagah milne ke liye time chhota */
+  .clb-email-preview__header-actions .clb-email-preview__time {
+    font-size: 0.7rem;
+  }
+
+  .clb-thread-message__header {
+    gap: 0.25rem;
+  }
+
+  .clb-thread-message__header .clb-summarize-wrap {
+    margin-right: 0.25rem;
+  }
+
+  .clb-summary {
+    padding: 0.75rem;
+    font-size: 0.84rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .clb-summarize-btn--hinted,
+  .clb-summarize-hint,
+  .clb-summarize-btn--busy svg {
+    animation-duration: 0.001ms;
+    animation-iteration-count: 1;
+  }
+}
+
+/* =========================================================
+   LOADING ANIMATION (summary box)
+
+   Summarize dabate hi box ke border par ek rotating
+   pink-gold light chalti hai (AI Writer ke loader jaisi),
+   andar shimmer wali skeleton lines dikhti hain.
+========================================================= */
+
+@property --clb-sum-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+.clb-summary {
+  position: relative;
+}
+
+.clb-summary--loading {
+  animation: clb-summary-glow 1.8s ease-in-out infinite;
+}
+
+/* Rotating border: sirf border ki ring dikhti hai (mask se) */
+.clb-summary--loading::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  padding: 2px;
+
+  border-radius: inherit;
+
+  background: conic-gradient(
+    from var(--clb-sum-angle),
+    transparent 0%,
+    transparent 50%,
+    var(--clb-pink) 75%,
+    var(--clb-gold) 92%,
+    transparent 100%
+  );
+
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box exclude,
+    linear-gradient(#000 0 0);
+
+  animation: clb-summary-border 1.6s linear infinite;
+
+  pointer-events: none;
+}
+
+@keyframes clb-summary-border {
+  to {
+    --clb-sum-angle: 360deg;
+  }
+}
+
+/* Halka glow: jin browsers mein rotating border na chale, wahan bhi loader dikhe */
+@keyframes clb-summary-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+
+  50% {
+    box-shadow: 0 0 18px -4px var(--clb-pink-dim);
+  }
+}
+
+/* Skeleton lines */
+
+.clb-summary__loading {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.clb-summary__loading .clb-summary__status {
+  margin-bottom: 0.15rem;
+}
+
+.clb-summary__skeleton {
+  display: block;
+  width: 100%;
+  height: 0.65rem;
+
+  border-radius: 999px;
+
+  background: linear-gradient(
+    90deg,
+    var(--clb-surface-2) 25%,
+    var(--clb-pink-dim) 50%,
+    var(--clb-surface-2) 75%
+  );
+  background-size: 200% 100%;
+
+  animation: clb-summary-shimmer 1.3s ease-in-out infinite;
+}
+
+.clb-summary__skeleton--mid {
+  width: 82%;
+}
+
+.clb-summary__skeleton--short {
+  width: 55%;
+}
+
+@keyframes clb-summary-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .clb-summary--loading,
+  .clb-summary--loading::before,
+  .clb-summary__skeleton {
+    animation-duration: 0.001ms;
+    animation-iteration-count: 1;
+  }
+}

@@ -1,4 +1,3 @@
-
 import { useMemo, useState } from "react";
 
 import { useTracker } from "../../context/TrackerContext";
@@ -7,16 +6,12 @@ import TrackerStats from "../../components/tracker/TrackerStats";
 import TrackerFilters from "../../components/tracker/TrackerFilter";
 import TrackerList from "../../components/tracker/TrackerList";
 import TrackerForm from "../../components/tracker/TrackerForm";
+import ShareButton from "../../components/common/SharedButton";
 
 import "./Tracker.css";
 
 function Tracker() {
-  const {
-    trackers,
-    addTracker,
-    updateTracker,
-    deleteTracker,
-  } = useTracker();
+  const { trackers, addTracker, updateTracker, deleteTracker } = useTracker();
 
   const [isFormOpen, setFormOpen] = useState(false);
 
@@ -47,29 +42,16 @@ function Tracker() {
       );
 
       const matchesStatus =
-        statusFilter === "all" ||
-        tracker.status === statusFilter;
+        statusFilter === "all" || tracker.status === statusFilter;
 
       const matchesPriority =
-        priorityFilter === "all" ||
-        tracker.priority === priorityFilter;
+        priorityFilter === "all" || tracker.priority === priorityFilter;
 
-      return (
-        matchesSearch &&
-        matchesStatus &&
-        matchesPriority
-      );
+      return matchesSearch && matchesStatus && matchesPriority;
     });
-  }, [
-    trackers,
-    search,
-    statusFilter,
-    priorityFilter,
-  ]);
+  }, [trackers, search, statusFilter, priorityFilter]);
 
-  /* ==========================================
-     CREATE
-  ========================================== */
+  /* CREATE */
 
   function handleCreate() {
     setEditingTracker(null);
@@ -77,9 +59,7 @@ function Tracker() {
     setFormOpen(true);
   }
 
-  /* ==========================================
-     EDIT
-  ========================================== */
+  /* EDIT */
 
   function handleEdit(tracker) {
     setEditingTracker(tracker);
@@ -87,9 +67,7 @@ function Tracker() {
     setFormOpen(true);
   }
 
-  /* ==========================================
-     CLOSE FORM
-  ========================================== */
+  /* CLOSE FORM */
 
   function handleCloseForm() {
     setFormOpen(false);
@@ -97,17 +75,12 @@ function Tracker() {
     setEditingTracker(null);
   }
 
-  /* ==========================================
-     SAVE
-  ========================================== */
+  /* SAVE */
 
   async function handleSave(data) {
     try {
       if (editingTracker) {
-        await updateTracker(
-          editingTracker.id,
-          data,
-        );
+        await updateTracker(editingTracker.id, data);
       } else {
         await addTracker(data);
       }
@@ -116,41 +89,24 @@ function Tracker() {
 
       setEditingTracker(null);
     } catch (error) {
-      console.error(
-        "Failed to save tracker:",
-        error,
-      );
+      console.error("Failed to save tracker:", error);
     }
   }
 
-  /* ==========================================
-     STATUS CHANGE
-  ========================================== */
+  /* STATUS CHANGE */
 
-  async function handleStatusChange(
-    id,
-    status,
-  ) {
+  async function handleStatusChange(id, status) {
     try {
-      await updateTracker(id, {
-        status,
-      });
+      await updateTracker(id, { status });
     } catch (error) {
-      console.error(
-        "Failed to update tracker status:",
-        error,
-      );
+      console.error("Failed to update tracker status:", error);
     }
   }
 
-  /* ==========================================
-     DELETE
+  /* DELETE
 
-     Confirmation is handled by
-     DeleteTrackerModal inside TrackerList.
-
-     NO window.confirm() here.
-  ========================================== */
+     Confirmation is handled by DeleteTrackerModal inside TrackerList.
+     NO window.confirm() here. */
 
   async function handleDelete(tracker) {
     if (!tracker?.id) {
@@ -160,10 +116,7 @@ function Tracker() {
     try {
       await deleteTracker(tracker.id);
     } catch (error) {
-      console.error(
-        "Failed to delete tracker:",
-        error,
-      );
+      console.error("Failed to delete tracker:", error);
 
       throw error;
     }
@@ -171,50 +124,35 @@ function Tracker() {
 
   return (
     <div className="clb-tracker-page">
-
-      {/* ======================================
-          HEADER
-      ====================================== */}
+      {/* HEADER */}
 
       <header className="clb-tracker-page__header">
-        <div>
-          <span className="clb-tracker-page__eyebrow">
-            COLLABORATION CRM
-          </span>
+        <div className="clb-tracker-page__intro">
+          <span className="clb-tracker-page__eyebrow">COLLABORATION CRM</span>
 
-          <h1>
-            Tracker
-          </h1>
+          <h1>Tracker</h1>
 
-          <p>
-            Track collaborations,
-            conversations, payments,
-            and follow-ups.
-          </p>
+          <p>Track collaborations, conversations, payments, and follow-ups.</p>
         </div>
 
-        <button
-          type="button"
-          className="clb-btn clb-btn--primary"
-          onClick={handleCreate}
-        >
-          + Create Tracker
-        </button>
+        <div className="clb-page-actions">
+          <ShareButton type="tracker" />
+
+          <button
+            type="button"
+            className="clb-btn clb-btn--primary"
+            onClick={handleCreate}
+          >
+            + Create Tracker
+          </button>
+        </div>
       </header>
 
+      {/* STATS */}
 
-      {/* ======================================
-          STATS
-      ====================================== */}
+      <TrackerStats trackers={trackers} />
 
-      <TrackerStats
-        trackers={trackers}
-      />
-
-
-      {/* ======================================
-          FILTERS
-      ====================================== */}
+      {/* FILTERS */}
 
       <TrackerFilters
         search={search}
@@ -225,13 +163,7 @@ function Tracker() {
         onPriorityChange={setPriorityFilter}
       />
 
-
-      {/* ======================================
-          TRACKER LIST
-
-          Delete modal is managed inside
-          TrackerList.
-      ====================================== */}
+      {/* TRACKER LIST (delete modal is managed inside TrackerList) */}
 
       <TrackerList
         trackers={filteredTrackers}
@@ -240,26 +172,17 @@ function Tracker() {
         onStatusChange={handleStatusChange}
       />
 
-
-      {/* ======================================
-          CREATE / EDIT FORM
-      ====================================== */}
+      {/* CREATE / EDIT FORM */}
 
       <TrackerForm
         isOpen={isFormOpen}
         onClose={handleCloseForm}
         onSave={handleSave}
-        initialValues={
-          editingTracker || {}
-        }
-        isEditMode={
-          Boolean(editingTracker)
-        }
+        initialValues={editingTracker || {}}
+        isEditMode={Boolean(editingTracker)}
       />
-
     </div>
   );
 }
 
 export default Tracker;
-

@@ -1,100 +1,88 @@
 import {
-
   createContext,
-
   useContext,
-
-  useEffect,
-
   useState,
-
+  useEffect,
 } from "react";
 
-
 import {
-
   getTrackers,
-
   createTracker,
-
   updateTracker,
-
   deleteTracker,
-
 } from "../services/trackerService";
 
+import { useToast } from "./ToastContext";
 
 const TrackerContext =
   createContext(null);
 
+/* =========================================================
+   PROVIDER
+========================================================= */
 
-export function
-TrackerProvider({
+export function TrackerProvider({
   children,
 }) {
-
-
   const [
     trackers,
     setTrackers,
   ] = useState([]);
-
 
   const [
     loading,
     setLoading,
   ] = useState(true);
 
-
   const [
     error,
     setError,
   ] = useState(null);
 
+  const { showToast } =
+    useToast();
 
   /* =====================================================
      LOAD TRACKERS
   ===================================================== */
 
-  async function
-  loadTrackers() {
-
+  async function loadTrackers() {
     try {
-
       setLoading(true);
-
       setError(null);
-
 
       const data =
         await getTrackers();
 
-
       setTrackers(
         data
       );
-
     } catch (err) {
-
       console.error(
         "Failed to load trackers:",
         err
       );
 
+      const message =
+        err?.response
+          ?.data
+          ?.message ||
+        err?.message ||
+        "Failed to load trackers";
 
       setError(
-        err.message ||
-        "Failed to load trackers"
+        message
       );
 
+      showToast(
+        `❌ ${message}`,
+        "error",
+        5000
+      );
     } finally {
-
       setLoading(false);
-
     }
-
   }
-
 
   /* =====================================================
      INITIAL LOAD
@@ -102,111 +90,183 @@ TrackerProvider({
 
   useEffect(
     () => {
-
       loadTrackers();
-
     },
     []
   );
-
 
   /* =====================================================
      CREATE
   ===================================================== */
 
-  async function
-  addTracker(
+  async function addTracker(
     data
   ) {
+    try {
+      const newTracker =
+        await createTracker(
+          data
+        );
 
-    const newTracker =
-      await createTracker(
-        data
+      setTrackers(
+        (currentTrackers) => [
+          newTracker,
+          ...currentTrackers,
+        ]
       );
 
+      showToast(
+        "Tracker created successfully.",
+        "success",
+        3000
+      );
 
-    setTrackers(
-      (currentTrackers) => [
+      return newTracker;
+    } catch (err) {
+      console.error(
+        "Failed to create tracker:",
+        err
+      );
 
-        newTracker,
+      const message =
+        err?.response
+          ?.data
+          ?.message ||
+        err?.message ||
+        "Failed to create tracker";
 
-        ...currentTrackers,
+      setError(
+        message
+      );
 
-      ]
-    );
+      showToast(
+        `❌ ${message}`,
+        "error",
+        5000
+      );
 
-
-    return newTracker;
-
+      throw err;
+    }
   }
-
 
   /* =====================================================
      UPDATE
   ===================================================== */
 
-  async function
-  updateTrackerById(
+  async function updateTrackerById(
     id,
     updates
   ) {
+    try {
+      const updatedTracker =
+        await updateTracker(
+          id,
+          updates
+        );
 
-    const updatedTracker =
-      await updateTracker(
-        id,
-        updates
+      setTrackers(
+        (currentTrackers) =>
+          currentTrackers.map(
+            (tracker) =>
+              tracker.id === id
+                ? updatedTracker
+                : tracker
+          )
       );
 
+      showToast(
+        "Tracker updated successfully.",
+        "success",
+        3000
+      );
 
-    setTrackers(
-      (currentTrackers) =>
+      return updatedTracker;
+    } catch (err) {
+      console.error(
+        "Failed to update tracker:",
+        err
+      );
 
-        currentTrackers.map(
-          (tracker) =>
+      const message =
+        err?.response
+          ?.data
+          ?.message ||
+        err?.message ||
+        "Failed to update tracker";
 
-            tracker.id === id
-              ? updatedTracker
-              : tracker
-        )
-    );
+      setError(
+        message
+      );
 
+      showToast(
+        `❌ ${message}`,
+        "error",
+        5000
+      );
 
-    return updatedTracker;
-
+      throw err;
+    }
   }
-
 
   /* =====================================================
      DELETE
   ===================================================== */
 
-  async function
-  deleteTrackerById(
+  async function deleteTrackerById(
     id
   ) {
+    try {
+      await deleteTracker(
+        id
+      );
 
-    await deleteTracker(
-      id
-    );
+      setTrackers(
+        (currentTrackers) =>
+          currentTrackers.filter(
+            (tracker) =>
+              tracker.id !== id
+          )
+      );
 
+      showToast(
+        "Tracker deleted successfully.",
+        "success",
+        3000
+      );
+    } catch (err) {
+      console.error(
+        "Failed to delete tracker:",
+        err
+      );
 
-    setTrackers(
-      (currentTrackers) =>
+      const message =
+        err?.response
+          ?.data
+          ?.message ||
+        err?.message ||
+        "Failed to delete tracker";
 
-        currentTrackers.filter(
-          (tracker) =>
-            tracker.id !== id
-        )
-    );
+      setError(
+        message
+      );
 
+      showToast(
+        `❌ ${message}`,
+        "error",
+        5000
+      );
+
+      throw err;
+    }
   }
 
+  /* =====================================================
+     PROVIDER
+  ===================================================== */
 
   return (
-
     <TrackerContext.Provider
       value={{
-
         trackers,
 
         loading,
@@ -222,37 +282,28 @@ TrackerProvider({
 
         deleteTracker:
           deleteTrackerById,
-
       }}
     >
-
       {children}
-
     </TrackerContext.Provider>
-
   );
-
 }
 
+/* =========================================================
+   HOOK
+========================================================= */
 
-export function
-useTracker() {
-
+export function useTracker() {
   const context =
     useContext(
       TrackerContext
     );
 
-
   if (!context) {
-
     throw new Error(
       "useTracker must be used inside TrackerProvider"
     );
-
   }
 
-
   return context;
-
 }

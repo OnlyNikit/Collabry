@@ -1,0 +1,28 @@
+@import "../../style/token.css";
+
+.clb-install__icon {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.clb-install__hint {
+  flex-basis: 100%;
+  margin: 0.25rem 0 0;
+  padding: 0.6rem 0.8rem;
+
+  border: 1px solid var(--clb-border);
+  border-radius: 10px;
+  background: var(--clb-surface-2);
+
+  color: var(--clb-text-muted);
+  font-family: var(--clb-font-body);
+  font-size: 0.82rem;
+  line-height: 1.5;
+  text-align: left;
+}
+
+.clb-install__hint b {
+  color: var(--clb-text);
+}

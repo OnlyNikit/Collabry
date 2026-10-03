@@ -1,5 +1,5 @@
-/* Uses tokens from tokens.css (--clb-bg, --clb-gradient, --clb-text-muted, etc).
-   Make sure tokens.css is imported once at the app root before this file. */
+/* Uses tokens from token.css (--clb-bg, --clb-gradient, --clb-text-muted, etc).
+   Make sure token.css is imported once at the app root before this file. */
 
 /* Full-viewport overlay (default) */
 .clb-global-loader {
@@ -16,7 +16,7 @@
   font-family: var(--clb-font-body);
 }
 
-/* Inline variant — sits within a card/section instead of covering the screen */
+/* Inline variant: sits within a card/section instead of covering the screen */
 .clb-global-loader--inline {
   position: static;
   inset: auto;
@@ -26,7 +26,7 @@
   padding: var(--clb-space-lg) 0;
 }
 
-/* Spinner — a ring in the brand gradient, rotating */
+/* Spinner: a ring in the brand gradient, rotating */
 .clb-global-loader__spinner {
   width: 42px;
   height: 42px;
@@ -38,12 +38,21 @@
     transparent 270deg,
     transparent 360deg
   );
-  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 4px));
-  mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 4px));
-  animation: clb-spin 0.9s linear infinite;
+  -webkit-mask: radial-gradient(
+    farthest-side,
+    transparent calc(100% - 4px),
+    #000 calc(100% - 4px)
+  );
+  mask: radial-gradient(
+    farthest-side,
+    transparent calc(100% - 4px),
+    #000 calc(100% - 4px)
+  );
+  animation: clb-loader-spin 0.9s linear infinite;
 }
 
-@keyframes clb-spin {
+/* Unique naam: token.css ka "clb-spin" alag cheez animate karta hai */
+@keyframes clb-loader-spin {
   to {
     transform: rotate(360deg);
   }
@@ -69,8 +78,9 @@
   border: 0;
 }
 
+/* Reduced motion: band nahi, bas dheema, taaki loader "hang" na lage */
 @media (prefers-reduced-motion: reduce) {
   .clb-global-loader__spinner {
-    animation: none;
+    animation-duration: 2.5s;
   }
 }

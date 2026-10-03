@@ -1,0 +1,113 @@
+.clb-attach-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.clb-attach-picker__bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.clb-attach-picker__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  font: inherit;
+  font-size: 0.875rem;
+  color: inherit;
+  background: transparent;
+  border: 1px dashed rgba(128, 128, 128, 0.6);
+  border-radius: 8px;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.clb-attach-picker__btn:hover:not(:disabled) {
+  background: rgba(128, 128, 128, 0.12);
+  border-color: rgba(128, 128, 128, 0.9);
+}
+
+.clb-attach-picker__btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.clb-attach-picker__summary {
+  font-size: 0.8rem;
+  opacity: 0.7;
+}
+
+.clb-attach-picker__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+.clb-attach-picker__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  background: rgba(128, 128, 128, 0.1);
+  border: 1px solid rgba(128, 128, 128, 0.25);
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+
+.clb-attach-picker__icon {
+  flex-shrink: 0;
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.clb-attach-picker__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.clb-attach-picker__size {
+  flex-shrink: 0;
+  font-size: 0.78rem;
+  opacity: 0.65;
+}
+
+.clb-attach-picker__remove {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  color: inherit;
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.clb-attach-picker__remove:hover:not(:disabled) {
+  background: rgba(220, 38, 38, 0.18);
+  color: #dc2626;
+}
+
+.clb-attach-picker__remove:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

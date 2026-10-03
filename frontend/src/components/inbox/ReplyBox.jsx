@@ -1,25 +1,31 @@
 import { useState } from "react";
+
+import AttachmentPicker from "./Attachmentpicker";
+import AiWriter from "./Aiwriter";
+
 import "./ReplyBox.css";
 
 /**
  * Props:
  * - mode: "reply" | "forward"
  * - recipient: reply recipient
- * - onSend: async ({ to, body }) => void
+ * - emailId: jis mail ka reply ho raha hai (AI "Generate reply" ke liye)
+ * - onSend: async ({ to, body, attachments }) => void
  * - onCancel: () => void
- * - isLoading: boolean
+ * - isLoading: boolean side mai genete
  */
 function ReplyBox({
   mode = "reply",
   recipient,
+  emailId,
   onSend,
   onCancel,
   isLoading = false,
 }) {
   const [to, setTo] = useState("");
   const [body, setBody] = useState("");
-  const [validationError, setValidationError] =
-    useState(null);
+  const [attachments, setAttachments] = useState([]);
+  const [validationError, setValidationError] = useState(null);
 
   async function handleSend(event) {
     event.preventDefault();
@@ -33,23 +39,19 @@ function ReplyBox({
        VALIDATION
     ================================= */
 
-    if (!trimmedBody) {
+    // Text ya attachment, dono mein se ek zaroor chahiye
+    if (!trimmedBody && attachments.length === 0) {
       setValidationError(
         mode === "forward"
           ? "Please add a message before forwarding."
-          : "Please write a reply before sending."
+          : "Please write a reply before sending.",
       );
 
       return;
     }
 
-    if (
-      mode === "forward" &&
-      !trimmedTo
-    ) {
-      setValidationError(
-        "Please enter an email address."
-      );
+    if (mode === "forward" && !trimmedTo) {
+      setValidationError("Please enter an email address.");
 
       return;
     }
@@ -58,6 +60,7 @@ function ReplyBox({
       await onSend?.({
         to: trimmedTo,
         body: trimmedBody,
+        attachments,
       });
 
       /*
@@ -67,12 +70,9 @@ function ReplyBox({
 
       setBody("");
       setTo("");
-
+      setAttachments([]);
     } catch (error) {
-      console.error(
-        "ReplyBox send failed:",
-        error
-      );
+      console.error("ReplyBox send failed:", error);
     }
   }
 
@@ -82,25 +82,20 @@ function ReplyBox({
     setValidationError(null);
     setBody("");
     setTo("");
+    setAttachments([]);
 
     onCancel?.();
   }
 
   return (
-    <form
-      className="clb-reply-box"
-      onSubmit={handleSend}
-    >
+    <form className="clb-reply-box" onSubmit={handleSend}>
       {/* ================================
           RECIPIENT
       ================================= */}
 
       {mode === "forward" ? (
         <div className="clb-reply-box__field">
-          <label
-            htmlFor="forward-to"
-            className="clb-reply-box__label"
-          >
+          <label htmlFor="forward-to" className="clb-reply-box__label">
             Forward to
           </label>
 
@@ -121,13 +116,9 @@ function ReplyBox({
         </div>
       ) : (
         <div className="clb-reply-box__recipient">
-          <span>
-            Replying to
-          </span>
+          <span>Replying to</span>
 
-          <strong>
-            {recipient || "Unknown recipient"}
-          </strong>
+          <strong>{recipient || "Unknown recipient"}</strong>
         </div>
       )}
 
@@ -136,43 +127,62 @@ function ReplyBox({
       ================================= */}
 
       <div className="clb-reply-box__field">
-        <label
-          htmlFor="reply-body"
-          className="clb-reply-box__label"
-        >
-          {mode === "forward"
-            ? "Message"
-            : "Your reply"}
+        <label htmlFor="reply-body" className="clb-reply-box__label">
+          {mode === "forward" ? "Message" : "Your reply"}
         </label>
 
-        <textarea
-          id="reply-body"
-          className="clb-reply-box__textarea"
-          placeholder={
-            mode === "forward"
-              ? "Add a note..."
-              : "Write your reply..."
-          }
-          rows={5}
-          value={body}
-          onChange={(event) => {
-            setBody(event.target.value);
-            setValidationError(null);
-          }}
-          disabled={isLoading}
-          autoFocus={mode === "reply"}
-        />
+        <div className="clb-ai-editor">
+          <textarea
+            id="reply-body"
+            className="clb-reply-box__textarea"
+            placeholder={
+              mode === "forward" ? "Add a note..." : "Write your reply..."
+            }
+            rows={5}
+            value={body}
+            onChange={(event) => {
+              setBody(event.target.value);
+              setValidationError(null);
+            }}
+            disabled={isLoading}
+            autoFocus={mode === "reply"}
+          />
+
+          {mode === "reply" && emailId && (
+            <AiWriter
+              mode="reply"
+              emailId={emailId}
+              currentText={body}
+              onApply={(text) => {
+                setBody(text);
+                setValidationError(null);
+              }}
+              disabled={isLoading}
+            />
+          )}
+        </div>
       </div>
+
+      {/* ================================
+          ATTACHMENTS
+      ================================= */}
+
+      <AttachmentPicker
+        files={attachments}
+        onChange={(files) => {
+          setAttachments(files);
+          setValidationError(null);
+        }}
+        onError={setValidationError}
+        disabled={isLoading}
+      />
 
       {/* ================================
           ERROR
       ================================= */}
 
       {validationError && (
-        <div
-          className="clb-reply-box__error"
-          role="alert"
-        >
+        <div className="clb-reply-box__error" role="alert">
           {validationError}
         </div>
       )}
@@ -192,8 +202,8 @@ function ReplyBox({
               ? "Forwarding..."
               : "Sending..."
             : mode === "forward"
-            ? "Forward"
-            : "Send Reply"}
+              ? "Forward"
+              : "Send Reply"}
         </button>
 
         <button

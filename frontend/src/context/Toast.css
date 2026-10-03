@@ -1,8 +1,8 @@
 @import "../style/token.css";
 
-/* ========================================
-   TOAST
-======================================== */
+/* =========================================================
+   COLLABRY TOAST
+========================================================= */
 
 .clb-toast {
   position: fixed;
@@ -10,30 +10,27 @@
   top: var(--clb-space-md);
   right: var(--clb-space-md);
 
-  width: min(380px, calc(100vw - 32px));
+  width: min(390px, calc(100vw - 32px));
 
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--clb-space-sm);
+  gap: 12px;
 
-  padding:
-    0.9rem
-    var(--clb-space-sm);
+  padding: 14px 14px 14px 18px;
 
-  background: var(--clb-surface);
+  background: #1a1530 !important;
 
-  border: 1px solid var(--clb-border);
+  border: 1px solid rgba(255, 107, 157, 0.28) !important;
 
   border-radius: 14px;
 
-  color: var(--clb-text);
+  color: #f5f3ff !important;
 
   font-family: var(--clb-font-body);
 
   box-shadow:
-    0 18px 45px
-    rgba(0, 0, 0, 0.4);
+    0 18px 45px rgba(0, 0, 0, 0.45),
+    0 0 30px rgba(255, 107, 157, 0.08);
 
   z-index: 999999;
 
@@ -42,13 +39,13 @@
   animation:
     clb-toast-in
     0.3s
-    var(--clb-ease)
+    cubic-bezier(0.16, 1, 0.3, 1)
     both;
 }
 
-/* ========================================
-   ACCENT BAR
-======================================== */
+/* =========================================================
+   PINK ACCENT BAR
+========================================================= */
 
 .clb-toast::before {
   content: "";
@@ -61,72 +58,130 @@
 
   width: 4px;
 
-  background: var(--clb-gradient);
+  background: #ff6b9d !important;
+
+  border-radius: 14px 0 0 14px;
 }
 
-/* ========================================
+/* =========================================================
+   SUBTLE PINK GLOW
+========================================================= */
+
+.clb-toast::after {
+  content: "";
+
+  position: absolute;
+
+  width: 110px;
+  height: 110px;
+
+  top: -55px;
+  right: -45px;
+
+  background: #ff6b9d;
+
+  opacity: 0.06;
+
+  border-radius: 50%;
+
+  pointer-events: none;
+}
+
+/* =========================================================
    SUCCESS
-======================================== */
+========================================================= */
 
 .clb-toast--success {
+  background: #1a1530 !important;
+
   border-color:
-    rgba(255, 200, 87, 0.25);
+    rgba(255, 200, 87, 0.35) !important;
 }
 
-/* ========================================
+.clb-toast--success::before {
+  background: #ffc857 !important;
+}
+
+/* =========================================================
    ERROR
-======================================== */
+========================================================= */
 
 .clb-toast--error {
+  background: #1a1530 !important;
+
   border-color:
-    rgba(255, 107, 157, 0.35);
+    rgba(255, 107, 157, 0.45) !important;
 }
 
 .clb-toast--error::before {
-  background: var(--clb-pink);
+  background: #ff6b9d !important;
 }
 
-/* ========================================
+/* =========================================================
    INFO
-======================================== */
+========================================================= */
 
 .clb-toast--info {
+  background: #1a1530 !important;
+
   border-color:
-    var(--clb-border);
+    rgba(255, 107, 157, 0.35) !important;
 }
 
-/* ========================================
+.clb-toast--info::before {
+  background: #ff6b9d !important;
+}
+
+/* =========================================================
    WARNING
-======================================== */
+========================================================= */
 
 .clb-toast--warning {
+  background: #1a1530 !important;
+
   border-color:
-    rgba(255, 200, 87, 0.4);
+    rgba(255, 200, 87, 0.45) !important;
 }
 
 .clb-toast--warning::before {
-  background: var(--clb-gold);
+  background: #ffc857 !important;
 }
 
-/* ========================================
+/* =========================================================
    MESSAGE
-======================================== */
+========================================================= */
 
 .clb-toast__message {
-  padding-left: 0.25rem;
+  position: relative;
+
+  z-index: 2;
+
+  flex: 1;
+
+  min-width: 0;
+
+  padding-left: 4px;
+
+  color: #f5f3ff !important;
 
   font-size: 0.9rem;
 
   font-weight: 500;
 
-  line-height: 1.4;
+  line-height: 1.45;
+
+  word-break: break-word;
 }
 
-/* ========================================
+/* =========================================================
    CLOSE BUTTON
-======================================== */
+========================================================= */
 
 .clb-toast__close {
+  position: relative;
+
+  z-index: 3;
+
   flex-shrink: 0;
 
   width: 30px;
@@ -135,65 +190,79 @@
   display: grid;
   place-items: center;
 
-  border: none;
+  border: 1px solid
+    rgba(245, 243, 255, 0.1);
 
   border-radius: 8px;
 
-  background:
-    var(--clb-surface-2);
+  background: #241d3f !important;
 
-  color:
-    var(--clb-text-muted);
+  color: #a79fc7 !important;
 
-  font-family:
-    var(--clb-font-body);
+  font-family: var(--clb-font-body);
 
-  font-size: 1.25rem;
+  font-size: 1.2rem;
 
   line-height: 1;
 
   cursor: pointer;
 
   transition:
-    background 0.2s var(--clb-ease),
-    color 0.2s var(--clb-ease),
-    transform 0.2s var(--clb-ease);
+    background 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.2s ease;
 }
 
 .clb-toast__close:hover {
-  background:
-    var(--clb-pink-dim);
+  background: #ff6b9d33 !important;
 
-  color:
-    var(--clb-text);
+  border-color:
+    rgba(255, 107, 157, 0.4);
 
-  transform:
-    scale(1.05);
+  color: #f5f3ff !important;
+
+  transform: scale(1.05);
 }
 
-/* ========================================
+.clb-toast__close:active {
+  transform: scale(0.96);
+}
+
+.clb-toast__close:focus-visible {
+  outline: none;
+
+  border-color: #ff6b9d;
+
+  box-shadow:
+    0 0 0 3px rgba(255, 107, 157, 0.2);
+}
+
+/* =========================================================
    ANIMATION
-======================================== */
+========================================================= */
 
 @keyframes clb-toast-in {
   from {
     opacity: 0;
 
     transform:
-      translateX(30px);
+      translateX(30px)
+      scale(0.97);
   }
 
   to {
     opacity: 1;
 
     transform:
-      translateX(0);
+      translateX(0)
+      scale(1);
   }
 }
 
-/* ========================================
+/* =========================================================
    MOBILE
-======================================== */
+========================================================= */
 
 @media (max-width: 600px) {
   .clb-toast {
@@ -203,5 +272,36 @@
     right: var(--clb-space-sm);
 
     width: auto;
+
+    padding:
+      13px
+      12px
+      13px
+      15px;
+
+    border-radius: 13px;
+  }
+
+  .clb-toast__message {
+    font-size: 0.85rem;
+  }
+
+  .clb-toast__close {
+    width: 29px;
+    height: 29px;
+  }
+}
+
+/* =========================================================
+   REDUCED MOTION
+========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  .clb-toast {
+    animation: none;
+  }
+
+  .clb-toast__close {
+    transition: none;
   }
 }

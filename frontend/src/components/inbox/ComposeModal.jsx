@@ -2,31 +2,40 @@ import { useState } from "react";
 
 import { useEmails } from "../../context/EmailContext";
 
+import AttachmentPicker from "./Attachmentpicker";
+import AiWriter from "./Aiwriter";
+
 import "./ComposeModal.css";
-import { useToast } from "../../context/ToastContext";
 
 /**
-
-* Props:
-* * isOpen: boolean
-* * onClose: () => void
-    */
+ * Props:
+ * - isOpen: boolean
+ * - onClose: () => void
+ */
 function ComposeModal({ isOpen, onClose }) {
-  const { showToast } = useToast();
+  /*
+    Success / error toast EmailContext ka sendEmail khud dikhata hai,
+    isliye yahan alag se toast nahi dikhana (warna double toast aayega).
+  */
   const { sendEmail } = useEmails();
 
   const [to, setTo] = useState("");
-
   const [subject, setSubject] = useState("");
-
   const [body, setBody] = useState("");
-
+  const [attachments, setAttachments] = useState([]);
   const [isSending, setIsSending] = useState(false);
-
   const [error, setError] = useState("");
 
   if (!isOpen) {
     return null;
+  }
+
+  function resetForm() {
+    setTo("");
+    setSubject("");
+    setBody("");
+    setAttachments([]);
+    setError("");
   }
 
   async function handleSend(event) {
@@ -40,119 +49,67 @@ function ComposeModal({ isOpen, onClose }) {
 
     if (!to.trim()) {
       setError("Recipient email is required");
-
       return;
     }
 
     if (!subject.trim()) {
       setError("Subject is required");
-
       return;
     }
 
-    if (!body.trim()) {
+    if (!body.trim() && attachments.length === 0) {
       setError("Email message is required");
-
       return;
     }
 
     try {
       setIsSending(true);
 
-      /*
-    EmailContext ka existing
-    API function use ho raha hai.
-  */
-      const response = await sendEmail({
+      await sendEmail({
         to: to.trim(),
-
         subject: subject.trim(),
-
         text: body.trim(),
+        attachments,
       });
 
-      console.log("Email sent:", response);
-
-      /*
-    Fields clear
-  */
-      setTo("");
-      setSubject("");
-      setBody("");
-
-      /*
-    Modal close
-    
-  */
-      showToast("Email sent successfully!", "success");
+      resetForm();
       onClose();
-
-      /*
-    Global success event.
-    Tumhara ToastProvider isko
-    listen kar sakta hai.
-  */
-      window.dispatchEvent(
-        new CustomEvent("clb-toast", {
-          detail: {
-            type: "success",
-            message: "Email sent successfully!",
-          },
-        }),
-      );
     } catch (sendError) {
       console.error("Send email error:", sendError);
 
       setError(sendError.message || "Failed to send email");
-
-      /*
-    Global error toast
-  */
-      window.dispatchEvent(
-        new CustomEvent("clb-toast", {
-          detail: {
-            type: "error",
-            message: sendError.message || "Failed to send email",
-          },
-        }),
-      );
     } finally {
       setIsSending(false);
     }
   }
 
+  function handleClose() {
+    if (isSending) return;
+
+    onClose();
+  }
+
   return (
-    <div className="clb-compose-backdrop" onClick={onClose}>
+    <div className="clb-compose-backdrop" onClick={handleClose}>
       <div
         className="clb-compose-modal"
         onClick={(event) => event.stopPropagation()}
       >
-        {" "}
-        <header
-          className="
-         clb-compose-modal__header
-       "
-        >
-          {" "}
-          <h2>New message </h2>
+        <header className="clb-compose-modal__header">
+          <h2>New message</h2>
+
           <button
             type="button"
-            className="
-          clb-compose-modal__close
-        "
-            onClick={onClose}
+            className="clb-compose-modal__close"
+            onClick={handleClose}
             aria-label="Close"
             disabled={isSending}
           >
             ✕
           </button>
         </header>
-        <form
-          className="
-        clb-compose-modal__form
-      "
-          onSubmit={handleSend}
-        >
+
+        <form className="clb-compose-modal__form" onSubmit={handleSend}>
           <input
             type="email"
             placeholder="To"
@@ -171,38 +128,41 @@ function ComposeModal({ isOpen, onClose }) {
             required
           />
 
-          <textarea
-            placeholder="
-          Write your message…
-        "
-            rows={12}
-            value={body}
-            onChange={(event) => setBody(event.target.value)}
+          <div className="clb-ai-editor">
+            <textarea
+              placeholder="Write your message…"
+              rows={12}
+              value={body}
+              onChange={(event) => setBody(event.target.value)}
+              disabled={isSending}
+              required={attachments.length === 0}
+            />
+
+            <AiWriter
+              mode="compose"
+              getContext={() => ({
+                to: to.trim(),
+                subject: subject.trim(),
+              })}
+              currentText={body}
+              onApply={setBody}
+              disabled={isSending}
+            />
+          </div>
+
+          <AttachmentPicker
+            files={attachments}
+            onChange={setAttachments}
+            onError={setError}
             disabled={isSending}
-            required
           />
 
-          {error && (
-            <p
-              className="
-            clb-compose-modal__error
-          "
-            >
-              {error}
-            </p>
-          )}
+          {error && <p className="clb-compose-modal__error">{error}</p>}
 
-          <div
-            className="
-          clb-compose-modal__actions
-        "
-          >
+          <div className="clb-compose-modal__actions">
             <button
               type="submit"
-              className="
-            clb-btn
-            clb-btn--primary
-          "
+              className="clb-btn clb-btn--primary"
               disabled={isSending}
             >
               {isSending ? "Sending..." : "Send"}
@@ -210,11 +170,8 @@ function ComposeModal({ isOpen, onClose }) {
 
             <button
               type="button"
-              className="
-            clb-btn
-            clb-btn--ghost
-          "
-              onClick={onClose}
+              className="clb-btn clb-btn--ghost"
+              onClick={handleClose}
               disabled={isSending}
             >
               Cancel

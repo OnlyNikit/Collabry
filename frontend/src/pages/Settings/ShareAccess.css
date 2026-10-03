@@ -1,0 +1,467 @@
+/* ==========================================================================
+   SHARE ACCESS (Settings tab)
+   Uses the Collabry design tokens. Every var() has a fallback, so the tab
+   still looks right even if the tokens file isn't loaded on this page.
+   ========================================================================== */
+
+.clb-share {
+  /* local aliases for the global tokens */
+  --s-surface: var(--clb-surface, #1a1530);
+  --s-raised: var(--clb-surface-2, #241d3f);
+  --s-border: var(--clb-border, rgba(245, 243, 255, 0.1));
+  --s-text: var(--clb-text, #f5f3ff);
+  --s-muted: var(--clb-text-muted, #a79fc7);
+  --s-pink: var(--clb-pink, #ff6b9d);
+  --s-pink-dim: var(--clb-pink-dim, #ff6b9d33);
+  --s-gold: var(--clb-gold, #ffc857);
+  --s-gold-dim: var(--clb-gold-dim, #ffc85733);
+  --s-green: #4ade80;
+  --s-green-dim: rgba(74, 222, 128, 0.16);
+  --s-danger: #ff5d6c;
+  --s-danger-dim: rgba(255, 93, 108, 0.14);
+  --s-ease: var(--clb-ease, cubic-bezier(0.16, 1, 0.3, 1));
+
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+  width: 100%;
+  max-width: 760px;
+  color: var(--s-text);
+  font-family: var(--clb-font-body, "Inter", "Segoe UI", sans-serif);
+}
+
+.clb-share *,
+.clb-share *::before,
+.clb-share *::after {
+  box-sizing: border-box;
+}
+
+/* Calmer buttons inside this tab (the global primary button pulses forever) */
+.clb-share .clb-btn {
+  animation: none;
+}
+
+/* ---------- Header ------------------------------------------------------ */
+
+.clb-share__head h2 {
+  margin: 0 0 0.4rem;
+  font-family: var(--clb-font-display, "Space Grotesk", "Segoe UI", sans-serif);
+  font-size: 1.35rem;
+  font-weight: 600;
+}
+
+.clb-share__lead {
+  margin: 0;
+  max-width: 60ch;
+  color: var(--s-muted);
+  font-size: 0.88rem;
+  line-height: 1.6;
+}
+
+/* ---------- Error ------------------------------------------------------- */
+
+.clb-share__alert {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0.75rem 1rem;
+  border: 1px solid rgba(255, 93, 108, 0.35);
+  border-radius: 12px;
+  background: var(--s-danger-dim);
+  color: var(--s-danger);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.clb-share__alert-close {
+  flex-shrink: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.8;
+}
+
+.clb-share__alert-close:hover {
+  opacity: 1;
+}
+
+/* ---------- Sections ---------------------------------------------------- */
+
+.clb-share__section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.clb-share__section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0;
+  font-family: var(--clb-font-display, "Space Grotesk", "Segoe UI", sans-serif);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.clb-share__count {
+  min-width: 1.5rem;
+  padding: 0.12rem 0.5rem;
+  border-radius: 999px;
+  background: var(--s-raised);
+  border: 1px solid var(--s-border);
+  color: var(--s-muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+/* ---------- Invite form ------------------------------------------------- */
+
+.clb-share__panel {
+  padding: 1.25rem;
+  border: 1px solid var(--s-border);
+  border-radius: 16px;
+  background: var(--s-raised);
+}
+
+.clb-share__form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.clb-share__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.clb-share__field--full {
+  grid-column: 1 / -1;
+}
+
+.clb-share__field label {
+  color: var(--s-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.clb-share input[type="email"],
+.clb-share input[type="date"],
+.clb-share select {
+  width: 100%;
+  min-height: 42px;
+  padding: 0.6rem 0.85rem;
+  border: 1px solid var(--s-border);
+  border-radius: 10px;
+  background: var(--s-surface);
+  color: var(--s-text);
+  font-family: inherit;
+  font-size: 0.9rem;
+  color-scheme: dark;
+  transition: border-color 0.2s var(--s-ease), box-shadow 0.2s var(--s-ease);
+}
+
+.clb-share input::placeholder {
+  color: var(--s-muted);
+  opacity: 0.7;
+}
+
+.clb-share input:focus,
+.clb-share select:focus {
+  outline: none;
+  border-color: var(--s-pink);
+  box-shadow: 0 0 0 3px var(--s-pink-dim);
+}
+
+.clb-share select option {
+  background: var(--s-surface);
+  color: var(--s-text);
+}
+
+.clb-share__form-foot {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.clb-share__note {
+  margin: 0;
+  flex: 1 1 260px;
+  color: var(--s-muted);
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+/* ---------- Buttons ----------------------------------------------------- */
+
+.clb-share .clb-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.clb-share__btn-sm {
+  padding: 0.5em 1.05em;
+  font-size: 0.8rem;
+}
+
+.clb-share__btn-danger {
+  color: var(--s-danger);
+  border-color: rgba(255, 93, 108, 0.35);
+}
+
+.clb-share__btn-danger:hover {
+  background: var(--s-danger-dim);
+}
+
+/* ---------- Rows -------------------------------------------------------- */
+
+.clb-share__list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.clb-share__row {
+  padding: 1rem;
+  border: 1px solid var(--s-border);
+  border-radius: 14px;
+  background: var(--s-raised);
+  transition: border-color 0.2s var(--s-ease);
+}
+
+.clb-share__row:hover {
+  border-color: rgba(245, 243, 255, 0.2);
+}
+
+.clb-share__row-top {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.clb-share__avatar {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--clb-gradient, linear-gradient(135deg, #ff6b9d, #ffc857));
+  color: #17102b;
+  font-family: var(--clb-font-display, "Space Grotesk", "Segoe UI", sans-serif);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.clb-share__who {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.clb-share__who strong,
+.clb-share__who span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.clb-share__who strong {
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.clb-share__who span {
+  color: var(--s-muted);
+  font-size: 0.78rem;
+}
+
+.clb-share__badges {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.clb-share__badge {
+  padding: 0.28rem 0.65rem;
+  border: 1px solid var(--s-border);
+  border-radius: 999px;
+  background: var(--s-surface);
+  color: var(--s-muted);
+  font-size: 0.7rem;
+  font-weight: 600;
+  line-height: 1;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+.clb-share__badge--active {
+  color: var(--s-green);
+  border-color: rgba(74, 222, 128, 0.35);
+  background: var(--s-green-dim);
+}
+
+.clb-share__badge--pending {
+  color: var(--s-gold);
+  border-color: var(--s-gold-dim);
+  background: var(--s-gold-dim);
+}
+
+.clb-share__badge--preset {
+  color: var(--s-pink);
+  border-color: var(--s-pink-dim);
+  background: var(--s-pink-dim);
+}
+
+.clb-share__controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 0.85rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--s-border);
+}
+
+.clb-share__controls select {
+  flex: 1 1 220px;
+  width: auto;
+  min-height: 38px;
+  font-size: 0.82rem;
+}
+
+/* ---------- Activity log ------------------------------------------------ */
+
+.clb-share__logs {
+  max-height: 240px;
+  margin: 0.85rem 0 0;
+  padding: 0.5rem 0.85rem;
+  overflow-y: auto;
+  list-style: none;
+  border: 1px solid var(--s-border);
+  border-radius: 10px;
+  background: var(--s-surface);
+}
+
+.clb-share__logs li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 0.75rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--s-border);
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+.clb-share__logs li:last-child {
+  border-bottom: none;
+}
+
+.clb-share__log-time {
+  color: var(--s-muted);
+}
+
+.clb-share__log-action {
+  color: var(--s-pink);
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.clb-share__log-path {
+  color: var(--s-muted);
+  word-break: break-all;
+}
+
+.clb-share__logs-empty {
+  color: var(--s-muted);
+}
+
+/* ---------- Empty states & hints --------------------------------------- */
+
+.clb-share__empty {
+  margin: 0;
+  padding: 1.1rem;
+  border: 1px dashed var(--s-border);
+  border-radius: 14px;
+  color: var(--s-muted);
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.clb-share__hint {
+  margin: 0;
+  color: var(--s-muted);
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+/* ---------- Invites for me --------------------------------------------- */
+
+.clb-share__invite-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.clb-share__invite-text span {
+  color: var(--s-muted);
+}
+
+.clb-share__invite-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+/* ---------- Mobile ------------------------------------------------------ */
+
+@media (max-width: 640px) {
+  .clb-share__form {
+    grid-template-columns: 1fr;
+  }
+
+  .clb-share__row-top {
+    flex-wrap: wrap;
+  }
+
+  .clb-share__badges {
+    width: 100%;
+    padding-left: calc(40px + 0.85rem);
+  }
+
+  .clb-share__invite-actions {
+    width: 100%;
+    padding-left: calc(40px + 0.85rem);
+  }
+
+  .clb-share__controls .clb-btn {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .clb-share * {
+    transition-duration: 0.001ms !important;
+  }
+}

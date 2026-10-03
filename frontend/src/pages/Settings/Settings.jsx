@@ -8,6 +8,8 @@ import {
   useAuth,
 } from "../../context/AuthContext";
 
+import ShareAccess from "./ShareAccess";
+
 import "./setting.css";
 
 
@@ -17,16 +19,26 @@ const TABS = [
     label: "Profile",
     icon: "👤",
   },
+
+  {
+    id: "share",
+    label: "Share access",
+    icon: "🤝",
+  },
+
+  /*
   {
     id: "notifications",
     label: "Notifications",
     icon: "🔔",
   },
+
   {
     id: "security",
     label: "Security",
     icon: "🔒",
   },
+  */
 ];
 
 
@@ -91,6 +103,13 @@ function Settings() {
         <ProfileTab />
       )}
 
+      {activeTab === "share" && (
+        <section className="clb-settings__card">
+          <ShareAccess />
+        </section>
+      )}
+
+      {/*
       {activeTab === "notifications" && (
         <NotificationsTab />
       )}
@@ -98,6 +117,7 @@ function Settings() {
       {activeTab === "security" && (
         <SecurityTab />
       )}
+      */}
 
     </div>
   );
@@ -692,7 +712,6 @@ function ProfileTab() {
 
 /* =========================================================
    NOTIFICATIONS
-========================================================= */
 
 function NotificationsTab() {
 
@@ -805,11 +824,11 @@ function NotificationsTab() {
   );
 
 }
+========================================================= */
 
 
 /* =========================================================
    TOGGLE ROW
-========================================================= */
 
 function ToggleRow({
   title,
@@ -850,11 +869,11 @@ function ToggleRow({
   );
 
 }
+========================================================= */
 
 
 /* =========================================================
    SECURITY
-========================================================= */
 
 function SecurityTab() {
 
@@ -944,6 +963,7 @@ function SecurityTab() {
   );
 
 }
+========================================================= */
 
 
 export default Settings;

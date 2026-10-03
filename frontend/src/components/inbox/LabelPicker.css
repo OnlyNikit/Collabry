@@ -1,35 +1,43 @@
 @import "../../style/token.css";
 
 /* =========================================================
-   LABEL PICKER - BASE / DESKTOP
+   BACKDROP
+   Desktop: invisible (sirf outside-click ke liye)
+   Mobile/tablet: dim overlay
+========================================================= */
+
+.clb-label-picker__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  background: transparent;
+}
+
+/* =========================================================
+   PICKER (DESKTOP)
 ========================================================= */
 
 .clb-label-picker {
   position: absolute;
-
-  /* Button ke upar open hoga */
   bottom: calc(100% + 10px);
   left: 0;
-
-  width: min(30rem, calc(100vw - 32px));
-  max-width: calc(100vw - 32px);
-
-  box-sizing: border-box;
-
-  background: var(--clb-surface-2);
-
-  border: 1px solid var(--clb-border);
-  border-radius: 12px;
-
-  box-shadow:
-    0 16px 40px -12px rgba(0, 0, 0, 0.6);
-
-  padding: var(--clb-space-xs);
-
   z-index: 9999;
 
-  animation:
-    clb-pop-in 0.15s var(--clb-ease) both;
+  width: min(26rem, calc(100vw - 32px));
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+
+  padding: 0.5rem;
+
+  background: var(--clb-surface-2);
+  border: 1px solid var(--clb-border);
+  border-radius: 16px;
+  box-shadow:
+    0 24px 48px -12px rgba(0, 0, 0, 0.65),
+    0 0 0 1px rgba(255, 255, 255, 0.02) inset;
+
+  animation: clb-label-pop 0.18s var(--clb-ease) both;
 }
 
 /* =========================================================
@@ -37,333 +45,390 @@
 ========================================================= */
 
 .clb-label-picker__header {
+  flex-shrink: 0;
   display: flex;
-
   align-items: center;
   justify-content: space-between;
-
   gap: var(--clb-space-sm);
-
-  font-size: 0.75rem;
-
-  color: var(--clb-text-muted);
-
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-
-  padding: 0.6em 0.75em;
+  padding: 0.5rem 0.5rem 0.5rem 0.75rem;
 }
 
-/* =========================================================
-   CLOSE BUTTON
-========================================================= */
-
-.clb-label-picker__close {
+.clb-label-picker__title {
   display: flex;
+  align-items: center;
+  gap: 0.5rem;
 
+  color: var(--clb-text-muted);
+  font-family: var(--clb-font-display);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.clb-label-picker__count {
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  box-sizing: border-box;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
 
+  border-radius: 999px;
+  background: var(--clb-gold-dim);
+  color: var(--clb-gold);
+  font-size: 0.7rem;
+  letter-spacing: 0;
+}
+
+.clb-label-picker__close {
   width: 30px;
   height: 30px;
-
   flex-shrink: 0;
-
-  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
   border: none;
-  border-radius: 7px;
-
+  border-radius: 8px;
+  background: transparent;
   color: var(--clb-text-muted);
-
   cursor: pointer;
-
-  font-size: 1rem;
-  line-height: 1;
 
   transition:
     background 0.15s var(--clb-ease),
     color 0.15s var(--clb-ease);
 }
 
-.clb-label-picker__close:hover {
+.clb-label-picker__close:hover:not(:disabled) {
   background: var(--clb-surface);
-
   color: var(--clb-text);
 }
 
 /* =========================================================
-   LABEL LIST
+   LIST
 ========================================================= */
 
 .clb-label-picker__list {
   list-style: none;
-
   margin: 0;
-  padding: 0;
+  padding: 0.25rem;
 
   display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
 
-  grid-template-columns:
-    repeat(2, minmax(0, 1fr));
-
-  gap: 8px;
-
-  max-height: 300px;
-
+  max-height: 280px;
   overflow-y: auto;
   overflow-x: hidden;
+
+  scrollbar-width: thin;
+  scrollbar-color: rgba(167, 159, 199, 0.35) transparent;
+}
+
+.clb-label-picker__empty {
+  grid-column: 1 / -1;
+  padding: 1.5rem 0.5rem;
+  color: var(--clb-text-muted);
+  font-size: 0.85rem;
+  text-align: center;
 }
 
 /* =========================================================
-   LABEL OPTION
+   OPTION
 ========================================================= */
 
 .clb-label-picker__option {
   width: 100%;
   min-width: 0;
-
   box-sizing: border-box;
-
   display: flex;
-
   align-items: center;
+  gap: 0.6rem;
 
-  gap: var(--clb-space-xs);
+  padding: 0.6rem 0.7rem;
 
-  background: transparent;
-
-  border: none;
-  border-radius: 8px;
-
-  padding: 0.65em 0.7em;
-
+  background: var(--clb-surface);
+  border: 1px solid transparent;
+  border-radius: 10px;
   color: var(--clb-text);
-
   font-family: var(--clb-font-body);
   font-size: 0.85rem;
-
   text-align: left;
-
   cursor: pointer;
 
   transition:
     background 0.15s var(--clb-ease),
-    color 0.15s var(--clb-ease);
+    border-color 0.15s var(--clb-ease),
+    color 0.15s var(--clb-ease),
+    transform 0.15s var(--clb-ease);
 }
 
-.clb-label-picker__option:hover {
-  background: var(--clb-surface);
+.clb-label-picker__option:hover:not(:disabled) {
+  border-color: var(--clb-border);
+  background: var(--clb-bg);
 }
 
-/* =========================================================
-   SELECTED OPTION
-========================================================= */
+.clb-label-picker__option:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.clb-label-picker__option:focus-visible {
+  outline: 2px solid var(--clb-pink);
+  outline-offset: 1px;
+}
+
+.clb-label-picker__option:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
 
 .clb-label-picker__option--selected {
+  background: var(--clb-gold-dim);
+  border-color: rgba(255, 200, 87, 0.45);
   color: var(--clb-gold);
 }
 
+.clb-label-picker__option--selected:hover:not(:disabled) {
+  background: var(--clb-gold-dim);
+  border-color: var(--clb-gold);
+}
+
 /* =========================================================
-   CHECKBOX
+   CHECKBOX / ICON / NAME
 ========================================================= */
 
 .clb-label-picker__checkbox {
-  width: 16px;
-  height: 16px;
-
+  width: 18px;
+  height: 18px;
   flex-shrink: 0;
-
-  border-radius: 4px;
-
-  border:
-    1px solid var(--clb-border);
-
+  box-sizing: border-box;
   display: flex;
-
   align-items: center;
   justify-content: center;
 
-  font-size: 0.65rem;
+  border: 1.5px solid var(--clb-text-muted);
+  border-radius: 5px;
+  color: #17102b;
+
+  transition:
+    background 0.15s var(--clb-ease),
+    border-color 0.15s var(--clb-ease);
 }
 
-.clb-label-picker__option--selected
-.clb-label-picker__checkbox {
+.clb-label-picker__option--selected .clb-label-picker__checkbox {
   border-color: var(--clb-gold);
+  background: var(--clb-gold);
+}
 
-  background: var(--clb-gold-dim);
+.clb-label-picker__icon {
+  flex-shrink: 0;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.clb-label-picker__name {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  font-weight: 500;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 /* =========================================================
-   TABLET
-   601px - 959px
+   ERROR
 ========================================================= */
 
-@media (max-width: 959px) and (min-width: 601px) {
+.clb-label-picker__error {
+  margin: 0.5rem 0.25rem 0;
+  padding: 0.55rem 0.75rem;
 
+  border: 1px solid rgba(255, 95, 109, 0.35);
+  border-radius: 10px;
+  background: rgba(255, 95, 109, 0.1);
+  color: #ff8c96;
+  font-size: 0.82rem;
+  overflow-wrap: anywhere;
+}
+
+/* =========================================================
+   FOOTER
+========================================================= */
+
+.clb-label-picker__footer {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.6rem;
+
+  margin-top: 0.5rem;
+  padding: 0.75rem 0.25rem 0.25rem;
+  border-top: 1px solid var(--clb-border);
+}
+
+.clb-label-picker__cancel,
+.clb-label-picker__save {
+  min-height: 38px;
+  padding: 0 1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+
+  border-radius: 999px;
+  font-family: var(--clb-font-body);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+
+  transition:
+    background 0.2s var(--clb-ease),
+    box-shadow 0.2s var(--clb-ease),
+    transform 0.2s var(--clb-ease),
+    opacity 0.2s var(--clb-ease);
+}
+
+.clb-label-picker__cancel {
+  border: 1px solid var(--clb-border);
+  background: transparent;
+  color: var(--clb-text);
+}
+
+.clb-label-picker__cancel:hover:not(:disabled) {
+  background: var(--clb-surface);
+}
+
+.clb-label-picker__save {
+  border: none;
+  background: var(--clb-gradient);
+  color: #17102b;
+}
+
+.clb-label-picker__save:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 22px -6px var(--clb-pink-dim);
+}
+
+.clb-label-picker__save:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.clb-label-picker__save:disabled,
+.clb-label-picker__cancel:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.clb-label-picker__save:focus-visible,
+.clb-label-picker__cancel:focus-visible {
+  outline: 2px solid var(--clb-gold);
+  outline-offset: 2px;
+}
+
+/* Lucide icon khud SVG hai: border-spinner nahi, seedha rotate */
+.clb-label-picker__loader {
+  animation: clb-label-spin 0.8s linear infinite;
+}
+
+/* =========================================================
+   TABLET (601px - 959px): bottom floating card
+========================================================= */
+
+@media (max-width: 959px) {
+  .clb-label-picker__backdrop {
+    background: rgba(15, 11, 30, 0.6);
+    backdrop-filter: blur(2px);
+  }
+}
+
+@media (max-width: 959px) and (min-width: 601px) {
   .clb-label-picker {
     position: fixed;
-
     top: auto;
     right: 16px;
     bottom: 16px;
     left: 16px;
 
     width: auto;
-    max-width: none;
+    max-height: calc(100dvh - 32px);
+    padding: var(--clb-space-sm);
 
-    max-height:
-      calc(100dvh - 32px);
-
-    overflow: hidden;
-
-    border-radius: 16px;
-
-    padding: var(--clb-space-md);
-
-    z-index: 9999;
-
-    animation:
-      clb-label-picker-tablet
-      0.25s
-      var(--clb-ease)
-      both;
+    animation: clb-label-rise 0.28s var(--clb-ease) both;
   }
 
   .clb-label-picker__list {
-    max-height:
-      calc(100dvh - 140px);
-
-    overflow-y: auto;
+    max-height: calc(100dvh - 220px);
   }
 }
 
 /* =========================================================
-   MOBILE
-   600px AND BELOW
+   MOBILE (<= 600px): bottom sheet
 ========================================================= */
 
 @media (max-width: 600px) {
-
   .clb-label-picker {
     position: fixed;
-
     top: auto;
     right: 0;
     bottom: 0;
     left: 0;
 
     width: 100%;
-    max-width: 100%;
-
-    box-sizing: border-box;
-
-    max-height: 75dvh;
-
-    display: flex;
-    flex-direction: column;
-
-    background: var(--clb-surface-2);
-
-    border:
-      1px solid var(--clb-border);
+    max-height: 78dvh;
+    padding: var(--clb-space-sm);
+    padding-bottom: calc(var(--clb-space-sm) + env(safe-area-inset-bottom, 0px));
 
     border-bottom: none;
-
-    border-radius:
-      20px 20px 0 0;
-
-    padding:
-      var(--clb-space-md);
-
-    padding-bottom:
-      calc(
-        var(--clb-space-md) +
-        env(safe-area-inset-bottom)
-      );
-
+    border-radius: 22px 22px 0 0;
     overflow: hidden;
 
-    z-index: 9999;
-
-    animation:
-      clb-label-picker-slide-up
-      0.25s
-      var(--clb-ease)
-      both;
+    animation: clb-label-slide-up 0.28s var(--clb-ease) both;
   }
 
-  /* Header fixed rahega */
-  .clb-label-picker__header {
+  /* Drag-handle jaisa chhota bar */
+  .clb-label-picker::before {
+    content: "";
+    align-self: center;
+    width: 40px;
+    height: 4px;
+    margin: 0.1rem 0 0.35rem;
+    border-radius: 999px;
+    background: var(--clb-border);
     flex-shrink: 0;
-
-    padding:
-      0.25rem
-      0.25rem
-      0.75rem;
   }
 
-  /* List scroll hogi */
   .clb-label-picker__list {
     flex: 1;
-
     min-height: 0;
-
-    grid-template-columns: 1fr;
-
     max-height: none;
-
-    overflow-y: auto;
-    overflow-x: hidden;
-
-    padding-bottom: 4px;
+    grid-template-columns: 1fr;
   }
 
   .clb-label-picker__option {
     min-height: 48px;
+    padding: 0.75rem;
+    font-size: 0.9rem;
+  }
 
-    padding:
-      0.75rem;
+  .clb-label-picker__footer {
+    gap: 0.5rem;
+  }
 
-    font-size: 0.88rem;
+  .clb-label-picker__cancel,
+  .clb-label-picker__save {
+    flex: 1;
+    min-height: 46px;
   }
 }
 
-/* =========================================================
-   SMALL MOBILE
-========================================================= */
-
 @media (max-width: 420px) {
-
   .clb-label-picker {
-    max-height: 80dvh;
-
-    padding:
-      var(--clb-space-sm);
-
-    padding-bottom:
-      calc(
-        var(--clb-space-sm) +
-        env(safe-area-inset-bottom)
-      );
-  }
-
-  .clb-label-picker__header {
-    font-size: 0.7rem;
-  }
-
-  .clb-label-picker__option {
-    min-height: 46px;
-
-    padding:
-      0.7rem;
-
-    font-size: 0.82rem;
-  }
-
-  .clb-label-picker__close {
-    width: 28px;
-    height: 28px;
+    max-height: 82dvh;
+    padding: 0.75rem;
+    padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
   }
 }
 
@@ -371,113 +436,53 @@
    ANIMATIONS
 ========================================================= */
 
-@keyframes clb-pop-in {
-
+@keyframes clb-label-pop {
   from {
     opacity: 0;
-
-    transform:
-      translateY(6px);
+    transform: translateY(8px) scale(0.98);
   }
-
   to {
     opacity: 1;
-
-    transform:
-      translateY(0);
+    transform: translateY(0) scale(1);
   }
 }
 
-@keyframes clb-label-picker-tablet {
-
+@keyframes clb-label-rise {
   from {
     opacity: 0;
-
-    transform:
-      translateY(40px);
+    transform: translateY(40px);
   }
-
   to {
     opacity: 1;
-
-    transform:
-      translateY(0);
+    transform: translateY(0);
   }
 }
 
-@keyframes clb-label-picker-slide-up {
-
+@keyframes clb-label-slide-up {
   from {
-    opacity: 0;
-
-    transform:
-      translateY(100%);
+    transform: translateY(100%);
   }
-
   to {
-    opacity: 1;
-
-    transform:
-      translateY(0);
+    transform: translateY(0);
   }
-}.clb-label-picker__footer {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 10px;
-
-  padding: 14px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.clb-label-picker__cancel,
-.clb-label-picker__save {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-
-  min-height: 38px;
-  padding: 0 14px;
-
-  border-radius: 8px;
-
-  cursor: pointer;
-}
-
-.clb-label-picker__save {
-  border: none;
-}
-
-.clb-label-picker__save:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
-.clb-label-picker__loader {
-  width: 15px;
-  height: 15px;
-
-  border: 2px solid
-    rgba(255, 255, 255, 0.35);
-
-  border-top-color:
-    currentColor;
-
-  border-radius: 50%;
-
-  animation:
-    clb-label-spin
-    0.7s
-    linear
-    infinite;
 }
 
 @keyframes clb-label-spin {
-
   to {
-    transform:
-      rotate(360deg);
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .clb-label-picker,
+  .clb-label-picker__option,
+  .clb-label-picker__save {
+    animation: none;
+    transition: none;
   }
 
+  /* Save ke spinner ko chalne do, taaki "hang" na lage */
+  .clb-label-picker__loader {
+    animation: clb-label-spin 1.6s linear infinite;
+  }
 }

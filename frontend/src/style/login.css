@@ -3,12 +3,26 @@
 /* ==========================================================================
    LOGIN PAGE
    Two-panel layout: brand story on the left, Google sign-in on the right.
+   Mobile: compact brand strip on top, sign-in card right below (no long
+   scroll to reach the button).
+   Shared pieces (spin border, keyframes, reduced motion) token.css me hain.
    ========================================================================== */
 
 .clb-login {
+  --clb-mint: #6ee7b7;
+  position: relative;
+  width: 100%;
   min-height: 100vh;
+  min-height: 100dvh;
   display: grid;
-  grid-template-columns: 1.1fr 1fr;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  overflow: clip;
+  /* ONE background for the whole page: dots + soft surface-colour pools + base */
+  background:
+    radial-gradient(rgba(245, 243, 255, 0.06) 1px, transparent 1.5px) 0 0 / 28px 28px,
+    radial-gradient(55% 65% at 15% 20%, var(--clb-surface) 0%, transparent 70%),
+    radial-gradient(50% 55% at 85% 85%, var(--clb-surface) 0%, transparent 70%),
+    var(--clb-bg);
 }
 
 /* ---------------------------------------------------------- Brand panel */
@@ -18,105 +32,316 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
+  z-index: 1;
+  padding: clamp(1.5rem, 5vw, 5rem);
+  /* transparent: shares the page background with the sign-in half */
+}
+
+.clb-login__blob {
+  position: absolute;
+  width: min(520px, 90%);
+  aspect-ratio: 1;
+  left: -15%;
+  bottom: -20%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 107, 157, 0.25), transparent 65%);
+  pointer-events: none;
+  animation: clb-blob 14s ease-in-out infinite alternate;
+}
+
+@keyframes clb-blob {
+  from {
+    transform: translate(0, 0) scale(1);
+  }
+  to {
+    transform: translate(60px, -40px) scale(1.15);
+  }
+}
+
+.clb-login__brand-inner {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
   gap: var(--clb-space-md);
-  padding: var(--clb-space-2xl);
-  background: radial-gradient(
-    circle at 20% 20%,
-    var(--clb-surface) 0%,
-    var(--clb-bg) 70%
-  );
+  min-width: 0;
 }
 
 .clb-login__brand h1 {
   font-family: var(--clb-font-display);
-  font-size: clamp(1.8rem, 3vw, 2.6rem);
+  font-size: clamp(1.7rem, 3.2vw, 2.8rem);
   line-height: 1.15;
-  max-width: 14ch;
+  letter-spacing: -0.02em;
+  max-width: 16ch;
   margin: var(--clb-space-sm) 0 0;
+  overflow-wrap: break-word;
+  animation: clb-fade-up 0.6s var(--clb-ease) 0.05s both;
 }
 
-.clb-login__brand p {
+.clb-login__brand-inner > p {
   color: var(--clb-text-muted);
-  font-size: 1.05rem;
+  font-size: clamp(0.95rem, 1.6vw, 1.05rem);
   line-height: 1.6;
-  max-width: 36ch;
+  max-width: 38ch;
   margin: 0;
+  animation: clb-fade-up 0.6s var(--clb-ease) 0.15s both;
 }
 
-/* Floating decorative cards — purely atmospheric, echoes the landing hero */
+.clb-login__perks {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-width: 40ch;
+  animation: clb-fade-up 0.6s var(--clb-ease) 0.25s both;
+}
+
+.clb-login__perks li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  color: var(--clb-text);
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.clb-login__perks svg {
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+  padding: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  color: #17102b;
+  background: var(--clb-gradient);
+}
+
+/* Floating deal cards — real content, echoes the landing hero */
 .clb-login__orbit {
   position: absolute;
   inset: 0;
+  z-index: 1;
   pointer-events: none;
 }
 
 .clb-orbit-card {
+  --tone: var(--clb-pink);
   position: absolute;
-  width: 120px;
-  height: 76px;
-  border-radius: 12px;
-  background: var(--clb-surface-2);
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  width: 210px;
+  padding: 0.7rem 0.85rem;
+  border-radius: 14px;
+  background: rgba(36, 29, 63, 0.85);
   border: 1px solid var(--clb-border);
-  opacity: 0.6;
-  animation: clb-float 8s var(--clb-ease) infinite;
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 20px 40px -18px rgba(0, 0, 0, 0.7);
+  opacity: 0.8;
+  animation: clb-float 8s ease-in-out infinite;
+}
+
+.clb-orbit-card[data-tone='gold'] {
+  --tone: var(--clb-gold);
+}
+
+.clb-orbit-card i {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  font-style: normal;
+  font-family: var(--clb-font-display);
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: #17102b;
+  background: var(--clb-gradient);
+}
+
+.clb-orbit-card em {
+  flex: 1;
+  min-width: 0;
+  font-style: normal;
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.clb-orbit-card b {
+  flex-shrink: 0;
+  font-size: 0.82rem;
+  color: var(--tone);
 }
 
 .clb-orbit-card--1 {
-  top: 12%;
-  right: 12%;
-  animation-delay: 0s;
+  top: 9%;
+  right: 8%;
 }
 .clb-orbit-card--2 {
-  bottom: 20%;
-  right: 26%;
+  bottom: 14%;
+  right: 20%;
   animation-delay: 1.4s;
 }
 .clb-orbit-card--3 {
-  top: 55%;
-  right: -2%;
+  top: 52%;
+  right: 5%;
   animation-delay: 2.8s;
 }
 
 /* -------------------------------------------------------- Sign-in panel */
 .clb-login__panel {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: var(--clb-space-xl);
+  min-width: 0;
+  padding: clamp(1rem, 4vw, 4rem);
+  /* no background here: the page background lives on .clb-login so
+     there is no seam between brand and sign-in halves */
+}
+
+/* Two slow, drifting colour glows spanning the WHOLE page (both halves),
+   so they flow across the middle with no visible edge */
+.clb-login::before,
+.clb-login::after {
+  content: '';
+  position: absolute;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.clb-login::before {
+  width: min(760px, 90vw);
+  left: 38%;
+  top: -22%;
+  background: radial-gradient(circle, rgba(255, 107, 157, 0.26), transparent 65%);
+  animation: clb-panel-drift-a 13s ease-in-out infinite alternate;
+}
+
+.clb-login::after {
+  width: min(680px, 85vw);
+  right: -12%;
+  bottom: -28%;
+  background: radial-gradient(circle, rgba(255, 200, 87, 0.17), transparent 65%);
+  animation: clb-panel-drift-b 17s ease-in-out infinite alternate;
+}
+
+@keyframes clb-panel-drift-a {
+  from {
+    transform: translate(0, 0) scale(1);
+  }
+  to {
+    transform: translate(-50px, 60px) scale(1.18);
+  }
+}
+
+@keyframes clb-panel-drift-b {
+  from {
+    transform: translate(0, 0) scale(1.1);
+  }
+  to {
+    transform: translate(60px, -50px) scale(0.92);
+  }
+}
+
+.clb-login__wrap {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 440px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--clb-space-sm);
+}
+
+.clb-login__back {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--clb-text-muted);
+  text-decoration: none;
+  font-size: 0.9rem;
+  padding: 0.4rem 0;
+  transition: color 0.2s var(--clb-ease), gap 0.25s var(--clb-ease);
+}
+
+.clb-login__back:hover {
+  color: var(--clb-text);
+  gap: 0.7rem;
 }
 
 .clb-login__card {
   width: 100%;
-  
-  max-width: 80rem;
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
   gap: var(--clb-space-sm);
+  border-radius: 24px;
+  padding: clamp(1.5rem, 5vw, 2.75rem) clamp(1.1rem, 4vw, 2.25rem);
+  position: relative;
+  z-index: 2;
   background: var(--clb-surface);
   border: 1px solid var(--clb-border);
-  border-radius: 20px;
-  padding: var(--clb-space-xl) var(--clb-space-lg);
-  animation: clb-fade-up 0.6s var(--clb-ease) both;
+  box-shadow: 0 40px 80px -40px rgba(0, 0, 0, 0.8);
+  overflow: visible;
+  /* opacity only: no transform, so nothing gets clipped or re-composited */
+  animation: clb-card-fade 0.6s var(--clb-ease) both;
+}
+
+@keyframes clb-card-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Full continuous pink→gold ring (no partial arc that looks "cut") */
+.clb-login__card::before {
+  z-index: 0;
+  background: conic-gradient(
+    from var(--clb-angle),
+    var(--clb-pink),
+    var(--clb-gold),
+    var(--clb-pink)
+  );
+}
+
+/* Everything inside the card always sits above the ring */
+.clb-login__card > * {
+  position: relative;
+  z-index: 2;
 }
 
 .clb-login__card h2 {
   font-family: var(--clb-font-display);
-  font-size: 1.5rem;
+  font-size: clamp(1.4rem, 3vw, 1.7rem);
   margin: var(--clb-space-xs) 0 0;
 }
 
 .clb-login__card > p {
   color: var(--clb-text-muted);
+  line-height: 1.5;
   margin: 0 0 var(--clb-space-sm);
 }
 
 .clb-google-btn {
   position: relative;
   overflow: hidden;
-  width: auto;
-  min-width: 220px;
+  width: 100%;
+  max-width: 320px;
+  min-height: 50px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -127,10 +352,12 @@
   font-weight: 600;
   font-size: 0.95rem;
   border: none;
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 0.85em 1.2em;
   cursor: pointer;
-  transition: transform 0.2s var(--clb-ease), box-shadow 0.2s var(--clb-ease);
+  transition:
+    transform 0.2s var(--clb-ease),
+    box-shadow 0.2s var(--clb-ease);
 }
 
 .clb-google-btn::after {
@@ -148,58 +375,181 @@
   );
   transform: skewX(-20deg);
   transition: left 0.6s var(--clb-ease);
+  pointer-events: none;
 }
 
-.clb-google-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 24px -10px rgba(0, 0, 0, 0.5);
+.clb-google-btn svg {
+  flex-shrink: 0;
+  transition: transform 0.3s var(--clb-ease);
 }
-.clb-google-btn:hover::after {
+
+.clb-google-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow:
+    0 12px 24px -10px rgba(0, 0, 0, 0.5),
+    0 0 0 4px rgba(255, 107, 157, 0.2);
+}
+
+.clb-google-btn:hover:not(:disabled)::after {
   left: 130%;
 }
-.clb-google-btn:active {
+
+.clb-google-btn:hover:not(:disabled) svg {
+  transform: rotate(-12deg) scale(1.12);
+}
+
+.clb-google-btn:active:not(:disabled) {
   transform: translateY(0) scale(0.97);
+}
+
+.clb-google-btn:disabled {
+  cursor: progress;
+  opacity: 0.85;
+}
+
+.clb-spinner {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid rgba(31, 31, 31, 0.2);
+  border-top-color: #1f1f1f;
+  animation: clb-rotate 0.7s linear infinite;
+}
+
+@keyframes clb-rotate {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .clb-login__fine-print {
   font-size: 0.8rem;
   color: var(--clb-text-muted);
   line-height: 1.5;
+  max-width: 34ch;
   margin: var(--clb-space-xs) 0 0;
 }
 
 /* ------------------------------------------------------------- Motion -- */
-@keyframes clb-fade-up {
-  from {
-    opacity: 0;
-    transform: translateY(16px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
 @keyframes clb-float {
   0%,
   100% {
-    transform: translateY(0) rotate(0deg);
+    translate: 0 0;
+    rotate: 0deg;
   }
   50% {
-    transform: translateY(-18px) rotate(-3deg);
+    translate: 0 -16px;
+    rotate: -2.5deg;
   }
 }
 
 /* ----------------------------------------------------------- Responsive */
+
+/* Orbit cards only where there is room beside the text */
+@media (max-width: 1100px) {
+  .clb-login__orbit {
+    display: none;
+  }
+}
+
+/* Tablet / mobile: stacked, compact brand strip, card right below */
 @media (max-width: 860px) {
   .clb-login {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
   }
+
   .clb-login__brand {
-    padding: var(--clb-space-xl);
-    min-height: 40vh;
+    /* top space reserved for the pinned "Back to home" link */
+    padding: 4rem clamp(1rem, 5vw, 2.5rem) 0.5rem;
   }
-  .clb-orbit-card {
+
+  .clb-login__brand-inner {
+    gap: 0.75rem;
+    align-items: center;
+    text-align: center;
+  }
+
+  .clb-login__brand h1 {
+    max-width: 22ch;
+    font-size: clamp(1.4rem, 5.5vw, 2rem);
+    margin-top: 0.25rem;
+  }
+
+  /* keep the first screen focused on the sign-in button */
+  .clb-login__brand-inner > p,
+  .clb-login__perks {
+    display: none;
+  }
+
+  .clb-login__panel {
+    align-items: flex-start;
+    padding-top: 1rem;
+    padding-bottom: 2rem;
+  }
+
+  .clb-login__back {
+    position: absolute;
+    top: 1rem;
+    left: clamp(1rem, 5vw, 2.5rem);
+    z-index: 5;
+    padding: 0.5rem 0.9rem;
+    border: 1px solid var(--clb-border);
+    border-radius: 999px;
+    background: var(--clb-surface);
+    font-size: 0.85rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .clb-login__card {
+    border-radius: 20px;
+  }
+
+  .clb-google-btn {
+    max-width: none;
+    font-size: 0.92rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .clb-login__brand {
+    padding-top: 3.75rem;
+  }
+
+  .clb-login__back {
+    top: 0.85rem;
+    padding: 0.4rem 0.75rem;
+    font-size: 0.8rem;
+  }
+
+  .clb-login__brand h1 {
+    font-size: 1.3rem;
+  }
+
+  .clb-login__card {
+    padding: 1.25rem 0.95rem;
+  }
+
+  .clb-login__card h2 {
+    font-size: 1.3rem;
+  }
+
+  .clb-google-btn {
+    padding: 0.8em 0.9em;
+    font-size: 0.88rem;
+    gap: 0.6rem;
+  }
+
+  .clb-login__fine-print {
+    font-size: 0.75rem;
+  }
+}
+
+/* Short landscape phones: don't force full-height centering */
+@media (max-height: 520px) and (min-width: 861px) {
+  .clb-login__perks {
     display: none;
   }
 }

@@ -1,0 +1,139 @@
+/* ==========================================================================
+   ACCOUNTS (inside the header profile dropdown)
+   The old version forced min-width: 260px, which is wider than the dropdown
+   on small phones and made the content spill out. It now simply fills
+   whatever width the dropdown has and truncates long names/emails.
+   ========================================================================== */
+
+.clb-accounts {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  width: 100%;
+  min-width: 0;
+
+  margin-bottom: 6px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--clb-border, rgba(245, 243, 255, 0.1));
+}
+
+.clb-accounts__title {
+  padding: 8px 12px 4px;
+
+  color: var(--clb-text-muted, #a79fc7);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.clb-accounts__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  width: 100%;
+  min-width: 0;
+  min-height: 52px;
+
+  padding: 8px 12px;
+
+  background: transparent;
+  color: var(--clb-text, #f5f3ff);
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+
+  font-family: inherit;
+  text-align: left;
+
+  transition: background 0.2s var(--clb-ease, ease);
+}
+
+.clb-accounts__item:hover {
+  background: var(--clb-surface-2, #241d3f);
+}
+
+.clb-accounts__item:focus-visible {
+  outline: none;
+  background: var(--clb-pink-dim, #ff6b9d33);
+}
+
+/* the account that is open right now */
+.clb-accounts__item[aria-current="true"] {
+  background: var(--clb-surface-2, #241d3f);
+}
+
+.clb-accounts__avatar {
+  flex: 0 0 auto;
+
+  width: 34px;
+  height: 34px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: var(--clb-gradient, linear-gradient(135deg, #ff6b9d, #ffc857));
+  color: #17102b;
+  border-radius: 50%;
+
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.clb-accounts__text {
+  flex: 1;
+  min-width: 0;
+
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.clb-accounts__text strong,
+.clb-accounts__text small {
+  display: block;
+  max-width: 100%;
+
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.clb-accounts__text strong {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.clb-accounts__text small {
+  color: var(--clb-text-muted, #a79fc7);
+  font-size: 0.72rem;
+}
+
+/* tick for the active account */
+.clb-accounts__item > svg {
+  flex-shrink: 0;
+  color: var(--clb-pink, #ff6b9d);
+}
+
+.clb-accounts__hint {
+  margin: 2px 12px 4px;
+
+  color: var(--clb-text-muted, #a79fc7);
+  font-size: 0.72rem;
+  line-height: 1.5;
+}
+
+@media (max-width: 450px) {
+  .clb-accounts__item {
+    padding: 8px;
+    gap: 8px;
+  }
+
+  .clb-accounts__avatar {
+    width: 32px;
+    height: 32px;
+  }
+}

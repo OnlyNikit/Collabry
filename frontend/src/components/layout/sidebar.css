@@ -1,60 +1,91 @@
 @import "../../style/token.css";
 
-/* =========================================================
-   DESKTOP SIDEBAR
-   ========================================================= */
+/* ==========================================================================
+   SIDEBAR
+   --------------------------------------------------------------------------
+   What was wrong in the old version:
+   1. The closed drawer still had its box-shadow, so a dark band bled into the
+      left edge of the screen even when the menu was closed.
+   2. overflow-y:auto without overflow-x:hidden + the hover "translateX(2px)"
+      produced a sideways scrollbar.
+   3. Compose button had extra horizontal padding, so it was not aligned with
+      the nav items.
+   4. A closed drawer could still be reached with the Tab key.
+   5. Gaps were very large (2.5rem), pushing Settings off short screens.
+   6. No safe-area handling for notched phones.
+   ========================================================================== */
 
 .clb-sidebar {
-  width: 12%;
-
-  height: 100vh;
+  --sb-width: clamp(240px, 14vw, 300px);
+  --sb-pad-x: 1rem;
 
   position: sticky;
-
   top: 0;
+  z-index: 200;
 
   display: flex;
   flex-direction: column;
+  gap: 1.25rem;
 
-  gap: var(--clb-space-lg);
-
-  padding:
-    var(--clb-space-lg)
-    var(--clb-space-md);
-
-  background: var(--clb-surface);
-
-  border-right: 1px solid var(--clb-border);
-
-  overflow-y: auto;
-
+  width: var(--sb-width);
+  height: 100vh;
   flex-shrink: 0;
 
-  z-index: 200;
+  padding: 1.5rem var(--sb-pad-x);
 
-  transition:
-    transform 0.3s var(--clb-ease);
+  background: var(--clb-surface);
+  border-right: 1px solid var(--clb-border);
+
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+
+  scrollbar-width: thin;
+  scrollbar-color: var(--clb-border) transparent;
+
+  -webkit-tap-highlight-color: transparent;
+}
+
+@supports (height: 100dvh) {
+  .clb-sidebar {
+    height: 100dvh;
+  }
+}
+
+.clb-sidebar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.clb-sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.clb-sidebar::-webkit-scrollbar-thumb {
+  background: var(--clb-border);
+  border-radius: 999px;
 }
 
 /* =========================================================
-   TOP
-   ========================================================= */
+   TOP (logo + close)
+========================================================= */
 
 .clb-sidebar__top {
   display: flex;
-
   align-items: center;
-
   justify-content: space-between;
+  gap: 0.75rem;
+  min-height: 40px;
 }
 
 .clb-sidebar__brand {
-  padding: 0 var(--clb-space-xs);
+  min-width: 0;
+  padding: 0 0.25rem;
 }
 
 .clb-sidebar__close {
   display: none;
 
+  flex-shrink: 0;
   align-items: center;
   justify-content: center;
 
@@ -62,178 +93,249 @@
   height: 40px;
 
   background: transparent;
-
-  border: 1px solid var(--clb-border);
-
-  border-radius: 10px;
-
   color: var(--clb-text);
-
+  border: 1px solid var(--clb-border);
+  border-radius: 10px;
   cursor: pointer;
+
+  transition:
+    background 0.2s var(--clb-ease),
+    border-color 0.2s var(--clb-ease);
 }
 
 .clb-sidebar__close:hover {
   background: var(--clb-surface-2);
+  border-color: var(--clb-pink);
+}
+
+.clb-sidebar__close:focus-visible {
+  outline: none;
+  border-color: var(--clb-pink);
+  box-shadow: 0 0 0 3px var(--clb-pink-dim);
+}
+
+/* =========================================================
+   COMPOSE
+   (no extra horizontal padding: lines up with the nav items)
+========================================================= */
+
+.clb-sidebar__compose {
+  padding: 0;
+}
+
+.clb-sidebar__compose-btn {
+  width: 100%;
+  min-height: 46px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+
+  padding: 0.8rem 1rem;
+
+  background: var(--clb-gradient);
+  color: #17102b;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+
+  font-family: var(--clb-font-body);
+  font-size: 0.9rem;
+  font-weight: 600;
+  white-space: nowrap;
+
+  transition:
+    transform 0.2s var(--clb-ease),
+    box-shadow 0.2s var(--clb-ease),
+    opacity 0.2s var(--clb-ease);
+}
+
+.clb-sidebar__compose-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px var(--clb-pink-dim);
+}
+
+.clb-sidebar__compose-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.clb-sidebar__compose-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--clb-pink-dim);
+}
+
+/* delegated mode without "send" permission */
+.clb-sidebar__compose-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* =========================================================
    NAV
-   ========================================================= */
+========================================================= */
 
 .clb-sidebar__nav {
   display: flex;
-
   flex-direction: column;
-
-  gap: var(--clb-space-xs);
+  gap: 4px;
 }
 
 .clb-sidebar__group {
   display: flex;
-
   flex-direction: column;
-
   gap: 2px;
 
-  margin-top: var(--clb-space-sm);
+  margin: 0.75rem 0;
 }
 
 .clb-sidebar__group-label {
-  font-size: 0.72rem;
-
-  font-weight: 600;
-
-  text-transform: uppercase;
-
-  letter-spacing: 0.06em;
+  margin-bottom: 4px;
+  padding: 0 0.75rem;
 
   color: var(--clb-text-muted);
-
-  padding: 0 var(--clb-space-sm);
-
-  margin-bottom: 4px;
-
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   white-space: nowrap;
 }
 
 /* =========================================================
    NAV ITEMS
-   ========================================================= */
+========================================================= */
 
 .clb-sidebar__item {
+  position: relative;
+
   display: flex;
-
   align-items: center;
+  gap: 0.75rem;
 
-  gap: var(--clb-space-sm);
-
-  padding:
-    0.7em
-    var(--clb-space-sm);
-
-  border-radius: 10px;
+  min-height: 44px;
+  padding: 0.6rem 0.75rem;
 
   color: var(--clb-text-muted);
-
-  text-decoration: none;
+  border-radius: 10px;
 
   font-size: 0.92rem;
+  text-decoration: none;
+  white-space: nowrap;
 
   transition:
     background 0.2s var(--clb-ease),
-    color 0.2s var(--clb-ease),
-    transform 0.15s var(--clb-ease);
-
-  white-space: nowrap;
+    color 0.2s var(--clb-ease);
 }
 
 .clb-sidebar__item:hover {
   background: var(--clb-surface-2);
-
   color: var(--clb-text);
+}
 
-  transform: translateX(2px);
+.clb-sidebar__item:focus-visible {
+  outline: none;
+  background: var(--clb-pink-dim);
+  color: var(--clb-text);
 }
 
 .clb-sidebar__item--nested {
-  padding-left: calc(
-    var(--clb-space-sm) + 1.2em
-  );
-
+  min-height: 40px;
+  padding-left: 1.5rem;
   font-size: 0.88rem;
 }
 
 .clb-sidebar__item--active {
-  position: relative;
-
   background: var(--clb-surface-2);
-
   color: var(--clb-text);
 }
 
+/* gradient marker on the left edge of the active item */
 .clb-sidebar__item--active::before {
   content: "";
 
   position: absolute;
-
-  left: -8px;
-
   top: 50%;
-
-  transform: translateY(-50%);
+  left: -0.6rem;
 
   width: 3px;
-
   height: 60%;
 
-  border-radius: 999px;
-
   background: var(--clb-gradient);
+  border-radius: 999px;
+  transform: translateY(-50%);
 }
 
 .clb-sidebar__icon {
   width: 1.4em;
-
   flex-shrink: 0;
 
-  text-align: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
 
-  font-size: 0.95em;
+.clb-sidebar__item--active .clb-sidebar__icon {
+  color: var(--clb-pink);
+}
+
+.clb-sidebar__item span:last-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* =========================================================
    OVERLAY
-   ========================================================= */
+========================================================= */
 
 .clb-sidebar-overlay {
   display: none;
 }
 
 /* =========================================================
-   BELOW 1960PX
-   SIDEBAR BECOMES DRAWER
-   ========================================================= */
+   DRAWER MODE  (<= 1960px)
+
+   To get a permanent desktop sidebar again, lower this
+   breakpoint (for example to 1023px) in BOTH this file and
+   header.css (the hamburger button), and make sure the page
+   layout is a flex row: sidebar + content.
+========================================================= */
 
 @media (max-width: 1960px) {
   .clb-sidebar {
-    position: fixed;
+    --sb-width: 280px;
 
+    position: fixed;
     top: 0;
     left: 0;
+    bottom: 0;
 
-    width: 280px;
+    width: min(var(--sb-width), 88vw);
 
-    height: 100dvh;
+    padding-top: max(1.5rem, env(safe-area-inset-top, 0px));
+    padding-bottom: max(1.5rem, env(safe-area-inset-bottom, 0px));
+    padding-left: max(var(--sb-pad-x), env(safe-area-inset-left, 0px));
 
+    /* closed: off-screen, no shadow, not focusable */
     transform: translateX(-100%);
+    visibility: hidden;
+    box-shadow: none;
 
-    box-shadow:
-      20px 0 50px
-      rgba(0, 0, 0, 0.35);
+    transition:
+      transform 0.3s var(--clb-ease),
+      box-shadow 0.3s var(--clb-ease),
+      visibility 0s linear 0.3s;
   }
 
   .clb-sidebar--open {
     transform: translateX(0);
+    visibility: visible;
+    box-shadow: 20px 0 50px rgba(0, 0, 0, 0.35);
+
+    transition:
+      transform 0.3s var(--clb-ease),
+      box-shadow 0.3s var(--clb-ease),
+      visibility 0s;
   }
 
   .clb-sidebar__close {
@@ -244,78 +346,117 @@
     display: block;
 
     position: fixed;
-
     inset: 0;
-
     z-index: 199;
 
     background: rgba(0, 0, 0, 0.55);
-
+    -webkit-backdrop-filter: blur(2px);
     backdrop-filter: blur(2px);
+
+    animation: clb-sidebar-fade 0.25s ease-out;
+  }
+}
+
+@keyframes clb-sidebar-fade {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
   }
 }
 
 /* =========================================================
-   MOBILE
-   ========================================================= */
+   PHONES
+========================================================= */
 
 @media (max-width: 640px) {
   .clb-sidebar {
-    width: min(300px, 88vw);
+    --sb-pad-x: 0.85rem;
 
-    padding:
-      var(--clb-space-md)
-      var(--clb-space-sm);
+    gap: 1rem;
   }
 }
 
-/* ========================================
-   COMPOSE EMAIL
-======================================== */
+/* very small phones */
+@media (max-width: 360px) {
+  .clb-sidebar {
+    --sb-pad-x: 0.65rem;
+  }
 
-.clb-sidebar__compose {
-  padding:
-    var(--clb-space-sm)
-    var(--clb-space-sm)
-    var(--clb-space-xs);
+  .clb-sidebar__item {
+    font-size: 0.88rem;
+  }
 }
 
-.clb-sidebar__compose-btn {
+/* short screens (landscape phones): tighter spacing so everything fits */
+@media (max-height: 640px) {
+  .clb-sidebar {
+    gap: 0.75rem;
+  }
+
+  .clb-sidebar__group {
+    margin: 0.4rem 0;
+  }
+
+  .clb-sidebar__item {
+    min-height: 40px;
+    padding-top: 0.45rem;
+    padding-bottom: 0.45rem;
+  }
+
+  .clb-sidebar__item--nested {
+    min-height: 36px;
+  }
+}
+
+/* =========================================================
+   REDUCED MOTION
+========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  .clb-sidebar,
+  .clb-sidebar *,
+  .clb-sidebar-overlay {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+    transition-delay: 0s !important;
+  }
+}
+
+/* =========================================================
+   INSTALL BUTTON (sidebar ke sabse neeche)
+========================================================= */
+
+.clb-sidebar__install {
   width: 100%;
+  margin-top: 0.75rem;
 
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.65rem;
-
-  padding: 0.85rem 1rem;
-
-  border: none;
-  border-radius: 12px;
-
-  background: var(--clb-gradient);
-
-  color: #17102b;
+  background: transparent;
+  border: 1px dashed var(--clb-border);
 
   font-family: var(--clb-font-body);
-  font-size: 0.9rem;
-  font-weight: 600;
-
+  text-align: left;
   cursor: pointer;
-
-  transition:
-    transform 0.2s var(--clb-ease),
-    box-shadow 0.2s var(--clb-ease);
 }
 
-.clb-sidebar__compose-btn:hover {
-  transform: translateY(-2px);
-
-  box-shadow:
-    0 10px 25px
-    var(--clb-pink-dim);
+.clb-sidebar__install .clb-install__icon {
+  width: 1.4em;
+  color: var(--clb-gold);
 }
 
-.clb-sidebar__compose-btn:active {
-  transform: scale(0.98);
+.clb-sidebar__install:hover {
+  border-style: solid;
+  border-color: var(--clb-gold);
+}
+
+.clb-sidebar__install:focus-visible {
+  outline: none;
+  border-color: var(--clb-gold);
+  box-shadow: 0 0 0 3px var(--clb-gold-dim);
+}
+
+.clb-sidebar .clb-install__hint {
+  margin-top: 0.5rem;
 }

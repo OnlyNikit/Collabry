@@ -3,8 +3,10 @@ import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import "./index.css";
+import "./hooks/useInstallPrompt";
 
 import { AuthProvider } from "./context/AuthContext";
+import { MailboxProvider } from "./context/MailboxContext";
 (function () {
   const origFetch = window.fetch;
   window.fetch = function (...args) {
@@ -35,7 +37,9 @@ import { AuthProvider } from "./context/AuthContext";
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <AuthProvider>
+      <MailboxProvider>
       <App />
+      </MailboxProvider>
     </AuthProvider>
   </React.StrictMode>,
 );

@@ -7,1417 +7,599 @@ import {
 } from "react";
 
 import api from "../services/api";
+import { useToast } from "./ToastContext";
+import { useMailbox } from "./MailboxContext";
 
 /* =========================================================
    CONTEXT
 ========================================================= */
 
-const EmailLabelsContext =
-  createContext(null);
-
+const EmailLabelsContext = createContext(null);
 
 /* =========================================================
    HELPERS
 ========================================================= */
 
-const normalizeEmailId =
-  (emailId) => {
-    if (
-      emailId === null ||
-      emailId === undefined
-    ) {
-      return "";
-    }
+const normalizeEmailId = (emailId) => {
+  if (emailId === null || emailId === undefined) {
+    return "";
+  }
 
-    return String(emailId);
-  };
+  return String(emailId);
+};
 
+const normalizeLabelId = (label) => {
+  if (!label) {
+    return null;
+  }
 
-const normalizeLabelId =
-  (label) => {
-    if (!label) {
-      return null;
-    }
+  if (typeof label === "string") {
+    return label;
+  }
 
-    if (
-      typeof label === "string"
-    ) {
-      return label;
-    }
+  return label._id || label.id || null;
+};
 
-    return (
-      label._id ||
-      label.id ||
-      null
-    );
-  };
+const normalizeLabelIds = (labels) => {
+  if (!Array.isArray(labels)) {
+    return [];
+  }
 
-
-const normalizeLabelIds =
-  (labels) => {
-    if (
-      !Array.isArray(labels)
-    ) {
-      return [];
-    }
-
-    return [
-      ...new Set(
-        labels
-          .map(
-            normalizeLabelId
-          )
-          .filter(Boolean)
-          .map(String)
-      ),
-    ];
-  };
-
+  return [
+    ...new Set(labels.map(normalizeLabelId).filter(Boolean).map(String)),
+  ];
+};
 
 /* =========================================================
-   PROVIDER
+   INNER PROVIDER
 ========================================================= */
 
-export function EmailLabelsProvider({
-  children,
-}) {
+function EmailLabelsProviderInner({ children }) {
+  const { showToast } = useToast();
 
   /*
     Structure:
-
-    {
-      "email-id-1": [
-        "label-id-1",
-        "label-id-2",
-      ]
-    }
+    { "email-id-1": ["label-id-1", "label-id-2"] }
   */
+  const [emailLabels, setEmailLabels] = useState({});
 
-  const [
-    emailLabels,
-    setEmailLabels,
-  ] = useState({});
+  /* Successfully loaded email IDs */
+  const loadedEmailIdsRef = useRef(new Set());
 
+  /* Currently running requests */
+  const loadingRequestsRef = useRef(new Map());
 
-  /*
-    Successfully loaded email IDs
-  */
-
-  const loadedEmailIdsRef =
-    useRef(
-      new Set()
-    );
-
-
-  /*
-    Currently running requests
-  */
-
-  const loadingRequestsRef =
-    useRef(
-      new Map()
-    );
-
-
-  const [
-    loadingEmailIds,
-    setLoadingEmailIds,
-  ] = useState({});
-
-
-  const [
-    error,
-    setError,
-  ] = useState(null);
-
+  const [loadingEmailIds, setLoadingEmailIds] = useState({});
+  const [error, setError] = useState(null);
 
   /* =======================================================
      GET LABELS FOR EMAIL
   ======================================================= */
 
-  const getEmailLabels =
-    useCallback(
-      (emailId) => {
+  const getEmailLabels = useCallback(
+    (emailId) => {
+      const id = normalizeEmailId(emailId);
 
-        const normalizedEmailId =
-          normalizeEmailId(
-            emailId
-          );
+      if (!id) {
+        return [];
+      }
 
-
-        if (
-          !normalizedEmailId
-        ) {
-          return [];
-        }
-
-
-        return (
-          emailLabels[
-            normalizedEmailId
-          ] || []
-        );
-
-      },
-      [
-        emailLabels,
-      ]
-    );
-
+      return emailLabels[id] || [];
+    },
+    [emailLabels],
+  );
 
   /* =======================================================
-     CHECK LOADED
+     CHECK LOADED / LOADING
   ======================================================= */
 
-  const isEmailLabelsLoaded =
-    useCallback(
-      (emailId) => {
+  const isEmailLabelsLoaded = useCallback((emailId) => {
+    const id = normalizeEmailId(emailId);
 
-        const normalizedEmailId =
-          normalizeEmailId(
-            emailId
-          );
+    if (!id) {
+      return false;
+    }
 
+    return loadedEmailIdsRef.current.has(id);
+  }, []);
 
-        if (
-          !normalizedEmailId
-        ) {
-          return false;
-        }
+  const isEmailLabelsLoading = useCallback(
+    (emailId) => {
+      const id = normalizeEmailId(emailId);
 
+      if (!id) {
+        return false;
+      }
 
-        return loadedEmailIdsRef
-          .current
-          .has(
-            normalizedEmailId
-          );
-
-      },
-      []
-    );
-
-
-  /* =======================================================
-     CHECK LOADING
-  ======================================================= */
-
-  const isEmailLabelsLoading =
-    useCallback(
-      (emailId) => {
-
-        const normalizedEmailId =
-          normalizeEmailId(
-            emailId
-          );
-
-
-        if (
-          !normalizedEmailId
-        ) {
-          return false;
-        }
-
-
-        return Boolean(
-          loadingEmailIds[
-            normalizedEmailId
-          ]
-        );
-
-      },
-      [
-        loadingEmailIds,
-      ]
-    );
-
+      return Boolean(loadingEmailIds[id]);
+    },
+    [loadingEmailIds],
+  );
 
   /* =======================================================
      SYNC LABELS FROM EMAIL OBJECTS
-
-     IMPORTANT:
-
-     This fixes the initial empty label issue
-     when the email API already returns labels.
-
-     Example:
-
-     email.labels
-     email.labelIds
   ======================================================= */
 
-  const syncEmailLabelsFromEmails =
-    useCallback(
-      (
-        emails = [],
-        options = {}
-      ) => {
+  const syncEmailLabelsFromEmails = useCallback((emails = [], options = {}) => {
+    const { markAsLoaded = false } = options;
 
-        const {
-          markAsLoaded = false,
-        } = options;
+    if (!Array.isArray(emails)) {
+      return;
+    }
 
+    const updates = {};
 
-        if (
-          !Array.isArray(
-            emails
-          )
-        ) {
-          return;
-        }
+    emails.forEach((email) => {
+      if (!email) {
+        return;
+      }
 
+      const emailId = normalizeEmailId(
+        email.id || email.messageId || email.message?.id,
+      );
 
-        const updates = {};
+      if (!emailId) {
+        return;
+      }
 
+      const rawLabels = email.labels || email.labelIds || email.label_ids || [];
 
-        emails.forEach(
-          (
-            email
-          ) => {
+      /* Sirf tab sync karo jab labels actually array ho */
+      if (!Array.isArray(rawLabels)) {
+        return;
+      }
 
-            if (!email) {
-              return;
-            }
+      updates[emailId] = normalizeLabelIds(rawLabels);
 
+      if (markAsLoaded) {
+        loadedEmailIdsRef.current.add(emailId);
+      }
+    });
 
-            const emailId =
-              normalizeEmailId(
-                email.id ||
-                email.messageId ||
-                email.message?.id
-              );
+    if (Object.keys(updates).length === 0) {
+      return;
+    }
 
+    setEmailLabels((previous) => {
+      const next = { ...previous };
 
-            if (
-              !emailId
-            ) {
-              return;
-            }
+      Object.entries(updates).forEach(([emailId, labelIds]) => {
+        next[emailId] = [...new Set([...(previous[emailId] || []), ...labelIds])];
+      });
 
-
-            /*
-              Check multiple possible fields
-            */
-
-            const rawLabels =
-              email.labels ||
-              email.labelIds ||
-              email.label_ids ||
-              [];
-
-
-            /*
-              Only sync if labels
-              actually exist as an array.
-
-              We should not overwrite
-              cached custom labels with []
-              when backend doesn't send labels.
-            */
-
-            if (
-              !Array.isArray(
-                rawLabels
-              )
-            ) {
-              return;
-            }
-
-
-            const labelIds =
-              normalizeLabelIds(
-                rawLabels
-              );
-
-
-            updates[
-              emailId
-            ] =
-              labelIds;
-
-
-            if (
-              markAsLoaded
-            ) {
-              loadedEmailIdsRef
-                .current
-                .add(
-                  emailId
-                );
-            }
-
-          }
-        );
-
-
-        if (
-          Object.keys(
-            updates
-          ).length === 0
-        ) {
-          return;
-        }
-
-
-        setEmailLabels(
-          (
-            previous
-          ) => {
-
-            const next =
-              {
-                ...previous,
-              };
-
-
-            Object.entries(
-              updates
-            ).forEach(
-              ([
-                emailId,
-                labelIds,
-              ]) => {
-
-                next[
-                  emailId
-                ] =
-                  [
-                    ...new Set(
-                      [
-                        ...(
-                          previous[
-                            emailId
-                          ] || []
-                        ),
-                        ...labelIds,
-                      ]
-                    ),
-                  ];
-
-              }
-            );
-
-
-            return next;
-
-          }
-        );
-
-      },
-      []
-    );
-
+      return next;
+    });
+  }, []);
 
   /* =======================================================
      FETCH LABELS FOR ONE EMAIL
   ======================================================= */
 
-  const fetchEmailLabels =
-    useCallback(
-      async (
-        emailId,
-        options = {}
-      ) => {
+  const fetchEmailLabels = useCallback(
+    async (emailId, options = {}) => {
+      const { force = false } = options;
 
-        const {
-          force = false,
-        } = options;
+      const id = normalizeEmailId(emailId);
 
+      if (!id) {
+        return [];
+      }
 
-        const normalizedEmailId =
-          normalizeEmailId(
-            emailId
+      /* Cached data */
+      if (!force && loadedEmailIdsRef.current.has(id)) {
+        return emailLabels[id] || [];
+      }
+
+      /* Already running request */
+      const existingRequest = loadingRequestsRef.current.get(id);
+
+      if (existingRequest) {
+        return existingRequest;
+      }
+
+      const request = (async () => {
+        try {
+          setError(null);
+
+          setLoadingEmailIds((previous) => ({
+            ...previous,
+            [id]: true,
+          }));
+
+          const response = await api.get(
+            `/email-labels/email/${encodeURIComponent(id)}`,
           );
 
+          const responseData = response?.data;
 
-        if (
-          !normalizedEmailId
-        ) {
-          return [];
+          const labels = Array.isArray(responseData)
+            ? responseData
+            : responseData?.labels || responseData?.data || [];
+
+          const labelIds = normalizeLabelIds(labels);
+
+          setEmailLabels((previous) => ({
+            ...previous,
+            [id]: labelIds,
+          }));
+
+          loadedEmailIdsRef.current.add(id);
+
+          return labelIds;
+        } catch (err) {
+          console.error("Fetch email labels error:", err);
+
+          const message =
+            err.response?.data?.message ||
+            err.message ||
+            "Failed to fetch email labels.";
+
+          setError(message);
+
+          loadedEmailIdsRef.current.delete(id);
+
+          showToast(`❌ ${message}`, "error", 5000);
+
+          throw new Error(message);
+        } finally {
+          setLoadingEmailIds((previous) => {
+            const updated = { ...previous };
+
+            delete updated[id];
+
+            return updated;
+          });
+
+          loadingRequestsRef.current.delete(id);
         }
+      })();
 
+      loadingRequestsRef.current.set(id, request);
 
-        /*
-          Return cached data
-        */
-
-        if (
-          !force &&
-          loadedEmailIdsRef
-            .current
-            .has(
-              normalizedEmailId
-            )
-        ) {
-
-          return (
-            emailLabels[
-              normalizedEmailId
-            ] || []
-          );
-
-        }
-
-
-        /*
-          Return existing request
-        */
-
-        const existingRequest =
-          loadingRequestsRef
-            .current
-            .get(
-              normalizedEmailId
-            );
-
-
-        if (
-          existingRequest
-        ) {
-          return existingRequest;
-        }
-
-
-        const request =
-          (async () => {
-
-            try {
-
-              setError(
-                null
-              );
-
-
-              setLoadingEmailIds(
-                (
-                  previous
-                ) => ({
-                  ...previous,
-
-                  [normalizedEmailId]:
-                    true,
-                })
-              );
-
-
-              const response =
-                await api.get(
-                  `/email-labels/email/${encodeURIComponent(
-                    normalizedEmailId
-                  )}`
-                );
-
-
-              const responseData =
-                response?.data;
-
-
-              const labels =
-                Array.isArray(
-                  responseData
-                )
-                  ? responseData
-                  : (
-                      responseData
-                        ?.labels ||
-                      responseData
-                        ?.data ||
-                      []
-                    );
-
-
-              const labelIds =
-                normalizeLabelIds(
-                  labels
-                );
-
-
-              setEmailLabels(
-                (
-                  previous
-                ) => ({
-                  ...previous,
-
-                  [normalizedEmailId]:
-                    labelIds,
-                })
-              );
-
-
-              loadedEmailIdsRef
-                .current
-                .add(
-                  normalizedEmailId
-                );
-
-
-              return labelIds;
-
-            } catch (
-              err
-            ) {
-
-              console.error(
-                "Fetch email labels error:",
-                err
-              );
-
-
-              const message =
-                err.response?.data
-                  ?.message ||
-                err.message ||
-                "Failed to fetch email labels.";
-
-
-              setError(
-                message
-              );
-
-
-              loadedEmailIdsRef
-                .current
-                .delete(
-                  normalizedEmailId
-                );
-
-
-              throw new Error(
-                message
-              );
-
-            } finally {
-
-              setLoadingEmailIds(
-                (
-                  previous
-                ) => {
-
-                  const updated =
-                    {
-                      ...previous,
-                    };
-
-
-                  delete updated[
-                    normalizedEmailId
-                  ];
-
-
-                  return updated;
-
-                }
-              );
-
-
-              loadingRequestsRef
-                .current
-                .delete(
-                  normalizedEmailId
-                );
-
-            }
-
-          })();
-
-
-        loadingRequestsRef
-          .current
-          .set(
-            normalizedEmailId,
-            request
-          );
-
-
-        return request;
-
-      },
-      [
-        emailLabels,
-      ]
-    );
-
+      return request;
+    },
+    [emailLabels, showToast],
+  );
 
   /* =======================================================
      FETCH LABELS FOR MULTIPLE EMAILS
-
-     Only fetches emails whose labels
-     are not already loaded.
   ======================================================= */
 
-  const fetchLabelsForEmails =
-    useCallback(
-      async (
-        emailIds = [],
-        options = {}
-      ) => {
+  const fetchLabelsForEmails = useCallback(
+    async (emailIds = [], options = {}) => {
+      if (!Array.isArray(emailIds)) {
+        return [];
+      }
 
-        if (
-          !Array.isArray(
-            emailIds
-          )
-        ) {
-          return [];
-        }
+      const { force = false } = options;
 
+      const uniqueEmailIds = [
+        ...new Set(emailIds.map(normalizeEmailId).filter(Boolean)),
+      ];
 
-        const {
-          force = false,
-        } = options;
+      const idsToFetch = force
+        ? uniqueEmailIds
+        : uniqueEmailIds.filter((id) => !loadedEmailIdsRef.current.has(id));
 
+      if (idsToFetch.length === 0) {
+        return uniqueEmailIds.map((id) => emailLabels[id] || []);
+      }
 
-        const uniqueEmailIds =
-          [
-            ...new Set(
-              emailIds
-                .map(
-                  normalizeEmailId
-                )
-                .filter(Boolean)
-            ),
-          ];
+      return Promise.all(
+        idsToFetch.map((id) =>
+          fetchEmailLabels(id, { force }).catch((fetchError) => {
+            console.error(`Failed to load labels for email ${id}:`, fetchError);
 
-
-        /*
-          Only request missing emails
-        */
-
-        const idsToFetch =
-          force
-            ? uniqueEmailIds
-            : uniqueEmailIds.filter(
-                (
-                  emailId
-                ) =>
-                  !loadedEmailIdsRef
-                    .current
-                    .has(
-                      emailId
-                    )
-              );
-
-
-        if (
-          idsToFetch.length === 0
-        ) {
-
-          return uniqueEmailIds.map(
-            (
-              emailId
-            ) =>
-              emailLabels[
-                emailId
-              ] || []
-          );
-
-        }
-
-
-        const results =
-          await Promise.all(
-            idsToFetch.map(
-              (
-                emailId
-              ) =>
-                fetchEmailLabels(
-                  emailId,
-                  {
-                    force,
-                  }
-                )
-                  .catch(
-                    (
-                      fetchError
-                    ) => {
-
-                      console.error(
-                        `Failed to load labels for email ${emailId}:`,
-                        fetchError
-                      );
-
-
-                      return [];
-
-                    }
-                  )
-            )
-          );
-
-
-        return results;
-
-      },
-      [
-        emailLabels,
-        fetchEmailLabels,
-      ]
-    );
-
+            return [];
+          }),
+        ),
+      );
+    },
+    [emailLabels, fetchEmailLabels],
+  );
 
   /* =======================================================
      ADD LABEL
   ======================================================= */
 
-  const addLabelToEmail =
-    useCallback(
-      async (
-        emailId,
-        labelId
-      ) => {
+  const addLabelToEmail = useCallback(
+    async (emailId, labelId) => {
+      const normalizedEmailId = normalizeEmailId(emailId);
+      const normalizedLabelId = normalizeEmailId(labelId);
 
-        const normalizedEmailId =
-          normalizeEmailId(
-            emailId
-          );
+      if (!normalizedEmailId || !normalizedLabelId) {
+        const message = "Email ID and Label ID are required.";
 
+        showToast(`❌ ${message}`, "error", 5000);
 
-        const normalizedLabelId =
-          normalizeEmailId(
-            labelId
-          );
+        throw new Error(message);
+      }
 
+      try {
+        setError(null);
 
-        if (
-          !normalizedEmailId ||
-          !normalizedLabelId
-        ) {
+        await api.post(
+          `/email-labels/${encodeURIComponent(
+            normalizedEmailId,
+          )}/${encodeURIComponent(normalizedLabelId)}`,
+        );
 
-          throw new Error(
-            "Email ID and Label ID are required."
-          );
+        setEmailLabels((previous) => {
+          const current = previous[normalizedEmailId] || [];
 
-        }
+          if (current.some((id) => String(id) === normalizedLabelId)) {
+            return previous;
+          }
 
+          return {
+            ...previous,
+            [normalizedEmailId]: [...current, normalizedLabelId],
+          };
+        });
 
-        try {
+        loadedEmailIdsRef.current.add(normalizedEmailId);
 
-          setError(
-            null
-          );
+        showToast("Label added successfully.", "success", 3000);
 
+        return true;
+      } catch (err) {
+        const message =
+          err.response?.data?.message || err.message || "Failed to add label.";
 
-          await api.post(
-            `/email-labels/${encodeURIComponent(
-              normalizedEmailId
-            )}/${encodeURIComponent(
-              normalizedLabelId
-            )}`
-          );
+        setError(message);
 
+        showToast(`❌ ${message}`, "error", 5000);
 
-          setEmailLabels(
-            (
-              previous
-            ) => {
-
-              const current =
-                previous[
-                  normalizedEmailId
-                ] || [];
-
-
-              if (
-                current.some(
-                  (
-                    id
-                  ) =>
-                    String(
-                      id
-                    ) ===
-                    normalizedLabelId
-                )
-              ) {
-
-                return previous;
-
-              }
-
-
-              return {
-                ...previous,
-
-                [normalizedEmailId]:
-                  [
-                    ...current,
-                    normalizedLabelId,
-                  ],
-              };
-
-            }
-          );
-
-
-          loadedEmailIdsRef
-            .current
-            .add(
-              normalizedEmailId
-            );
-
-
-          return true;
-
-        } catch (
-          err
-        ) {
-
-          const message =
-            err.response?.data
-              ?.message ||
-            err.message ||
-            "Failed to add label.";
-
-
-          setError(
-            message
-          );
-
-
-          throw new Error(
-            message
-          );
-
-        }
-
-      },
-      []
-    );
-
+        throw new Error(message);
+      }
+    },
+    [showToast],
+  );
 
   /* =======================================================
      REMOVE LABEL
   ======================================================= */
 
-  const removeLabelFromEmail =
-    useCallback(
-      async (
-        emailId,
-        labelId
-      ) => {
+  const removeLabelFromEmail = useCallback(
+    async (emailId, labelId) => {
+      const normalizedEmailId = normalizeEmailId(emailId);
+      const normalizedLabelId = normalizeEmailId(labelId);
 
-        const normalizedEmailId =
-          normalizeEmailId(
-            emailId
-          );
+      if (!normalizedEmailId || !normalizedLabelId) {
+        const message = "Email ID and Label ID are required.";
 
+        showToast(`❌ ${message}`, "error", 5000);
 
-        const normalizedLabelId =
-          normalizeEmailId(
-            labelId
-          );
+        throw new Error(message);
+      }
 
+      try {
+        setError(null);
 
-        if (
-          !normalizedEmailId ||
-          !normalizedLabelId
-        ) {
+        await api.delete(
+          `/email-labels/${encodeURIComponent(
+            normalizedEmailId,
+          )}/${encodeURIComponent(normalizedLabelId)}`,
+        );
 
-          throw new Error(
-            "Email ID and Label ID are required."
-          );
+        setEmailLabels((previous) => {
+          const current = previous[normalizedEmailId] || [];
 
-        }
+          return {
+            ...previous,
+            [normalizedEmailId]: current.filter(
+              (id) => String(id) !== normalizedLabelId,
+            ),
+          };
+        });
 
+        loadedEmailIdsRef.current.add(normalizedEmailId);
 
-        try {
+        showToast("Label removed successfully.", "success", 3000);
 
-          setError(
-            null
-          );
+        return true;
+      } catch (err) {
+        const message =
+          err.response?.data?.message ||
+          err.message ||
+          "Failed to remove label.";
 
+        setError(message);
 
-          await api.delete(
-            `/email-labels/${encodeURIComponent(
-              normalizedEmailId
-            )}/${encodeURIComponent(
-              normalizedLabelId
-            )}`
-          );
+        showToast(`❌ ${message}`, "error", 5000);
 
-
-          setEmailLabels(
-            (
-              previous
-            ) => {
-
-              const current =
-                previous[
-                  normalizedEmailId
-                ] || [];
-
-
-              return {
-
-                ...previous,
-
-                [normalizedEmailId]:
-                  current.filter(
-                    (
-                      id
-                    ) =>
-                      String(
-                        id
-                      ) !==
-                      normalizedLabelId
-                  ),
-
-              };
-
-            }
-          );
-
-
-          loadedEmailIdsRef
-            .current
-            .add(
-              normalizedEmailId
-            );
-
-
-          return true;
-
-        } catch (
-          err
-        ) {
-
-          const message =
-            err.response?.data
-              ?.message ||
-            err.message ||
-            "Failed to remove label.";
-
-
-          setError(
-            message
-          );
-
-
-          throw new Error(
-            message
-          );
-
-        }
-
-      },
-      []
-    );
-
+        throw new Error(message);
+      }
+    },
+    [showToast],
+  );
 
   /* =======================================================
      TOGGLE LABEL
   ======================================================= */
 
-  const toggleEmailLabel =
-    useCallback(
-      async (
-        emailId,
-        labelId
-      ) => {
+  const toggleEmailLabel = useCallback(
+    async (emailId, labelId) => {
+      const normalizedEmailId = normalizeEmailId(emailId);
+      const normalizedLabelId = normalizeEmailId(labelId);
 
-        const normalizedEmailId =
-          normalizeEmailId(
-            emailId
-          );
+      if (!normalizedEmailId || !normalizedLabelId) {
+        const message = "Email ID and Label ID are required.";
 
+        showToast(`❌ ${message}`, "error", 5000);
 
-        const normalizedLabelId =
-          normalizeEmailId(
-            labelId
-          );
+        throw new Error(message);
+      }
 
+      const currentLabels = emailLabels[normalizedEmailId] || [];
 
-        if (
-          !normalizedEmailId ||
-          !normalizedLabelId
-        ) {
+      const exists = currentLabels.some(
+        (id) => String(id) === normalizedLabelId,
+      );
 
-          throw new Error(
-            "Email ID and Label ID are required."
-          );
+      if (exists) {
+        return removeLabelFromEmail(normalizedEmailId, normalizedLabelId);
+      }
 
-        }
-
-
-        const currentLabels =
-          emailLabels[
-            normalizedEmailId
-          ] || [];
-
-
-        const exists =
-          currentLabels.some(
-            (
-              id
-            ) =>
-              String(
-                id
-              ) ===
-              normalizedLabelId
-          );
-
-
-        if (
-          exists
-        ) {
-
-          return removeLabelFromEmail(
-            normalizedEmailId,
-            normalizedLabelId
-          );
-
-        }
-
-
-        return addLabelToEmail(
-          normalizedEmailId,
-          normalizedLabelId
-        );
-
-      },
-      [
-        emailLabels,
-        addLabelToEmail,
-        removeLabelFromEmail,
-      ]
-    );
-
+      return addLabelToEmail(normalizedEmailId, normalizedLabelId);
+    },
+    [emailLabels, addLabelToEmail, removeLabelFromEmail, showToast],
+  );
 
   /* =======================================================
      CHECK LABEL
   ======================================================= */
 
-  const hasEmailLabel =
-    useCallback(
-      (
-        emailId,
-        labelId
-      ) => {
+  const hasEmailLabel = useCallback(
+    (emailId, labelId) => {
+      const normalizedEmailId = normalizeEmailId(emailId);
+      const normalizedLabelId = normalizeEmailId(labelId);
 
-        const normalizedEmailId =
-          normalizeEmailId(
-            emailId
-          );
+      if (!normalizedEmailId || !normalizedLabelId) {
+        return false;
+      }
 
-
-        const normalizedLabelId =
-          normalizeEmailId(
-            labelId
-          );
-
-
-        if (
-          !normalizedEmailId ||
-          !normalizedLabelId
-        ) {
-          return false;
-        }
-
-
-        return (
-          emailLabels[
-            normalizedEmailId
-          ] || []
-        ).some(
-          (
-            id
-          ) =>
-            String(
-              id
-            ) ===
-            normalizedLabelId
-        );
-
-      },
-      [
-        emailLabels,
-      ]
-    );
-
+      return (emailLabels[normalizedEmailId] || []).some(
+        (id) => String(id) === normalizedLabelId,
+      );
+    },
+    [emailLabels],
+  );
 
   /* =======================================================
      GET EMAIL IDS FOR LABEL
   ======================================================= */
 
-  const getEmailsForLabel =
-    useCallback(
-      (
-        labelId
-      ) => {
+  const getEmailsForLabel = useCallback(
+    (labelId) => {
+      const normalizedLabelId = normalizeEmailId(labelId);
 
-        const normalizedLabelId =
-          normalizeEmailId(
-            labelId
-          );
+      if (!normalizedLabelId) {
+        return [];
+      }
 
-
-        if (
-          !normalizedLabelId
-        ) {
-          return [];
-        }
-
-
-        return Object.entries(
-          emailLabels
+      return Object.entries(emailLabels)
+        .filter(
+          ([, labelIds]) =>
+            Array.isArray(labelIds) &&
+            labelIds.some((id) => String(id) === normalizedLabelId),
         )
-          .filter(
-            ([
-              ,
-              labelIds,
-            ]) =>
-              Array.isArray(
-                labelIds
-              ) &&
-              labelIds.some(
-                (
-                  id
-                ) =>
-                  String(
-                    id
-                  ) ===
-                  normalizedLabelId
-              )
-          )
-          .map(
-            ([
-              emailId,
-            ]) =>
-              emailId
-          );
-
-      },
-      [
-        emailLabels,
-      ]
-    );
-
+        .map(([emailId]) => emailId);
+    },
+    [emailLabels],
+  );
 
   /* =======================================================
      CACHE HELPERS
   ======================================================= */
 
-  const markEmailLabelsStale =
-    useCallback(
-      (
-        emailId
-      ) => {
+  const markEmailLabelsStale = useCallback((emailId) => {
+    const id = normalizeEmailId(emailId);
 
-        const normalizedEmailId =
-          normalizeEmailId(
-            emailId
-          );
+    if (!id) {
+      return;
+    }
 
+    loadedEmailIdsRef.current.delete(id);
+  }, []);
 
-        if (
-          !normalizedEmailId
-        ) {
-          return;
-        }
+  const clearEmailLabelsCache = useCallback((emailId) => {
+    const id = normalizeEmailId(emailId);
 
+    if (!id) {
+      return;
+    }
 
-        loadedEmailIdsRef
-          .current
-          .delete(
-            normalizedEmailId
-          );
+    loadedEmailIdsRef.current.delete(id);
+    loadingRequestsRef.current.delete(id);
 
-      },
-      []
-    );
+    setEmailLabels((previous) => {
+      const updated = { ...previous };
 
+      delete updated[id];
 
-  const clearEmailLabelsCache =
-    useCallback(
-      (
-        emailId
-      ) => {
+      return updated;
+    });
+  }, []);
 
-        const normalizedEmailId =
-          normalizeEmailId(
-            emailId
-          );
+  const clearAllEmailLabelsCache = useCallback(() => {
+    loadedEmailIdsRef.current.clear();
+    loadingRequestsRef.current.clear();
 
-
-        if (
-          !normalizedEmailId
-        ) {
-          return;
-        }
-
-
-        loadedEmailIdsRef
-          .current
-          .delete(
-            normalizedEmailId
-          );
-
-
-        loadingRequestsRef
-          .current
-          .delete(
-            normalizedEmailId
-          );
-
-
-        setEmailLabels(
-          (
-            previous
-          ) => {
-
-            const updated =
-              {
-                ...previous,
-              };
-
-
-            delete updated[
-              normalizedEmailId
-            ];
-
-
-            return updated;
-
-          }
-        );
-
-      },
-      []
-    );
-
-
-  const clearAllEmailLabelsCache =
-    useCallback(
-      () => {
-
-        loadedEmailIdsRef
-          .current
-          .clear();
-
-
-        loadingRequestsRef
-          .current
-          .clear();
-
-
-        setEmailLabels(
-          {}
-        );
-
-
-        setLoadingEmailIds(
-          {}
-        );
-
-
-        setError(
-          null
-        );
-
-      },
-      []
-    );
-
+    setEmailLabels({});
+    setLoadingEmailIds({});
+    setError(null);
+  }, []);
 
   /* =======================================================
      CONTEXT VALUE
   ======================================================= */
 
   const value = {
-
     /* DATA */
-
     emailLabels,
-
     error,
-
-    loading:
-      Object.keys(
-        loadingEmailIds
-      ).length > 0,
-
+    loading: Object.keys(loadingEmailIds).length > 0,
     loadingEmailIds,
 
-
     /* FETCH */
-
     fetchEmailLabels,
-
     fetchLabelsForEmails,
-
     syncEmailLabelsFromEmails,
 
-
     /* CRUD */
-
     addLabelToEmail,
-
     removeLabelFromEmail,
-
     toggleEmailLabel,
 
-
     /* HELPERS */
-
     getEmailLabels,
-
     getEmailsForLabel,
-
     hasEmailLabel,
-
     isEmailLabelsLoaded,
-
     isEmailLabelsLoading,
 
-
     /* CACHE */
-
     markEmailLabelsStale,
-
     clearEmailLabelsCache,
-
     clearAllEmailLabelsCache,
-
   };
 
-
   return (
-
-    <EmailLabelsContext.Provider
-      value={
-        value
-      }
-    >
-
+    <EmailLabelsContext.Provider value={value}>
       {children}
-
     </EmailLabelsContext.Provider>
-
   );
-
 }
 
+/* =========================================================
+   PUBLIC PROVIDER
+
+   Mailbox badalte hi inner provider remount hota hai:
+   purane mailbox ka label cache clear ho jata hai, aur naye
+   mailbox ke labels dobara fetch hote hain (X-Acting-As ke saath).
+========================================================= */
+
+export function EmailLabelsProvider({ children }) {
+  const { mailboxKey } = useMailbox();
+
+  return (
+    <EmailLabelsProviderInner key={mailboxKey}>
+      {children}
+    </EmailLabelsProviderInner>
+  );
+}
 
 /* =========================================================
    HOOK
 ========================================================= */
 
 export function useEmailLabels() {
+  const context = useContext(EmailLabelsContext);
 
-  const context =
-    useContext(
-      EmailLabelsContext
-    );
-
-
-  if (
-    !context
-  ) {
-
-    throw new Error(
-      "useEmailLabels must be used inside EmailLabelsProvider"
-    );
-
+  if (!context) {
+    throw new Error("useEmailLabels must be used inside EmailLabelsProvider");
   }
 
-
   return context;
-
 }

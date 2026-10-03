@@ -1,68 +1,111 @@
-
+import { useEffect } from "react";
+import { createPortal } from "react-dom";
+import { AlertTriangle, X } from "lucide-react";
 import "./DeleteModal.css";
 
-function DeleteTrackerModal({
+function DeleteModal({
   isOpen,
-  tracker,
+  title = "Delete this item?",
+  description = "This action cannot be undone.",
+  confirmText = "Delete",
+  loadingText = "Deleting...",
+  isDeleting = false,
+  error = null,
   onClose,
   onConfirm,
-  isDeleting = false,
 }) {
-  if (!isOpen || !tracker) {
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape" && !isDeleting) {
+        onClose?.();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [isOpen, isDeleting, onClose]);
+
+  if (!isOpen) {
     return null;
   }
 
-  function handleBackdropClick(event) {
-    if (event.target === event.currentTarget && !isDeleting) {
-      onClose();
+  const handleBackdropClick = (event) => {
+    if (
+      event.target === event.currentTarget &&
+      !isDeleting
+    ) {
+      onClose?.();
     }
-  }
+  };
 
-  return (
+  const modal = (
     <div
       className="clb-delete-modal-backdrop"
-      onClick={handleBackdropClick}
+      onMouseDown={handleBackdropClick}
+      role="presentation"
     >
       <div
         className="clb-delete-modal"
         role="dialog"
         aria-modal="true"
-        aria-labelledby="delete-modal-title"
-        aria-describedby="delete-modal-description"
+        aria-labelledby="clb-delete-modal-title"
+        aria-describedby="clb-delete-modal-description"
+        onMouseDown={(event) => event.stopPropagation()}
       >
         <button
           type="button"
           className="clb-delete-modal__close"
           onClick={onClose}
           disabled={isDeleting}
-          aria-label="Close delete dialog"
+          aria-label="Close"
         >
-          ✕
+          <X size={18} strokeWidth={2} />
         </button>
 
-        <div className="clb-delete-modal__content">
-          <div className="clb-delete-modal__icon">
-            🗑
-          </div>
+        <div className="clb-delete-modal__icon">
+          <AlertTriangle
+            size={27}
+            strokeWidth={2.2}
+          />
+        </div>
 
-          <h2 id="delete-modal-title">
-            Delete Tracker?
+        <div className="clb-delete-modal__body">
+          <h2
+            id="clb-delete-modal-title"
+            className="clb-delete-modal__title"
+          >
+            {title}
           </h2>
 
-          <p id="delete-modal-description">
-            Are you sure you want to delete{" "}
-            <strong>{tracker.brandName || "this tracker"}</strong>?
+          <p
+            id="clb-delete-modal-description"
+            className="clb-delete-modal__text"
+          >
+            {description}
           </p>
 
-          <span className="clb-delete-modal__warning">
-            This action cannot be undone.
-          </span>
+          {error && (
+            <div className="clb-delete-modal__error">
+              <AlertTriangle size={16} />
+
+              <span>{error}</span>
+            </div>
+          )}
         </div>
 
         <div className="clb-delete-modal__actions">
           <button
             type="button"
-            className="clb-btn clb-btn--ghost"
+            className="clb-delete-modal__cancel"
             onClick={onClose}
             disabled={isDeleting}
           >
@@ -75,13 +118,23 @@ function DeleteTrackerModal({
             onClick={onConfirm}
             disabled={isDeleting}
           >
-            {isDeleting ? "Deleting..." : "🗑 Delete"}
+            {isDeleting ? (
+              <>
+                <span className="clb-delete-modal__spinner" />
+                <span>{loadingText}</span>
+              </>
+            ) : (
+              <>
+                <span>{confirmText}</span>
+              </>
+            )}
           </button>
         </div>
       </div>
     </div>
   );
+
+  return createPortal(modal, document.body);
 }
 
-export default DeleteTrackerModal;
-
+export default DeleteModal;

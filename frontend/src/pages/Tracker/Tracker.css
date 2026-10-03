@@ -1,28 +1,100 @@
 @import '../../style/token.css';
 
+.clb-tracker-page,
+.clb-tracker-page * {
+  box-sizing: border-box;
+}
+
 .clb-tracker-page {
   display: flex;
   flex-direction: column;
   gap: var(--clb-space-lg);
-  padding: 2rem;
   width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 2rem;
 }
 
+/* ---------- HEADER ---------- */
+
 .clb-tracker-page__header {
+  position: relative;
+  z-index: 20; /* popover neeche ke cards ke upar dikhe */
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--clb-space-md);
-  flex-wrap: wrap;
+  padding: 1.5rem 1.75rem;
+  border: 1px solid var(--clb-border, #ece6ea);
+  border-radius: var(--clb-radius-lg, 18px);
+  background:
+    linear-gradient(
+      135deg,
+      rgba(232, 74, 138, 0.08) 0%,
+      rgba(217, 164, 65, 0.07) 100%
+    ),
+    var(--clb-surface, #ffffff);
+}
+
+.clb-tracker-page__intro {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.clb-tracker-page__eyebrow {
+  display: inline-block;
+  margin-bottom: 10px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: rgba(232, 74, 138, 0.12);
+  color: var(--clb-pink, #e84a8a);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
 }
 
 .clb-tracker-page__header h1 {
+  margin: 0 0 4px;
   font-family: var(--clb-font-display);
   font-size: clamp(1.5rem, 2.5vw, 2rem);
-  margin: 0 0 4px;
+  line-height: 1.2;
 }
 
 .clb-tracker-page__header p {
-  color: var(--clb-text-muted);
+  max-width: 520px;
   margin: 0;
+  color: var(--clb-text-muted);
+}
+
+/* ---------- TABLET ---------- */
+
+@media (max-width: 1024px) {
+  .clb-tracker-page {
+    padding: 1.5rem;
+  }
+}
+
+/* ---------- MOBILE: header stack ---------- */
+
+@media (max-width: 720px) {
+  .clb-tracker-page {
+    gap: var(--clb-space-md);
+    padding: 1rem;
+  }
+
+  .clb-tracker-page__header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+    padding: 1.25rem;
+  }
+}
+
+.clb-tracker-page__intro {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.clb-tracker-page__header {
+  flex-wrap: wrap;
 }

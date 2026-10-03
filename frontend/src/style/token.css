@@ -276,3 +276,119 @@
 .clb-collab-priority__dot {
   background: var(--clb-text-muted);
 }
+
+
+/* ==========================================================================
+   token.css me ISS BLOCK KO END ME PASTE KARO
+   (token.css ke andar ka purana "@media (prefers-reduced-motion...)" block
+    delete kar do — niche wala naya version usse replace karta hai.)
+   Landing + Login dono pages yahan ki cheezein share karte hain.
+   ========================================================================== */
+
+/* Animatable angle -> rotating conic-gradient border ke liye zaroori */
+@property --clb-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes clb-spin {
+  to {
+    --clb-angle: 360deg;
+  }
+}
+
+@keyframes clb-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   .clb-spin-border — kisi bhi card/panel pe lagao, hover/focus pe ghoomta
+   hua pink→gold border dikhega. `--always` modifier = hamesha chalta rahe.
+   Parent me border-radius hona chahiye (yeh `inherit` karta hai).
+   -------------------------------------------------------------------------- */
+.clb-spin-border {
+  position: relative;
+  isolation: isolate;
+}
+.clb-spin-border::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: conic-gradient(
+    from var(--clb-angle),
+    transparent 0 55%,
+    var(--clb-pink) 78%,
+    var(--clb-gold) 92%,
+    transparent 100%
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.35s var(--clb-ease);
+  animation: clb-spin 3.5s linear infinite;
+  pointer-events: none;
+}
+.clb-spin-border:hover::before,
+.clb-spin-border:focus-within::before,
+.clb-spin-border--always::before {
+  opacity: 1;
+}
+
+/* Buttons: touch-friendly height + keyboard focus + chhoti screen safety */
+.clb-btn {
+  min-height: 46px;
+  justify-content: center;
+  max-width: 100%;
+}
+.clb-btn:focus-visible,
+.clb-google-btn:focus-visible,
+.clb-landing a:focus-visible,
+.clb-login a:focus-visible,
+.clb-nav__toggle:focus-visible {
+  outline: 2px solid var(--clb-gold);
+  outline-offset: 3px;
+}
+
+/* Primary button: gradient slowly flow karta rahe + glow pulse */
+.clb-btn--primary {
+  animation:
+    clb-btn-glow 2.4s ease-in-out infinite,
+    clb-gradient-shift 5s ease-in-out infinite;
+}
+@keyframes clb-gradient-shift {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+/* Reduced motion: infinite animations band, transitions almost instant */
+@media (prefers-reduced-motion: reduce) {
+  .clb-landing *,
+  .clb-landing *::before,
+  .clb-landing *::after,
+  .clb-login *,
+  .clb-login *::before,
+  .clb-login *::after {
+    animation: none !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState ,useEffect} from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 import StatCard from "../../components/common/StatsCard";
@@ -8,85 +8,193 @@ import CollaborationForm from "../../components/collaborations/CollaborationForm
 import ComposeModal from "../../components/inbox/ComposeModal";
 
 import { useCollaboration } from "../../context/CollaborationsContext";
+import { useEmails } from "../../context/EmailContext";
 
 import "./dashboard.css";
 
-const currentUser = {
-  name: "Nikit",
+/* =========================================================
+   HELPERS
+========================================================= */
+
+const getCollaborationId = (collaboration) =>
+  collaboration?._id || collaboration?.id || "";
+
+const getEmailId = (email) => email?.id || email?.messageId || "";
+
+const getEmailTimestamp = (email) => {
+  if (email?.timestamp) {
+    const timestamp = Number(email.timestamp);
+
+    if (Number.isFinite(timestamp) && timestamp > 0) {
+      return timestamp;
+    }
+  }
+
+  if (email?.internalDate) {
+    const internalDate = Number(email.internalDate);
+
+    if (Number.isFinite(internalDate) && internalDate > 0) {
+      return internalDate;
+    }
+  }
+
+  if (email?.date) {
+    const date = new Date(email.date).getTime();
+
+    if (!Number.isNaN(date)) {
+      return date;
+    }
+  }
+
+  return 0;
 };
 
-const stats = [
-  {
-    icon: "📧",
-    value: 12,
-    title: "Unread Emails",
-    accent: "pink",
-  },
-  {
-    icon: "⏳",
-    value: 5,
-    title: "Pending Replies",
-    accent: "gold",
-  },
-  {
-    icon: "🤝",
-    value: 3,
-    title: "Active Collaborations",
-    accent: "pink",
-  },
-  {
-    icon: "📅",
-    value: 2,
-    title: "Upcoming Deadlines",
-    accent: "gold",
-  },
-];
+const getEmailSenderName = (email) => {
+  if (email?.from && typeof email.from === "object") {
+    return email.from.name || email.from.email || "Unknown Sender";
+  }
 
-const recentEmails = [
-  {
-    id: 1,
-    brand: "Brand A",
-    subject: "Campaign Collaboration",
-    time: "2 hours ago",
-  },
-  {
-    id: 2,
-    brand: "Brand B",
-    subject: "Paid Partnership Opportunity",
-    time: "5 hours ago",
-  },
-  {
-    id: 3,
-    brand: "Brand C",
-    subject: "Following up on our proposal",
-    time: "Yesterday",
-  },
-];
+  return email?.sender || email?.senderName || email?.from || "Unknown Sender";
+};
 
-const upcomingDeadlines = [
-  {
-    id: 1,
-    date: "Tomorrow",
-    task: "Submit Instagram Reel",
-    collaboration: "Nike Campaign",
-  },
-  {
-    id: 2,
-    date: "Aug 30",
-    task: "Send Draft",
-    collaboration: "Boat Collaboration",
-  },
-];
+const getEmailSenderEmail = (email) => {
+  if (email?.from && typeof email.from === "object") {
+    return email.from.email || "";
+  }
+
+  return email?.senderEmail || "";
+};
+
+const formatRelativeTime = (timestamp) => {
+  if (!timestamp) {
+    return "";
+  }
+
+  const now = Date.now();
+
+  const difference = now - timestamp;
+
+  const minute = 60 * 1000;
+
+  const hour = 60 * minute;
+
+  const day = 24 * hour;
+
+  if (difference < minute) {
+    return "Just now";
+  }
+
+  if (difference < hour) {
+    const minutes = Math.floor(difference / minute);
+
+    return `${minutes} ${minutes === 1 ? "minute" : "minutes"} ago`;
+  }
+
+  if (difference < day) {
+    const hours = Math.floor(difference / hour);
+
+    return `${hours} ${hours === 1 ? "hour" : "hours"} ago`;
+  }
+
+  if (difference < 7 * day) {
+    const days = Math.floor(difference / day);
+
+    return `${days} ${days === 1 ? "day" : "days"} ago`;
+  }
+
+  return new Date(timestamp).toLocaleDateString();
+};
+
+const getDeadlineTimestamp = (collaboration) => {
+  if (!collaboration?.deadline) {
+    return 0;
+  }
+
+  const timestamp = new Date(collaboration.deadline).getTime();
+
+  return Number.isNaN(timestamp) ? 0 : timestamp;
+};
+
+const formatDeadlineDate = (deadline) => {
+  if (!deadline) {
+    return "";
+  }
+
+  const timestamp = new Date(deadline).getTime();
+
+  if (Number.isNaN(timestamp)) {
+    return String(deadline);
+  }
+
+  const now = new Date();
+
+  const deadlineDate = new Date(timestamp);
+
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  const tomorrowStart = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate() + 1,
+  );
+
+  const deadlineDayStart = new Date(
+    deadlineDate.getFullYear(),
+    deadlineDate.getMonth(),
+    deadlineDate.getDate(),
+  );
+
+  if (deadlineDayStart.getTime() === todayStart.getTime()) {
+    return "Today";
+  }
+
+  if (deadlineDayStart.getTime() === tomorrowStart.getTime()) {
+    return "Tomorrow";
+  }
+
+  return deadlineDate.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+  });
+};
+
+/* =========================================================
+   DASHBOARD
+========================================================= */
 
 function Dashboard() {
   const navigate = useNavigate();
+  const [currentHour, setCurrentHour] = useState(new Date().getHours());
+
+  useEffect(() => {
+    const updateGreeting = () => {
+      setCurrentHour(new Date().getHours());
+    };
+
+    updateGreeting();
+
+    const interval = setInterval(updateGreeting, 60 * 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const greeting =
+    currentHour >= 5 && currentHour < 12
+      ? "Good morning"
+      : currentHour >= 12 && currentHour < 17
+        ? "Good afternoon"
+        : currentHour >= 17 && currentHour < 21
+          ? "Good evening"
+          : "Good night";
 
   const {
-    collaborations,
+    collaborations = [],
     createCollaboration,
     updateCollaboration,
     deleteCollaboration,
   } = useCollaboration();
+
+  const { emails = [], unreadCount = 0, loading: emailsLoading } = useEmails();
 
   /* ========================================
      COLLABORATION FORM
@@ -120,25 +228,33 @@ function Dashboard() {
     setIsFormOpen(false);
   }
 
-  function handleSave(data) {
-    createCollaboration(data);
+  async function handleSave(data) {
+    try {
+      await createCollaboration(data);
 
-    setIsFormOpen(false);
+      setIsFormOpen(false);
 
-    navigate("/collaborations");
+      navigate("/collaborations");
+    } catch (error) {
+      console.error("Failed to create collaboration:", error);
+    }
   }
 
-  function handleStatusChange(id, status) {
-    updateCollaboration(id, {
-      status,
-    });
+  async function handleStatusChange(id, status) {
+    try {
+      await updateCollaboration(id, {
+        status,
+      });
+    } catch (error) {
+      console.error("Failed to update collaboration status:", error);
+    }
   }
 
   function handleEdit(collaboration) {
     navigate("/collaborations");
   }
 
-  function handleDelete(id) {
+  async function handleDelete(id) {
     const shouldDelete = window.confirm(
       "Are you sure you want to delete this collaboration?",
     );
@@ -147,31 +263,189 @@ function Dashboard() {
       return;
     }
 
-    deleteCollaboration(id);
+    try {
+      await deleteCollaboration(id);
+    } catch (error) {
+      console.error("Failed to delete collaboration:", error);
+    }
   }
 
   /* ========================================
      ACTIVE COLLABORATIONS
   ======================================== */
 
-  const activeCollaborations = collaborations
-    .filter(
-      (collaboration) =>
-        !["completed", "declined"].includes(collaboration.status),
-    )
-    .slice(0, 3);
+  const activeCollaborations = useMemo(
+    () =>
+      collaborations
+        .filter(
+          (collaboration) =>
+            !["completed", "declined", "cancelled", "canceled"].includes(
+              String(collaboration?.status || "").toLowerCase(),
+            ),
+        )
+        .slice(0, 3),
+    [collaborations],
+  );
+
+  /* ========================================
+     RECENT EMAILS
+  ======================================== */
+
+  const recentEmails = useMemo(() => {
+    return [...emails]
+      .filter((email) => Boolean(getEmailId(email)))
+      .sort((a, b) => getEmailTimestamp(b) - getEmailTimestamp(a))
+      .slice(0, 3)
+      .map((email) => ({
+        id: getEmailId(email),
+
+        brand: getEmailSenderName(email),
+
+        senderEmail: getEmailSenderEmail(email),
+
+        subject: email?.subject || "(No subject)",
+
+        time: formatRelativeTime(getEmailTimestamp(email)),
+      }));
+  }, [emails]);
+
+  /* ========================================
+     PENDING REPLIES
+     
+     Received unread inbox emails are treated
+     as pending replies.
+  ======================================== */
+
+  const pendingReplies = useMemo(
+    () =>
+      emails.filter((email) => {
+        const labels = Array.isArray(email?.labels) ? email.labels : [];
+
+        const isInbox = labels.includes("INBOX");
+
+        const isUnread = email?.unread === true || email?.isRead === false;
+
+        const isSent = labels.includes("SENT");
+
+        const isTrash = labels.includes("TRASH");
+
+        return isInbox && isUnread && !isSent && !isTrash;
+      }).length,
+    [emails],
+  );
+
+  /* ========================================
+     UPCOMING DEADLINES
+  ======================================== */
+
+  const upcomingDeadlines = useMemo(() => {
+    const now = Date.now();
+
+    return collaborations
+      .filter((collaboration) => {
+        const status = String(collaboration?.status || "").toLowerCase();
+
+        const deadline = getDeadlineTimestamp(collaboration);
+
+        if (!deadline || deadline < now) {
+          return false;
+        }
+
+        return !["completed", "declined", "cancelled", "canceled"].includes(
+          status,
+        );
+      })
+      .sort((a, b) => getDeadlineTimestamp(a) - getDeadlineTimestamp(b))
+      .slice(0, 3)
+      .map((collaboration) => ({
+        id: getCollaborationId(collaboration),
+
+        date: formatDeadlineDate(collaboration.deadline),
+
+        task:
+          collaboration?.task ||
+          collaboration?.deliverable ||
+          collaboration?.title ||
+          "Collaboration deadline",
+
+        collaboration:
+          collaboration?.name ||
+          collaboration?.brand ||
+          collaboration?.company ||
+          collaboration?.title ||
+          "Collaboration",
+      }));
+  }, [collaborations]);
+
+  /* ========================================
+     DASHBOARD STATS
+  ======================================== */
+
+  const stats = useMemo(
+    () => [
+      {
+        icon: "📧",
+
+        value: unreadCount,
+
+        title: "Unread Emails",
+
+        accent: "pink",
+      },
+
+      {
+        icon: "⏳",
+
+        value: pendingReplies,
+
+        title: "Pending Replies",
+
+        accent: "gold",
+      },
+
+      {
+        icon: "🤝",
+
+        value: activeCollaborations.length,
+
+        title: "Active Collaborations",
+
+        accent: "pink",
+      },
+
+      {
+        icon: "📅",
+
+        value: upcomingDeadlines.length,
+
+        title: "Upcoming Deadlines",
+
+        accent: "gold",
+      },
+    ],
+    [
+      unreadCount,
+      pendingReplies,
+      activeCollaborations.length,
+      upcomingDeadlines.length,
+    ],
+  );
 
   return (
     <div className="clb-dashboard">
-      {/* Welcome */}
+      {/* ========================================
+          WELCOME
+      ======================================== */}
 
       <section className="clb-dashboard__welcome">
-        <h1>Good morning, {currentUser.name} 👋</h1>
+        <h1>{greeting}, Nikit 👋</h1>
 
         <p>Here&rsquo;s what&rsquo;s happening with your collaborations.</p>
       </section>
 
-      {/* Stats */}
+      {/* ========================================
+          STATS
+      ======================================== */}
 
       <section className="clb-dashboard__stats">
         {stats.map((stat) => (
@@ -179,10 +453,14 @@ function Dashboard() {
         ))}
       </section>
 
-      {/* Top Grid */}
+      {/* ========================================
+          TOP GRID
+      ======================================== */}
 
       <div className="clb-dashboard__grid">
-        {/* Recent Emails */}
+        {/* ======================================
+            RECENT EMAILS
+        ====================================== */}
 
         <section className="clb-dashboard__card">
           <div className="clb-dashboard__card-header">
@@ -193,22 +471,30 @@ function Dashboard() {
             </Link>
           </div>
 
-          <ul className="clb-recent-emails">
-            {recentEmails.map((email) => (
-              <li className="clb-recent-emails__item" key={email.id}>
-                <div>
-                  <strong>{email.brand}</strong>
+          {emailsLoading && recentEmails.length === 0 ? (
+            <p className="clb-dashboard__empty">Loading emails...</p>
+          ) : recentEmails.length === 0 ? (
+            <p className="clb-dashboard__empty">No recent emails.</p>
+          ) : (
+            <ul className="clb-recent-emails">
+              {recentEmails.map((email) => (
+                <li className="clb-recent-emails__item" key={email.id}>
+                  <div>
+                    <strong>{email.brand}</strong>
 
-                  <span>{email.subject}</span>
-                </div>
+                    <span>{email.subject}</span>
+                  </div>
 
-                <span className="clb-recent-emails__time">{email.time}</span>
-              </li>
-            ))}
-          </ul>
+                  <span className="clb-recent-emails__time">{email.time}</span>
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
 
-        {/* Quick Actions */}
+        {/* ======================================
+            QUICK ACTIONS
+        ====================================== */}
 
         <section className="clb-dashboard__card">
           <h2>Quick Actions</h2>
@@ -244,7 +530,9 @@ function Dashboard() {
         </section>
       </div>
 
-      {/* Active Collaborations */}
+      {/* ========================================
+          ACTIVE COLLABORATIONS
+      ======================================== */}
 
       <section className="clb-dashboard__card">
         <div className="clb-dashboard__card-header">
@@ -261,7 +549,7 @@ function Dashboard() {
           ) : (
             activeCollaborations.map((collaboration) => (
               <CollaborationCard
-                key={collaboration.id}
+                key={getCollaborationId(collaboration)}
                 collaboration={collaboration}
                 onEdit={handleEdit}
                 onDelete={handleDelete}
@@ -272,15 +560,23 @@ function Dashboard() {
         </div>
       </section>
 
-      {/* Upcoming Deadlines */}
+      {/* ========================================
+          UPCOMING DEADLINES
+      ======================================== */}
 
       <section className="clb-dashboard__card">
         <h2>Upcoming Deadlines</h2>
 
-        <DeadlineList deadlines={upcomingDeadlines} />
+        {upcomingDeadlines.length === 0 ? (
+          <p className="clb-dashboard__empty">No upcoming deadlines.</p>
+        ) : (
+          <DeadlineList deadlines={upcomingDeadlines} />
+        )}
       </section>
 
-      {/* Create Collaboration Form */}
+      {/* ========================================
+          CREATE COLLABORATION FORM
+      ======================================== */}
 
       <CollaborationForm
         isOpen={isFormOpen}
@@ -290,7 +586,9 @@ function Dashboard() {
         isEditMode={false}
       />
 
-      {/* Compose Email Modal */}
+      {/* ========================================
+          COMPOSE EMAIL MODAL
+      ======================================== */}
 
       <ComposeModal isOpen={isComposeOpen} onClose={closeCompose} />
     </div>
