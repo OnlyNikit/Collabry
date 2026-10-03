@@ -149,6 +149,18 @@ const gmailEmailSchema = new mongoose.Schema(
       ],
       default: [],
     },
+
+    /*
+      true => full body Gmail se ek baar fetch ho chuki hai.
+      Sync sirf metadata save karta hai, isliye body pehli baar
+      email/thread kholne par lazily fetch hoti hai.
+      Is flag se genuinely-empty emails ke liye baar-baar
+      Gmail call nahi hoti.
+    */
+    bodyFetched: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,
@@ -176,7 +188,4 @@ gmailEmailSchema.index({
   timestamp: 1,
 });
 
-module.exports = mongoose.model(
-  "GmailEmail",
-  gmailEmailSchema,
-);
+module.exports = mongoose.model("GmailEmail", gmailEmailSchema);

@@ -5,58 +5,25 @@ const {
   removeLabelFromEmail,
   getEmailLabels,
   getEmailsForLabel,
-} = require(
-  "../controllers/emailLabelController"
-);
-
-const {
-  protect,
-} = require(
-  "../middleware/authMiddleware"
-);
+} = require("../controllers/emailLabelController");
 
 const router = express.Router();
 
-/* =========================================================
-   ALL ROUTES REQUIRE LOGIN
-========================================================= */
+/*
+  Auth (protect) aur actingAs server.js me mount par lagte hain:
+  app.use("/api/email-labels", protect, actingAs, emailLabelRoutes)
+*/
 
-router.use(protect);
+/* GET ALL LABELS OF ONE EMAIL */
+router.get("/email/:emailId", getEmailLabels);
 
-/* =========================================================
-   GET ALL LABELS OF ONE EMAIL
-========================================================= */
+/* GET ALL EMAIL IDS FOR ONE LABEL */
+router.get("/label/:labelId", getEmailsForLabel);
 
-router.get(
-  "/email/:emailId",
-  getEmailLabels
-);
+/* ADD LABEL TO EMAIL */
+router.post("/:emailId/:labelId", addLabelToEmail);
 
-/* =========================================================
-   GET ALL EMAIL IDS FOR ONE LABEL
-========================================================= */
-
-router.get(
-  "/label/:labelId",
-  getEmailsForLabel
-);
-
-/* =========================================================
-   ADD LABEL TO EMAIL
-========================================================= */
-
-router.post(
-  "/:emailId/:labelId",
-  addLabelToEmail
-);
-
-/* =========================================================
-   REMOVE LABEL FROM EMAIL
-========================================================= */
-
-router.delete(
-  "/:emailId/:labelId",
-  removeLabelFromEmail
-);
+/* REMOVE LABEL FROM EMAIL */
+router.delete("/:emailId/:labelId", removeLabelFromEmail);
 
 module.exports = router;

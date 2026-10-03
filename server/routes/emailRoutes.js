@@ -19,11 +19,18 @@ const {
 
   sendNewEmail,
   replyEmail,
+
+  downloadAttachment,
+
+  generateComposeDraft,
+  generateReplyDraft,
+  generateThreadSummaryController,
+  generateMessageSummaryController,
 } = require("../controllers/emailController");
 
-const {
-  protect,
-} = require("../middleware/authMiddleware");
+const { protect } = require("../middleware/authMiddleware");
+const { uploadAttachments } = require("../middleware/uploadMiddleware");
+const { aiRateLimit } = require("../middleware/aiRateLimit");
 
 const router = express.Router();
 
@@ -34,52 +41,100 @@ const router = express.Router();
 router.use(protect);
 
 /* =========================================================
-   GET EMAIL LIST
-   GET /api/emails
+   EMAIL LIST
 ========================================================= */
 
+/* GET /api/emails */
 router.get("/", getEmails);
 
 /* =========================================================
-   SEND NEW EMAIL
-   POST /api/emails/send
+   SEND EMAIL
 ========================================================= */
 
-router.post("/send", sendNewEmail);
+/* POST /api/emails/send (JSON ya multipart/form-data) */
+router.post("/send", uploadAttachments, sendNewEmail);
 
 /* =========================================================
    EMAIL ACTION ROUTES
 ========================================================= */
 
-/* GET EMAIL THREAD */
+/* GET /api/emails/:id/thread */
 router.get("/:id/thread", getThread);
 
-/* MARK AS READ */
+/* Mark as read */
 router.patch("/:id/read", markAsRead);
 
-/* MARK AS UNREAD */
+/* Mark as unread */
 router.patch("/:id/unread", markAsUnread);
 
-/* STAR EMAIL */
+/* Star */
 router.patch("/:id/star", starEmailController);
 
-/* UNSTAR EMAIL */
+/* Unstar */
 router.patch("/:id/unstar", unstarEmailController);
 
-/* ARCHIVE EMAIL */
+/* Archive */
 router.patch("/:id/archive", archiveEmailController);
 
-/* MOVE TO INBOX */
+/* Move to inbox */
 router.patch("/:id/inbox", moveToInbox);
 
-/* MOVE TO TRASH */
+/* Move to trash */
 router.patch("/:id/trash", trashEmailController);
 
-/* PERMANENTLY DELETE */
+/* Permanently delete */
 router.delete("/:id", permanentlyDeleteEmailController);
 
-/* REPLY TO EMAIL */
-router.post("/:id/reply", replyEmail);
+/* =========================================================
+   REPLY
+========================================================= */
+
+/* POST /api/emails/:id/reply
+   JSON ya multipart/form-data
+*/
+router.post("/:id/reply", uploadAttachments, replyEmail);
+
+/* =========================================================
+   AI FEATURES
+========================================================= */
+
+/* AI compose draft */
+router.post(
+  "/ai/compose",
+  aiRateLimit,
+  generateComposeDraft,
+);
+
+/* AI reply draft */
+router.post(
+  "/:id/ai-reply",
+  aiRateLimit,
+  generateReplyDraft,
+);
+
+/* AI summary of THIS PARTICULAR THREAD */
+router.post(
+  "/:id/ai-summary",
+  aiRateLimit,
+  generateThreadSummaryController,
+);
+
+/* AI summary of ONE PARTICULAR MESSAGE only */
+router.post(
+  "/:id/ai-message-summary",
+  aiRateLimit,
+  generateMessageSummaryController,
+);
+
+/* =========================================================
+   ATTACHMENTS
+========================================================= */
+
+/* Download / preview attachment */
+router.get(
+  "/:id/attachments/:attachmentId",
+  downloadAttachment,
+);
 
 /* =========================================================
    GET SINGLE EMAIL

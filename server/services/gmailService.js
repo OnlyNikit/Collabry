@@ -1,5 +1,7 @@
 const { google } = require("googleapis");
 
+const { Readable } = require("stream");
+
 const mongoose = require("mongoose");
 
 const User = require("../models/User");
@@ -10,6 +12,8 @@ const GmailSyncState = require("../models/GmailSyncState");
 
 const ApiError = require("../utils/apiError");
 
+const { buildMime } = require("../utils/buildMime");
+
 /* =========================================================
    CONSTANTS
 ========================================================= */
@@ -17,8 +21,6 @@ const ApiError = require("../utils/apiError");
 const DEFAULT_MAX_RESULTS = 25;
 
 const MAX_RESULTS_LIMIT = 50;
-
-const REQUEST_CONCURRENCY = 3;
 
 /* =========================================================
    VALIDATION
@@ -78,10 +80,7 @@ const getHeader = (headers = [], name = "") => {
 
 const parseEmailAddress = (value = "") => {
   if (!value || typeof value !== "string") {
-    return {
-      name: "",
-      email: "",
-    };
+    return { name: "", email: "" };
   }
 
   const trimmedValue = value.trim();
@@ -91,7 +90,6 @@ const parseEmailAddress = (value = "") => {
   if (angleMatch) {
     return {
       name: angleMatch[1].trim().replace(/^["']|["']$/g, ""),
-
       email: angleMatch[2].trim().toLowerCase(),
     };
   }
@@ -99,16 +97,10 @@ const parseEmailAddress = (value = "") => {
   const emailMatch = trimmedValue.match(/^[^<>\s]+@[^<>\s]+$/);
 
   if (emailMatch) {
-    return {
-      name: "",
-      email: trimmedValue.toLowerCase(),
-    };
+    return { name: "", email: trimmedValue.toLowerCase() };
   }
 
-  return {
-    name: trimmedValue,
-    email: "",
-  };
+  return { name: trimmedValue, email: "" };
 };
 
 const splitEmailAddresses = (value = "") => {
@@ -212,14 +204,6 @@ const decodeBase64Url = (data = "") => {
   }
 };
 
-const encodeBase64Url = (value = "") => {
-  return Buffer.from(value, "utf-8")
-    .toString("base64")
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/, "");
-};
-
 /* =========================================================
    DATE
 ========================================================= */
@@ -278,13 +262,7 @@ const formatDisplayTime = (dateValue, internalDate) => {
    BODY
 ========================================================= */
 
-const extractEmailBody = (
-  payload,
-  result = {
-    text: "",
-    html: "",
-  },
-) => {
+const extractEmailBody = (payload, result = { text: "", html: "" }) => {
   if (!payload) {
     return result;
   }
@@ -326,11 +304,8 @@ const extractAttachments = (payload, attachments = []) => {
   if (payload.filename && payload.body?.attachmentId) {
     attachments.push({
       filename: payload.filename,
-
       mimeType: payload.mimeType || "application/octet-stream",
-
       size: Number(payload.body.size) || 0,
-
       attachmentId: payload.body.attachmentId,
     });
   }
@@ -340,22 +315,6 @@ const extractAttachments = (payload, attachments = []) => {
   }
 
   return attachments;
-};
-
-const hasAttachments = (payload) => {
-  if (!payload) {
-    return false;
-  }
-
-  if (payload.filename && payload.body?.attachmentId) {
-    return true;
-  }
-
-  if (Array.isArray(payload.parts)) {
-    return payload.parts.some((part) => hasAttachments(part));
-  }
-
-  return false;
 };
 
 /* =========================================================
@@ -399,47 +358,26 @@ const formatEmail = (message = {}) => {
 
   return {
     id: message.id || "",
-
     threadId: message.threadId || "",
-
     from: parsedFrom,
-
     sender: parsedFrom.name || parsedFrom.email || "Unknown Sender",
-
     senderEmail: parsedFrom.email || "",
-
     to,
-
     cc,
-
     bcc,
-
     subject: subject || "(No Subject)",
-
     snippet: message.snippet || "",
-
     date,
-
     timestamp: getTimestamp(internalDate),
-
     internalDate,
-
     labels,
-
     isRead: !labels.includes("UNREAD"),
-
     isStarred: labels.includes("STARRED"),
-
     isImportant: labels.includes("IMPORTANT"),
-
     isSent: labels.includes("SENT"),
-
     hasAttachments: attachmentList.length > 0,
-
     body,
-
     attachments: attachmentList,
-
     historyId: message.historyId || null,
   };
 };
@@ -456,7 +394,6 @@ const formatFullEmail = (message = {}) => {
 
     body: {
       text: email.body?.text || "",
-
       html: email.body?.html || "",
     },
 
@@ -469,7 +406,12 @@ const formatFullEmail = (message = {}) => {
 ========================================================= */
 
 const handleGmailError = (error) => {
-  const status = error?.response?.status;
+  /* Already a clean ApiError -> pass it through untouched */
+  if (error instanceof ApiError) {
+    throw error;
+  }
+
+  const status = error?.response?.status || error?.code;
 
   const message =
     error?.response?.data?.error?.message ||
@@ -523,6 +465,7 @@ const getOAuthClient = async (userId) => {
   const user = await User.findById(userId).select(
     "+googleAccessToken +googleRefreshToken +googleTokenExpiry",
   );
+
   if (!user) {
     throw new ApiError(404, "User not found");
   }
@@ -564,12 +507,7 @@ const getGmailClient = async (userId) => {
 ========================================================= */
 
 const encodeMongoPageToken = (offset) => {
-  return Buffer.from(
-    JSON.stringify({
-      offset,
-    }),
-    "utf-8",
-  )
+  return Buffer.from(JSON.stringify({ offset }), "utf-8")
     .toString("base64")
     .replace(/\+/g, "-")
     .replace(/\//g, "_")
@@ -625,6 +563,13 @@ const buildMongoEmailQuery = (userId, labelIds, query) => {
 
   const textParts = [];
 
+  const addLabel = (label) => {
+    mongoQuery.labels = {
+      ...(mongoQuery.labels || {}),
+      $all: [...(mongoQuery.labels?.$all || []), label],
+    };
+  };
+
   for (const part of parts) {
     const lowerPart = part.toLowerCase();
 
@@ -649,29 +594,17 @@ const buildMongoEmailQuery = (userId, labelIds, query) => {
     }
 
     if (lowerPart === "is:sent" || lowerPart === "in:sent") {
-      mongoQuery.labels = {
-        ...(mongoQuery.labels || {}),
-        $all: [...(mongoQuery.labels?.$all || []), "SENT"],
-      };
-
+      addLabel("SENT");
       continue;
     }
 
     if (lowerPart === "in:trash") {
-      mongoQuery.labels = {
-        ...(mongoQuery.labels || {}),
-        $all: [...(mongoQuery.labels?.$all || []), "TRASH"],
-      };
-
+      addLabel("TRASH");
       continue;
     }
 
     if (lowerPart === "in:drafts") {
-      mongoQuery.labels = {
-        ...(mongoQuery.labels || {}),
-        $all: [...(mongoQuery.labels?.$all || []), "DRAFT"],
-      };
-
+      addLabel("DRAFT");
       continue;
     }
 
@@ -681,18 +614,8 @@ const buildMongoEmailQuery = (userId, labelIds, query) => {
       if (value) {
         mongoQuery.$or = [
           ...(mongoQuery.$or || []),
-          {
-            senderEmail: {
-              $regex: value,
-              $options: "i",
-            },
-          },
-          {
-            sender: {
-              $regex: value,
-              $options: "i",
-            },
-          },
+          { senderEmail: { $regex: value, $options: "i" } },
+          { sender: { $regex: value, $options: "i" } },
         ];
       }
 
@@ -705,18 +628,8 @@ const buildMongoEmailQuery = (userId, labelIds, query) => {
       if (value) {
         mongoQuery.$or = [
           ...(mongoQuery.$or || []),
-          {
-            "to.email": {
-              $regex: value,
-              $options: "i",
-            },
-          },
-          {
-            "to.name": {
-              $regex: value,
-              $options: "i",
-            },
-          },
+          { "to.email": { $regex: value, $options: "i" } },
+          { "to.name": { $regex: value, $options: "i" } },
         ];
       }
 
@@ -727,10 +640,7 @@ const buildMongoEmailQuery = (userId, labelIds, query) => {
       const value = part.slice(8).trim();
 
       if (value) {
-        mongoQuery.subject = {
-          $regex: value,
-          $options: "i",
-        };
+        mongoQuery.subject = { $regex: value, $options: "i" };
       }
 
       continue;
@@ -738,7 +648,6 @@ const buildMongoEmailQuery = (userId, labelIds, query) => {
 
     if (lowerPart.startsWith("has:attachment")) {
       mongoQuery.hasAttachments = true;
-
       continue;
     }
 
@@ -746,38 +655,22 @@ const buildMongoEmailQuery = (userId, labelIds, query) => {
   }
 
   if (textParts.length) {
-    const textSearch = textParts.join(" ");
-
     const textRegex = {
-      $regex: textSearch,
+      $regex: textParts.join(" "),
       $options: "i",
     };
-
-    const textConditions = [
-      {
-        subject: textRegex,
-      },
-      {
-        snippet: textRegex,
-      },
-      {
-        sender: textRegex,
-      },
-      {
-        senderEmail: textRegex,
-      },
-      {
-        "body.text": textRegex,
-      },
-      {
-        "body.html": textRegex,
-      },
-    ];
 
     mongoQuery.$and = [
       ...(mongoQuery.$and || []),
       {
-        $or: textConditions,
+        $or: [
+          { subject: textRegex },
+          { snippet: textRegex },
+          { sender: textRegex },
+          { senderEmail: textRegex },
+          { "body.text": textRegex },
+          { "body.html": textRegex },
+        ],
       },
     ];
   }
@@ -799,7 +692,6 @@ const serializeCachedEmail = (email, full = false) => {
 
     from: email.from || {
       name: email.sender || "",
-
       email: email.senderEmail || "",
     },
 
@@ -858,7 +750,6 @@ const serializeCachedEmail = (email, full = false) => {
   if (full) {
     formatted.body = {
       text: email.body?.text || "",
-
       html: email.body?.html || "",
     };
 
@@ -871,6 +762,108 @@ const serializeCachedEmail = (email, full = false) => {
 };
 
 /* =========================================================
+   BODY HYDRATION HELPERS
+
+   Sync (gmailSyncService) sirf METADATA save karta hai
+   (body nahi). Body pehli baar email/thread kholne par
+   Gmail se laayi jaati hai aur MongoDB me save hoti hai.
+========================================================= */
+
+const hasStoredBody = (email) =>
+  Boolean(
+    email?.bodyFetched ||
+      email?.body?.text?.trim() ||
+      email?.body?.html?.trim(),
+  );
+
+/* Same thread ke parallel requests ek hi Gmail call share karein */
+const hydrationInFlight = new Map();
+
+const hydrateThreadBodies = async (userId, threadId) => {
+  const key = `${userId}:${threadId}`;
+
+  if (hydrationInFlight.has(key)) {
+    return hydrationInFlight.get(key);
+  }
+
+  const task = (async () => {
+    const gmail = await getGmailClient(userId);
+
+    let response;
+
+    try {
+      response = await gmail.users.threads.get({
+        userId: "me",
+        id: threadId,
+        format: "full",
+      });
+    } catch (error) {
+      handleGmailError(error);
+    }
+
+    const messages = response?.data?.messages || [];
+
+    if (!messages.length) {
+      return;
+    }
+
+    const operations = messages.map((message) => {
+      const email = formatFullEmail(message);
+
+      return {
+        updateOne: {
+          filter: {
+            user: userId,
+            gmailMessageId: email.id,
+          },
+
+          update: {
+            $set: {
+              user: userId,
+              gmailMessageId: email.id,
+              threadId: email.threadId,
+              from: email.from,
+              sender: email.sender,
+              senderEmail: email.senderEmail,
+              to: email.to,
+              cc: email.cc,
+              bcc: email.bcc,
+              subject: email.subject,
+              snippet: email.snippet,
+              date: email.date,
+              timestamp: email.timestamp,
+              internalDate: email.internalDate,
+              labels: email.labels,
+              isRead: email.isRead,
+              isStarred: email.isStarred,
+              isImportant: email.isImportant,
+              isSent: email.isSent,
+              hasAttachments: email.hasAttachments,
+              body: email.body,
+              attachments: email.attachments,
+              historyId: message.historyId || null,
+              bodyFetched: true,
+            },
+          },
+
+          upsert: true,
+        },
+      };
+    });
+
+    await GmailEmail.bulkWrite(operations, { ordered: false });
+  })();
+
+  hydrationInFlight.set(key, task);
+
+  try {
+    await task;
+  } finally {
+    hydrationInFlight.delete(key);
+  }
+};
+
+/* =========================================================
    LIST EMAILS — MONGODB ONLY
 ========================================================= */
 
@@ -880,11 +873,8 @@ const listEmails = async (userId, options = {}) => {
 
     const {
       maxResults = DEFAULT_MAX_RESULTS,
-
       pageToken,
-
       labelIds,
-
       query,
     } = options;
 
@@ -921,81 +911,9 @@ const listEmails = async (userId, options = {}) => {
 
     return {
       messages: formattedEmails,
-
       nextPageToken,
-
       resultSizeEstimate: total,
     };
-  } catch (error) {
-    handleGmailError(error);
-  }
-};
-
-/* =========================================================
-   GET EMAIL BY ID — MONGODB ONLY
-========================================================= */
-
-const getEmailById = async (userId, messageId) => {
-  try {
-    validateUserId(userId);
-
-    const cleanMessageId = validateMessageId(messageId);
-
-    const email = await GmailEmail.findOne({
-      user: userId,
-
-      gmailMessageId: cleanMessageId,
-    }).lean();
-
-    if (!email) {
-      throw new ApiError(404, "Email not found");
-    }
-
-    return serializeCachedEmail(email, true);
-  } catch (error) {
-    handleGmailError(error);
-  }
-};
-
-/* =========================================================
-   GET EMAIL THREAD — MONGODB ONLY
-========================================================= */
-
-const getEmailThread = async (userId, messageId) => {
-  try {
-    validateUserId(userId);
-
-    const cleanMessageId = validateMessageId(messageId);
-
-    const selectedEmail = await GmailEmail.findOne({
-      user: userId,
-
-      gmailMessageId: cleanMessageId,
-    }).lean();
-
-    if (!selectedEmail) {
-      throw new ApiError(404, "Email not found");
-    }
-
-    const threadId = selectedEmail.threadId;
-
-    if (!threadId) {
-      return [serializeCachedEmail(selectedEmail, true)];
-    }
-
-    const threadEmails = await GmailEmail.find({
-      user: userId,
-
-      threadId,
-    })
-      .sort({
-        internalDate: 1,
-        timestamp: 1,
-        _id: 1,
-      })
-      .lean();
-
-    return threadEmails.map((email) => serializeCachedEmail(email, true));
   } catch (error) {
     handleGmailError(error);
   }
@@ -1010,9 +928,7 @@ const updateCachedEmail = async (userId, messageId, gmail) => {
 
   const response = await gmail.users.messages.get({
     userId: "me",
-
     id: cleanMessageId,
-
     format: "full",
   });
 
@@ -1021,63 +937,40 @@ const updateCachedEmail = async (userId, messageId, gmail) => {
   const updated = await GmailEmail.findOneAndUpdate(
     {
       user: userId,
-
       gmailMessageId: cleanMessageId,
     },
 
     {
       $set: {
         user: userId,
-
         gmailMessageId: email.id,
-
         threadId: email.threadId,
-
         from: email.from,
-
         sender: email.sender,
-
         senderEmail: email.senderEmail,
-
         to: email.to,
-
         cc: email.cc,
-
         bcc: email.bcc,
-
         subject: email.subject,
-
         snippet: email.snippet,
-
         date: email.date,
-
         timestamp: email.timestamp,
-
         internalDate: email.internalDate,
-
         labels: email.labels,
-
         isRead: email.isRead,
-
         isStarred: email.isStarred,
-
         isImportant: email.isImportant,
-
         isSent: email.isSent,
-
         hasAttachments: email.hasAttachments,
-
         body: email.body,
-
         attachments: email.attachments,
-
         historyId: response.data.historyId || null,
+        bodyFetched: true,
       },
     },
 
     {
       upsert: true,
-
       new: true,
     },
   ).lean();
@@ -1086,170 +979,187 @@ const updateCachedEmail = async (userId, messageId, gmail) => {
 };
 
 /* =========================================================
-   MARK AS READ
+   GET EMAIL BY ID — MONGODB (+ lazy body fetch)
 ========================================================= */
+
+const getEmailById = async (userId, messageId) => {
+  try {
+    validateUserId(userId);
+
+    const cleanMessageId = validateMessageId(messageId);
+
+    const email = await GmailEmail.findOne({
+      user: userId,
+      gmailMessageId: cleanMessageId,
+    }).lean();
+
+    if (!email) {
+      throw new ApiError(404, "Email not found");
+    }
+
+    if (!hasStoredBody(email)) {
+      try {
+        const gmail = await getGmailClient(userId);
+
+        return await updateCachedEmail(userId, cleanMessageId, gmail);
+      } catch (hydrateError) {
+        console.error(
+          `[GMAIL] Body fetch failed for message ${cleanMessageId}:`,
+          hydrateError?.message || hydrateError,
+        );
+        /* Fail hone par bhi jo DB me hai wo return karo */
+      }
+    }
+
+    return serializeCachedEmail(email, true);
+  } catch (error) {
+    handleGmailError(error);
+  }
+};
+
+/* =========================================================
+   GET EMAIL THREAD — MONGODB (+ lazy body fetch)
+========================================================= */
+
+const getEmailThread = async (userId, messageId) => {
+  try {
+    validateUserId(userId);
+
+    const cleanMessageId = validateMessageId(messageId);
+
+    const selectedEmail = await GmailEmail.findOne({
+      user: userId,
+      gmailMessageId: cleanMessageId,
+    }).lean();
+
+    if (!selectedEmail) {
+      throw new ApiError(404, "Email not found");
+    }
+
+    const threadId = selectedEmail.threadId;
+
+    const loadThread = () =>
+      GmailEmail.find({
+        user: userId,
+        threadId,
+      })
+        .sort({
+          internalDate: 1,
+          timestamp: 1,
+          _id: 1,
+        })
+        .lean();
+
+    let threadEmails = threadId ? await loadThread() : [];
+
+    if (!threadEmails.length) {
+      threadEmails = [selectedEmail];
+    }
+
+    /*
+     * Kisi bhi message ki body DB me nahi hai?
+     * Poora thread Gmail se ek hi call me laao aur save karo.
+     */
+    if (threadId && threadEmails.some((email) => !hasStoredBody(email))) {
+      try {
+        await hydrateThreadBodies(userId, threadId);
+
+        const refreshed = await loadThread();
+
+        if (refreshed.length) {
+          threadEmails = refreshed;
+        }
+      } catch (hydrateError) {
+        console.error(
+          `[GMAIL] Thread body fetch failed for thread ${threadId}:`,
+          hydrateError?.message || hydrateError,
+        );
+        /* Fail hone par bhi jo DB me hai wo return karo */
+      }
+    }
+
+    return threadEmails.map((email) => serializeCachedEmail(email, true));
+  } catch (error) {
+    handleGmailError(error);
+  }
+};
+
+/* =========================================================
+   LABEL MODIFY HELPER
+========================================================= */
+
+const modifyAndCache = async (userId, messageId, requestBody) => {
+  validateUserId(userId);
+
+  const cleanMessageId = validateMessageId(messageId);
+
+  const gmail = await getGmailClient(userId);
+
+  await gmail.users.messages.modify({
+    userId: "me",
+    id: cleanMessageId,
+    requestBody,
+  });
+
+  return updateCachedEmail(userId, cleanMessageId, gmail);
+};
 
 const markEmailAsRead = async (userId, messageId) => {
   try {
-    validateUserId(userId);
-
-    const cleanMessageId = validateMessageId(messageId);
-
-    const gmail = await getGmailClient(userId);
-
-    await gmail.users.messages.modify({
-      userId: "me",
-
-      id: cleanMessageId,
-
-      requestBody: {
-        removeLabelIds: ["UNREAD"],
-      },
+    return await modifyAndCache(userId, messageId, {
+      removeLabelIds: ["UNREAD"],
     });
-
-    return await updateCachedEmail(userId, cleanMessageId, gmail);
   } catch (error) {
     handleGmailError(error);
   }
 };
-
-/* =========================================================
-   MARK AS UNREAD
-========================================================= */
 
 const markEmailAsUnread = async (userId, messageId) => {
   try {
-    validateUserId(userId);
-
-    const cleanMessageId = validateMessageId(messageId);
-
-    const gmail = await getGmailClient(userId);
-
-    await gmail.users.messages.modify({
-      userId: "me",
-
-      id: cleanMessageId,
-
-      requestBody: {
-        addLabelIds: ["UNREAD"],
-      },
+    return await modifyAndCache(userId, messageId, {
+      addLabelIds: ["UNREAD"],
     });
-
-    return await updateCachedEmail(userId, cleanMessageId, gmail);
   } catch (error) {
     handleGmailError(error);
   }
 };
-
-/* =========================================================
-   STAR EMAIL
-========================================================= */
 
 const starEmail = async (userId, messageId) => {
   try {
-    validateUserId(userId);
-
-    const cleanMessageId = validateMessageId(messageId);
-
-    const gmail = await getGmailClient(userId);
-
-    await gmail.users.messages.modify({
-      userId: "me",
-
-      id: cleanMessageId,
-
-      requestBody: {
-        addLabelIds: ["STARRED"],
-      },
+    return await modifyAndCache(userId, messageId, {
+      addLabelIds: ["STARRED"],
     });
-
-    return await updateCachedEmail(userId, cleanMessageId, gmail);
   } catch (error) {
     handleGmailError(error);
   }
 };
-
-/* =========================================================
-   UNSTAR EMAIL
-========================================================= */
 
 const unstarEmail = async (userId, messageId) => {
   try {
-    validateUserId(userId);
-
-    const cleanMessageId = validateMessageId(messageId);
-
-    const gmail = await getGmailClient(userId);
-
-    await gmail.users.messages.modify({
-      userId: "me",
-
-      id: cleanMessageId,
-
-      requestBody: {
-        removeLabelIds: ["STARRED"],
-      },
+    return await modifyAndCache(userId, messageId, {
+      removeLabelIds: ["STARRED"],
     });
-
-    return await updateCachedEmail(userId, cleanMessageId, gmail);
   } catch (error) {
     handleGmailError(error);
   }
 };
-
-/* =========================================================
-   ARCHIVE EMAIL
-========================================================= */
 
 const archiveEmail = async (userId, messageId) => {
   try {
-    validateUserId(userId);
-
-    const cleanMessageId = validateMessageId(messageId);
-
-    const gmail = await getGmailClient(userId);
-
-    await gmail.users.messages.modify({
-      userId: "me",
-
-      id: cleanMessageId,
-
-      requestBody: {
-        removeLabelIds: ["INBOX"],
-      },
+    return await modifyAndCache(userId, messageId, {
+      removeLabelIds: ["INBOX"],
     });
-
-    return await updateCachedEmail(userId, cleanMessageId, gmail);
   } catch (error) {
     handleGmailError(error);
   }
 };
 
-/* =========================================================
-   MOVE TO INBOX
-========================================================= */
-
 const moveToInbox = async (userId, messageId) => {
   try {
-    validateUserId(userId);
-
-    const cleanMessageId = validateMessageId(messageId);
-
-    const gmail = await getGmailClient(userId);
-
-    await gmail.users.messages.modify({
-      userId: "me",
-
-      id: cleanMessageId,
-
-      requestBody: {
-        addLabelIds: ["INBOX"],
-
-        removeLabelIds: ["TRASH"],
-      },
+    return await modifyAndCache(userId, messageId, {
+      addLabelIds: ["INBOX"],
+      removeLabelIds: ["TRASH"],
     });
-
-    return await updateCachedEmail(userId, cleanMessageId, gmail);
   } catch (error) {
     handleGmailError(error);
   }
@@ -1269,7 +1179,6 @@ const trashEmail = async (userId, messageId) => {
 
     await gmail.users.messages.trash({
       userId: "me",
-
       id: cleanMessageId,
     });
 
@@ -1293,19 +1202,16 @@ const permanentlyDeleteEmail = async (userId, messageId) => {
 
     await gmail.users.messages.delete({
       userId: "me",
-
       id: cleanMessageId,
     });
 
     await GmailEmail.deleteOne({
       user: userId,
-
       gmailMessageId: cleanMessageId,
     });
 
     return {
       success: true,
-
       id: cleanMessageId,
     };
   } catch (error) {
@@ -1314,81 +1220,36 @@ const permanentlyDeleteEmail = async (userId, messageId) => {
 };
 
 /* =========================================================
-   CREATE RAW EMAIL
+   HELPERS FOR SENDING
 ========================================================= */
 
-const createRawEmail = ({
-  to,
-  cc,
-  bcc,
-  subject,
-  body,
-  html,
-  inReplyTo,
-  references,
-}) => {
-  const headers = [];
+const formatAddress = ({ name, email }) => {
+  if (!email) return "";
 
-  if (to) {
-    headers.push(`To: ${to}`);
-  }
+  const cleanName = (name || "").replace(/["\r\n]/g, "").trim();
 
-  if (cc) {
-    headers.push(`Cc: ${cc}`);
-  }
-
-  if (bcc) {
-    headers.push(`Bcc: ${bcc}`);
-  }
-
-  headers.push(`Subject: ${subject || ""}`);
-
-  headers.push("MIME-Version: 1.0");
-
-  if (inReplyTo) {
-    headers.push(`In-Reply-To: ${inReplyTo}`);
-  }
-
-  if (references) {
-    headers.push(`References: ${references}`);
-  }
-
-  const textBody = body || "";
-
-  const htmlBody = html || "";
-
-  if (htmlBody) {
-    const boundary = `boundary_${Date.now()}_${Math.random()
-      .toString(36)
-      .slice(2)}`;
-
-    headers.push(`Content-Type: multipart/alternative; boundary="${boundary}"`);
-
-    const raw = [
-      headers.join("\r\n"),
-      "",
-      `--${boundary}`,
-      'Content-Type: text/plain; charset="UTF-8"',
-      "",
-      textBody,
-      "",
-      `--${boundary}`,
-      'Content-Type: text/html; charset="UTF-8"',
-      "",
-      htmlBody,
-      "",
-      `--${boundary}--`,
-    ].join("\r\n");
-
-    return encodeBase64Url(raw);
-  }
-
-  headers.push('Content-Type: text/plain; charset="UTF-8"');
-
-  const raw = [headers.join("\r\n"), "", textBody].join("\r\n");
-
-  return encodeBase64Url(raw);
+  return cleanName ? `"${cleanName}" <${email}>` : email;
 };
+
+/*
+  Gmail ko raw MIME media upload se bhejte hain.
+  Isse badi attachments (25 MB tak) bhi chalti hain.
+*/
+const sendRawMime = async (gmail, raw, threadId) => {
+  const response = await gmail.users.messages.send({
+    userId: "me",
+
+    ...(threadId ? { requestBody: { threadId } } : {}),
+
+    media: {
+      mimeType: "message/rfc822",
+      body: Readable.from([raw]),
+    },
+  });
+
+  return response.data;
+};
+
 /* =========================================================
    SEND NEW EMAIL
 ========================================================= */
@@ -1397,47 +1258,40 @@ const sendNewEmail = async (userId, options = {}) => {
   try {
     validateUserId(userId);
 
-    const { to, cc, bcc, subject, body, html } = options;
+    const { to, cc, bcc, subject, body, html, attachments = [] } = options;
 
-    if (!to) {
+    if (!to || (Array.isArray(to) && !to.length)) {
       throw new ApiError(400, "Recipient email is required");
     }
 
     const gmail = await getGmailClient(userId);
 
-    const raw = createRawEmail({
+    const raw = await buildMime({
       to,
       cc,
       bcc,
-      subject,
-      body,
-      html,
+      subject: subject || "",
+      text: body || "",
+      html: html || undefined,
+      attachments,
     });
 
-    const response = await gmail.users.messages.send({
-      userId: "me",
+    const sent = await sendRawMime(gmail, raw);
 
-      requestBody: {
-        raw,
-      },
-    });
-
-    const messageId = response.data?.id;
+    const messageId = sent?.id;
 
     if (!messageId) {
-      return response.data;
+      return sent;
     }
 
-    /*
-     * Fetch the newly sent message and cache it.
-     */
+    /* Sent mail ko MongoDB cache mein save karo */
     try {
       await updateCachedEmail(userId, messageId, gmail);
     } catch (cacheError) {
       console.error("[GMAIL SEND] Failed to cache sent email:", cacheError);
     }
 
-    return response.data;
+    return sent;
   } catch (error) {
     handleGmailError(error);
   }
@@ -1453,22 +1307,18 @@ const replyEmail = async (userId, messageId, options = {}) => {
 
     const cleanMessageId = validateMessageId(messageId);
 
-    const { body, html } = options;
+    const { body, html, replyAll = false, attachments = [] } = options;
 
     const gmail = await getGmailClient(userId);
 
-    /*
-     * Fetch original message headers.
-     */
+    /* Original message ke headers */
     const original = await gmail.users.messages.get({
       userId: "me",
-
       id: cleanMessageId,
-
       format: "metadata",
-
       metadataHeaders: [
         "From",
+        "Reply-To",
         "To",
         "Cc",
         "Subject",
@@ -1477,59 +1327,92 @@ const replyEmail = async (userId, messageId, options = {}) => {
       ],
     });
 
-    const originalPayload = original.data?.payload || {};
-
-    const headers = originalPayload.headers || [];
+    const headers = original.data?.payload?.headers || [];
 
     const fromHeader = getHeader(headers, "From");
-
+    const replyToHeader = getHeader(headers, "Reply-To");
+    const toHeader = getHeader(headers, "To");
+    const ccHeader = getHeader(headers, "Cc");
     const subjectHeader = getHeader(headers, "Subject");
-
     const messageIdHeader = getHeader(headers, "Message-ID");
-
     const referencesHeader = getHeader(headers, "References");
 
-    const parsedFrom = parseEmailAddress(fromHeader);
+    /* Apna email: khud ko reply/CC se bahar rakhne ke liye */
+    const profile = await gmail.users.getProfile({ userId: "me" });
 
-    if (!parsedFrom.email) {
+    const myEmail = (profile.data?.emailAddress || "").toLowerCase();
+
+    const sender = parseEmailAddress(fromHeader);
+
+    const replyTo = parseEmailAddress(replyToHeader);
+
+    /*
+      Primary recipients:
+      - normal mail: Reply-To (nahi hai to From)
+      - agar original mail aapne khud bheji thi: original ke To
+    */
+    let primary;
+
+    if (sender.email && sender.email === myEmail) {
+      primary = parseEmailAddresses(toHeader);
+    } else {
+      const target = replyTo.email ? replyTo : sender;
+      primary = target.email ? [target] : [];
+    }
+
+    if (!primary.length) {
       throw new ApiError(400, "Unable to determine reply recipient");
     }
 
-    let replySubject = subjectHeader || "";
+    const primaryEmails = new Set(primary.map((item) => item.email));
 
-    if (!/^re:/i.test(replySubject.trim())) {
-      replySubject = `Re: ${replySubject}`;
+    /* Reply All: original To + Cc, minus aap, minus primary */
+    let ccList = [];
+
+    if (replyAll) {
+      const seen = new Set();
+
+      ccList = [
+        ...parseEmailAddresses(toHeader),
+        ...parseEmailAddresses(ccHeader),
+      ].filter((item) => {
+        if (
+          !item.email ||
+          item.email === myEmail ||
+          primaryEmails.has(item.email) ||
+          seen.has(item.email)
+        ) {
+          return false;
+        }
+
+        seen.add(item.email);
+
+        return true;
+      });
     }
+
+    const replySubject = /^re:/i.test(subjectHeader.trim())
+      ? subjectHeader
+      : `Re: ${subjectHeader}`;
 
     const references = [referencesHeader, messageIdHeader]
       .filter(Boolean)
       .join(" ");
 
-    const raw = createRawEmail({
-      to: parsedFrom.email,
-
+    const raw = await buildMime({
+      to: primary.map(formatAddress),
+      cc: ccList.length ? ccList.map(formatAddress) : undefined,
       subject: replySubject,
-
-      body: body || "",
-
-      html: html || "",
-
-      inReplyTo: messageIdHeader,
-
-      references,
+      text: body || "",
+      html: html || undefined,
+      attachments,
+      inReplyTo: messageIdHeader || undefined,
+      references: references || undefined,
     });
 
-    const response = await gmail.users.messages.send({
-      userId: "me",
+    const sent = await sendRawMime(gmail, raw, original.data?.threadId);
 
-      requestBody: {
-        raw,
-
-        threadId: original.data?.threadId,
-      },
-    });
-
-    const sentMessageId = response.data?.id;
+    const sentMessageId = sent?.id;
 
     if (sentMessageId) {
       try {
@@ -1539,7 +1422,7 @@ const replyEmail = async (userId, messageId, options = {}) => {
       }
     }
 
-    return response.data;
+    return sent;
   } catch (error) {
     handleGmailError(error);
   }
@@ -1563,16 +1446,106 @@ const getAttachment = async (userId, messageId, attachmentId) => {
 
     const response = await gmail.users.messages.attachments.get({
       userId: "me",
-
       messageId: cleanMessageId,
-
       id: attachmentId,
     });
 
     return {
       data: response.data?.data || "",
-
       size: response.data?.size || 0,
+    };
+  } catch (error) {
+    handleGmailError(error);
+  }
+};
+
+/* =========================================================
+   GET ATTACHMENT FILE (binary, download / preview ke liye)
+========================================================= */
+
+const base64UrlToBuffer = (data = "") =>
+  Buffer.from(data.replace(/-/g, "+").replace(/_/g, "/"), "base64");
+
+const getAttachmentFile = async (userId, messageId, attachmentId) => {
+  try {
+    validateUserId(userId);
+
+    const cleanMessageId = validateMessageId(messageId);
+
+    if (!attachmentId || typeof attachmentId !== "string") {
+      throw new ApiError(400, "Attachment ID is required");
+    }
+
+    const stored = await GmailEmail.findOne({
+      user: userId,
+      gmailMessageId: cleanMessageId,
+    })
+      .select("attachments")
+      .lean();
+
+    if (!stored) {
+      throw new ApiError(404, "Email not found");
+    }
+
+    let meta = (stored.attachments || []).find(
+      (item) => item.attachmentId === attachmentId,
+    );
+
+    const gmail = await getGmailClient(userId);
+
+    const fetchAttachmentData = async (id) => {
+      const response = await gmail.users.messages.attachments.get({
+        userId: "me",
+        messageId: cleanMessageId,
+        id,
+      });
+
+      return response.data;
+    };
+
+    let data;
+
+    try {
+      data = await fetchAttachmentData(attachmentId);
+    } catch (firstError) {
+      /*
+        Gmail kabhi kabhi attachmentId badal deta hai.
+        Message dobara laa kar filename + size se match karo.
+      */
+      if (!meta) {
+        throw firstError;
+      }
+
+      const refreshed = await gmail.users.messages.get({
+        userId: "me",
+        id: cleanMessageId,
+        format: "full",
+      });
+
+      const fresh = extractAttachments(refreshed.data?.payload);
+
+      const match = fresh.find(
+        (item) => item.filename === meta.filename && item.size === meta.size,
+      );
+
+      if (!match) {
+        throw firstError;
+      }
+
+      meta = match;
+
+      data = await fetchAttachmentData(match.attachmentId);
+
+      // DB ke ids bhi update kar do (best effort)
+      updateCachedEmail(userId, cleanMessageId, gmail).catch(() => {});
+    }
+
+    const buffer = base64UrlToBuffer(data?.data || "");
+
+    return {
+      buffer,
+      filename: meta?.filename || "attachment",
+      mimeType: meta?.mimeType || "application/octet-stream",
     };
   } catch (error) {
     handleGmailError(error);
@@ -1617,25 +1590,18 @@ const startGmailWatch = async (userId) => {
 
   const watchResponse = await gmail.users.watch({
     userId: "me",
-
     requestBody: {
       topicName,
     },
   });
 
-  const {
-    historyId: watchHistoryId,
-
-    expiration,
-  } = watchResponse.data || {};
+  const { historyId: watchHistoryId, expiration } = watchResponse.data || {};
 
   if (!watchHistoryId) {
     throw new ApiError(500, "Gmail watch did not return a historyId");
   }
 
-  /*
-   * Get the Gmail account address.
-   */
+  /* Get the Gmail account address. */
   const profile = await gmail.users.getProfile({
     userId: "me",
   });
@@ -1648,15 +1614,8 @@ const startGmailWatch = async (userId) => {
   }
 
   /*
-   * FIRST WATCH:
-   *
-   * There is no previous history checkpoint.
-   *
-   * We use the watch historyId as the initial checkpoint.
-   *
-   * EXISTING WATCH:
-   *
-   * Preserve existing historyId.
+   * FIRST WATCH: no previous checkpoint -> use watch historyId.
+   * EXISTING WATCH: preserve existing historyId.
    */
   const syncHistoryId = existingHistoryId || watchHistoryId;
 
@@ -1670,47 +1629,33 @@ const startGmailWatch = async (userId) => {
     {
       $set: {
         emailAddress: emailAddress.toLowerCase(),
-
         historyId: syncHistoryId,
-
         watchHistoryId: watchHistoryId,
-
         watchExpiration: expirationDate,
-
         syncStatus: existingState?.syncStatus || "idle",
-
         lastError: "",
       },
     },
 
     {
       upsert: true,
-
       new: true,
     },
   );
 
   console.log(`[GMAIL WATCH] Watch started`, {
     userId,
-
     emailAddress,
-
     historyId: syncHistoryId,
-
     watchHistoryId,
-
     expiration: expirationDate ? expirationDate.toISOString() : null,
   });
 
   return {
     success: true,
-
     emailAddress,
-
     historyId: syncHistoryId,
-
     watchHistoryId,
-
     expiration: expirationDate,
   };
 };
@@ -1729,9 +1674,7 @@ const getGmailMessage = async (userId, messageId, format = "full") => {
   try {
     const response = await gmail.users.messages.get({
       userId: "me",
-
       id: cleanMessageId,
-
       format,
     });
 
@@ -1747,42 +1690,24 @@ const getGmailMessage = async (userId, messageId, format = "full") => {
 
 module.exports = {
   getOAuthClient,
-
   getGmailClient,
-
   formatEmail,
-
   formatFullEmail,
-
   listEmails,
-
   getEmailById,
-
   getEmailThread,
-
   markEmailAsRead,
-
   markEmailAsUnread,
-
   starEmail,
-
   unstarEmail,
-
   archiveEmail,
-
   moveToInbox,
-
   trashEmail,
-
   permanentlyDeleteEmail,
-
   sendNewEmail,
-
   replyEmail,
-
   getAttachment,
-
+  getAttachmentFile,
   getGmailMessage,
-
   startGmailWatch,
 };

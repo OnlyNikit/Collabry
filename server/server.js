@@ -6,6 +6,7 @@ const cookieParser = require("cookie-parser");
 const passport = require("passport");
 const http = require("http");
 const jwt = require("jsonwebtoken");
+const rateLimit = require("express-rate-limit"); /* SHARE */
 const { Server } = require("socket.io");
 
 const connectDB = require("./config/db");
@@ -19,15 +20,31 @@ const trackerRoutes = require("./routes/trackerRoutes");
 const webhookRoutes = require("./routes/gmailWebhookRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
 
+/* SHARE (public live links) */
+const {
+  privateRouter: shareRoutes,
+  publicRouter: sharedPublicRoutes,
+} = require("./routes/shareRoutes");
+const { initShareSocket } = require("./utils/shareSocket");
+
+/* DELEGATION (shared inbox access) */
+const delegationRoutes = require("./routes/delegationRoutes");
+const { actingAs } = require("./middleware/actingAs");
+// Adjust the path/name if your auth middleware file is different
+const { protect } = require("./middleware/authMiddleware");
+
 require("./config/google");
 
 const app = express();
+app.set("trust proxy", 1); 
 const server = http.createServer(app);
 
 app.use(
   cors({
     origin: process.env.CLIENT_URL,
     credentials: true,
+    // Allow the custom header used for delegated mailbox access
+    allowedHeaders: ["Content-Type", "Authorization", "X-Acting-As"],
   }),
 );
 
@@ -55,11 +72,43 @@ app.use((req, res, next) => {
 });
 
 app.use("/api/auth", authRoutes);
-app.use("/api/emails", emailRoutes);
-app.use("/api/labels", labelRoutes);
-app.use("/api/email-labels", emailLabelRoutes);
+
+/*
+  Mailbox routes: protect -> actingAs -> routes
+  actingAs sets req.mailboxOwnerId (the logged-in user, or the owner whose
+  mailbox a delegate is working in).
+*/
+app.use("/api/emails", protect, actingAs, emailRoutes);
+app.use("/api/labels", protect, actingAs, labelRoutes);
+app.use("/api/email-labels", protect, actingAs, emailLabelRoutes);
+
+app.use("/api/delegations", delegationRoutes);
+
 app.use("/api/collaborations", collaborationRoutes);
 app.use("/api/trackers", trackerRoutes);
+
+/* =========================================================
+   SHARE ROUTES
+
+   /api/share  -> owner only (login required, no actingAs,
+                  so a delegate cannot create/revoke links)
+   /api/shared -> PUBLIC, token based, rate limited
+========================================================= */
+
+const sharedPublicLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    message: "Too many requests, please try again shortly",
+  },
+});
+
+app.use("/api/share", shareRoutes);
+app.use("/api/shared", sharedPublicLimiter, sharedPublicRoutes);
+
 /* ========================================================= NOTIFICATION ROUTES ========================================================= */
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/webhooks", webhookRoutes);
@@ -164,11 +213,22 @@ const io = new Server(server, {
 global.io = io;
 
 /* =========================================================
+   SHARE SOCKET (public "/shared" namespace)
+
+   Separate namespace, so the JWT io.use() below does NOT
+   apply to it. Viewers join a room using the share token,
+   which is validated against the database.
+========================================================= */
+
+initShareSocket(io);
+
+/* =========================================================
    SOCKET.IO AUTHENTICATION
 
    The client cannot choose another user's room.
 
    We verify the JWT and derive the user ID from the token.
+   (Applies to the default namespace only.)
 ========================================================= */
 
 io.use((socket, next) => {
