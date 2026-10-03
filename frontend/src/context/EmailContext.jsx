@@ -16,7 +16,7 @@ import { useToast } from "./ToastContext";
 import { getActingOwnerId, useMailbox } from "./MailboxContext";
 
 /* Delegated mailbox: socket ko sahi mailbox ke realtime room me rakhta hai */
-import attachMailboxRoomSync from "../utils/mailboxSocketSync";
+import attachMailboxRoomSync from "../utils/useMailBoxSocketSync";
 
 const EmailsContext = createContext(null);
 
