@@ -124,13 +124,13 @@ function ShareAccess() {
   const activeShared = received.filter((d) => d.status === "active");
 
   return (
-    <div className="clb-share">
+    <div className="clb-access">
       {/* HEADER */}
 
-      <div className="clb-share__head">
+      <div className="clb-access__head">
         <h2>Share access</h2>
 
-        <p className="clb-share__lead">
+        <p className="clb-access__lead">
           Let someone manage your inbox from their own Collabry account. Their
           replies go out from your Gmail address, and the receiver will not see
           their name. You can revoke access at any time.
@@ -138,12 +138,12 @@ function ShareAccess() {
       </div>
 
       {error && (
-        <p className="clb-share__alert" role="alert">
+        <p className="clb-access__alert" role="alert">
           <span>{error}</span>
 
           <button
             type="button"
-            className="clb-share__alert-close"
+            className="clb-access__alert-close"
             onClick={() => setError("")}
             aria-label="Dismiss error"
           >
@@ -154,12 +154,12 @@ function ShareAccess() {
 
       {/* INVITE */}
 
-      <section className="clb-share__section">
-        <h3 className="clb-share__section-title">Invite someone</h3>
+      <section className="clb-access__section">
+        <h3 className="clb-access__section-title">Invite someone</h3>
 
-        <div className="clb-share__panel">
-          <form className="clb-share__form" onSubmit={handleInvite}>
-            <div className="clb-share__field clb-share__field--full">
+        <div className="clb-access__panel">
+          <form className="clb-access__form" onSubmit={handleInvite}>
+            <div className="clb-access__field clb-access__field--full">
               <label htmlFor="share-email">Email address</label>
 
               <input
@@ -172,7 +172,7 @@ function ShareAccess() {
               />
             </div>
 
-            <div className="clb-share__field">
+            <div className="clb-access__field">
               <label htmlFor="share-preset">Access level</label>
 
               <select
@@ -188,7 +188,7 @@ function ShareAccess() {
               </select>
             </div>
 
-            <div className="clb-share__field">
+            <div className="clb-access__field">
               <label htmlFor="share-expiry">Expires on (optional)</label>
 
               <input
@@ -199,8 +199,8 @@ function ShareAccess() {
               />
             </div>
 
-            <div className="clb-share__form-foot">
-              <p className="clb-share__note">
+            <div className="clb-access__form-foot">
+              <p className="clb-access__note">
                 They need a Collabry account with this email to accept the
                 invite.
               </p>
@@ -219,47 +219,47 @@ function ShareAccess() {
 
       {/* PEOPLE WITH ACCESS */}
 
-      <section className="clb-share__section">
-        <h3 className="clb-share__section-title">
+      <section className="clb-access__section">
+        <h3 className="clb-access__section-title">
           People with access to my inbox
-          <span className="clb-share__count">{given.length}</span>
+          <span className="clb-access__count">{given.length}</span>
         </h3>
 
         {given.length === 0 ? (
-          <p className="clb-share__empty">
+          <p className="clb-access__empty">
             You haven&rsquo;t shared your inbox with anyone yet.
           </p>
         ) : (
-          <ul className="clb-share__list">
+          <ul className="clb-access__list">
             {given.map((d) => {
               const name = d.delegate?.name || d.inviteEmail;
 
               return (
-                <li key={d._id} className="clb-share__row">
-                  <div className="clb-share__row-top">
-                    <span className="clb-share__avatar" aria-hidden="true">
+                <li key={d._id} className="clb-access__row">
+                  <div className="clb-access__row-top">
+                    <span className="clb-access__avatar" aria-hidden="true">
                       {initialOf(name)}
                     </span>
 
-                    <div className="clb-share__who">
+                    <div className="clb-access__who">
                       <strong>{name}</strong>
                       <span>{d.inviteEmail}</span>
                     </div>
 
-                    <div className="clb-share__badges">
+                    <div className="clb-access__badges">
                       <span
-                        className={`clb-share__badge clb-share__badge--${d.status}`}
+                        className={`clb-access__badge clb-access__badge--${d.status}`}
                       >
                         {d.status}
                       </span>
 
-                      <span className="clb-share__badge clb-share__badge--preset">
+                      <span className="clb-access__badge clb-access__badge--preset">
                         {PRESET_NAMES[d.preset] || d.preset}
                       </span>
                     </div>
                   </div>
 
-                  <div className="clb-share__controls">
+                  <div className="clb-access__controls">
                     <select
                       aria-label={`Access level for ${name}`}
                       value={d.preset === "custom" ? "" : d.preset}
@@ -287,7 +287,7 @@ function ShareAccess() {
 
                     <button
                       type="button"
-                      className="clb-btn clb-btn--ghost clb-share__btn-sm"
+                      className="clb-btn clb-btn--ghost clb-access__btn-sm"
                       onClick={() => toggleLogs(d._id)}
                     >
                       {logs.id === d._id ? "Hide activity" : "Activity log"}
@@ -295,7 +295,7 @@ function ShareAccess() {
 
                     <button
                       type="button"
-                      className="clb-btn clb-btn--ghost clb-share__btn-sm clb-share__btn-danger"
+                      className="clb-btn clb-btn--ghost clb-access__btn-sm clb-access__btn-danger"
                       disabled={busy}
                       onClick={() => handleRevoke(d)}
                     >
@@ -304,24 +304,24 @@ function ShareAccess() {
                   </div>
 
                   {logs.id === d._id && (
-                    <ul className="clb-share__logs">
+                    <ul className="clb-access__logs">
                       {logs.items.length === 0 && (
-                        <li className="clb-share__logs-empty">
+                        <li className="clb-access__logs-empty">
                           No activity yet.
                         </li>
                       )}
 
                       {logs.items.map((log) => (
                         <li key={log._id}>
-                          <span className="clb-share__log-time">
+                          <span className="clb-access__log-time">
                             {new Date(log.createdAt).toLocaleString()}
                           </span>
 
-                          <span className="clb-share__log-action">
+                          <span className="clb-access__log-action">
                             {log.action}
                           </span>
 
-                          <span className="clb-share__log-path">
+                          <span className="clb-access__log-path">
                             {log.method} {log.path}
                           </span>
                         </li>
@@ -337,36 +337,36 @@ function ShareAccess() {
 
       {/* INVITES I RECEIVED */}
 
-      <section className="clb-share__section">
-        <h3 className="clb-share__section-title">
+      <section className="clb-access__section">
+        <h3 className="clb-access__section-title">
           Invites for me
-          <span className="clb-share__count">{pendingInvites.length}</span>
+          <span className="clb-access__count">{pendingInvites.length}</span>
         </h3>
 
         {pendingInvites.length === 0 ? (
-          <p className="clb-share__empty">No pending invites.</p>
+          <p className="clb-access__empty">No pending invites.</p>
         ) : (
-          <ul className="clb-share__list">
+          <ul className="clb-access__list">
             {pendingInvites.map((d) => (
-              <li key={d._id} className="clb-share__row">
-                <div className="clb-share__row-top">
-                  <span className="clb-share__avatar" aria-hidden="true">
+              <li key={d._id} className="clb-access__row">
+                <div className="clb-access__row-top">
+                  <span className="clb-access__avatar" aria-hidden="true">
                     {initialOf(d.owner.name)}
                   </span>
 
-                  <div className="clb-share__invite-text">
+                  <div className="clb-access__invite-text">
                     <strong>{d.owner.name}</strong>{" "}
                     <span>({d.owner.email}) invited you with</span>{" "}
-                    <span className="clb-share__badge clb-share__badge--preset">
+                    <span className="clb-access__badge clb-access__badge--preset">
                       {PRESET_NAMES[d.preset] || d.preset}
                     </span>{" "}
                     <span>access.</span>
                   </div>
 
-                  <div className="clb-share__invite-actions">
+                  <div className="clb-access__invite-actions">
                     <button
                       type="button"
-                      className="clb-btn clb-btn--primary clb-share__btn-sm"
+                      className="clb-btn clb-btn--primary clb-access__btn-sm"
                       disabled={busy}
                       onClick={() =>
                         run(() => api.patch(`/delegations/${d._id}/accept`))
@@ -377,7 +377,7 @@ function ShareAccess() {
 
                     <button
                       type="button"
-                      className="clb-btn clb-btn--ghost clb-share__btn-sm"
+                      className="clb-btn clb-btn--ghost clb-access__btn-sm"
                       disabled={busy}
                       onClick={() =>
                         run(() => api.patch(`/delegations/${d._id}/decline`))
@@ -396,33 +396,33 @@ function ShareAccess() {
       {/* INBOXES SHARED WITH ME */}
 
       {activeShared.length > 0 && (
-        <section className="clb-share__section">
-          <h3 className="clb-share__section-title">
+        <section className="clb-access__section">
+          <h3 className="clb-access__section-title">
             Inboxes shared with me
-            <span className="clb-share__count">{activeShared.length}</span>
+            <span className="clb-access__count">{activeShared.length}</span>
           </h3>
 
-          <ul className="clb-share__list">
+          <ul className="clb-access__list">
             {activeShared.map((d) => (
-              <li key={d._id} className="clb-share__row">
-                <div className="clb-share__row-top">
-                  <span className="clb-share__avatar" aria-hidden="true">
+              <li key={d._id} className="clb-access__row">
+                <div className="clb-access__row-top">
+                  <span className="clb-access__avatar" aria-hidden="true">
                     {initialOf(d.owner.name)}
                   </span>
 
-                  <div className="clb-share__who">
+                  <div className="clb-access__who">
                     <strong>{d.owner.name}</strong>
                     <span>{d.owner.email}</span>
                   </div>
 
-                  <div className="clb-share__badges">
-                    <span className="clb-share__badge clb-share__badge--preset">
+                  <div className="clb-access__badges">
+                    <span className="clb-access__badge clb-access__badge--preset">
                       {PRESET_NAMES[d.preset] || d.preset}
                     </span>
 
                     <button
                       type="button"
-                      className="clb-btn clb-btn--ghost clb-share__btn-sm clb-share__btn-danger"
+                      className="clb-btn clb-btn--ghost clb-access__btn-sm clb-access__btn-danger"
                       disabled={busy}
                       onClick={() => handleLeave(d)}
                     >
@@ -434,7 +434,7 @@ function ShareAccess() {
             ))}
           </ul>
 
-          <p className="clb-share__hint">
+          <p className="clb-access__hint">
             To open a shared inbox, click your profile in the top right and pick
             it from Accounts.
           </p>

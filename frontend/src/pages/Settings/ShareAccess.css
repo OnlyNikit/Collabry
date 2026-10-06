@@ -1,5 +1,8 @@
 /* ==========================================================================
    SHARE ACCESS (Settings tab)
+   Namespace: .clb-access  (ShareButton ke .clb-share se alag, taaki styles
+   aapas me mix na hon).
+
    Uses the Collabry design tokens. Every var() has a fallback, so the tab
    still looks right even if the tokens file isn't loaded on this page.
 
@@ -8,7 +11,7 @@
    text wraps, and rows/buttons wrap or stack on small screens.
    ========================================================================== */
 
-.clb-share {
+.clb-access {
   /* local aliases for the global tokens */
   --s-surface: var(--clb-surface, #1a1530);
   --s-raised: var(--clb-surface-2, #241d3f);
@@ -42,26 +45,26 @@
   overflow-wrap: anywhere;
 }
 
-.clb-share *,
-.clb-share *::before,
-.clb-share *::after {
+.clb-access *,
+.clb-access *::before,
+.clb-access *::after {
   box-sizing: border-box;
 }
 
 /* every direct child can shrink inside the flex column */
-.clb-share > * {
+.clb-access > * {
   min-width: 0;
   max-width: 100%;
 }
 
 /* Calmer buttons inside this tab (the global primary button pulses forever) */
-.clb-share .clb-btn {
+.clb-access .clb-btn {
   animation: none;
 }
 
 /* ---------- Header ------------------------------------------------------ */
 
-.clb-share__head h2 {
+.clb-access__head h2 {
   margin: 0 0 0.4rem;
   font-family: var(--clb-font-display, "Space Grotesk", "Segoe UI", sans-serif);
   font-size: clamp(1.15rem, 4.5vw, 1.35rem);
@@ -69,7 +72,7 @@
   line-height: 1.3;
 }
 
-.clb-share__lead {
+.clb-access__lead {
   margin: 0;
   max-width: 60ch;
   color: var(--s-muted);
@@ -79,7 +82,7 @@
 
 /* ---------- Error ------------------------------------------------------- */
 
-.clb-share__alert {
+.clb-access__alert {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -94,12 +97,12 @@
   line-height: 1.5;
 }
 
-.clb-share__alert > span {
+.clb-access__alert > span {
   flex: 1 1 auto;
   min-width: 0;
 }
 
-.clb-share__alert-close {
+.clb-access__alert-close {
   flex-shrink: 0;
   min-width: 28px;
   min-height: 28px;
@@ -112,20 +115,20 @@
   opacity: 0.8;
 }
 
-.clb-share__alert-close:hover {
+.clb-access__alert-close:hover {
   opacity: 1;
 }
 
 /* ---------- Sections ---------------------------------------------------- */
 
-.clb-share__section {
+.clb-access__section {
   display: flex;
   flex-direction: column;
   gap: 0.85rem;
   min-width: 0;
 }
 
-.clb-share__section-title {
+.clb-access__section-title {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
@@ -137,7 +140,7 @@
   line-height: 1.35;
 }
 
-.clb-share__count {
+.clb-access__count {
   flex-shrink: 0;
   min-width: 1.5rem;
   padding: 0.12rem 0.5rem;
@@ -152,7 +155,7 @@
 
 /* ---------- Invite form ------------------------------------------------- */
 
-.clb-share__panel {
+.clb-access__panel {
   min-width: 0;
   padding: var(--s-pad);
   border: 1px solid var(--s-border);
@@ -160,33 +163,33 @@
   background: var(--s-raised);
 }
 
-.clb-share__form {
+.clb-access__form {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1rem;
 }
 
-.clb-share__field {
+.clb-access__field {
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
   min-width: 0;
 }
 
-.clb-share__field--full {
+.clb-access__field--full {
   grid-column: 1 / -1;
 }
 
-.clb-share__field label {
+.clb-access__field label {
   color: var(--s-muted);
   font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.02em;
 }
 
-.clb-share input[type="email"],
-.clb-share input[type="date"],
-.clb-share select {
+.clb-access input[type="email"],
+.clb-access input[type="date"],
+.clb-access select {
   display: block;
   width: 100%;
   min-width: 0;
@@ -205,34 +208,34 @@
 }
 
 /* iOS Safari: date inputs ignore width unless told to shrink */
-.clb-share input[type="date"] {
+.clb-access input[type="date"] {
   -webkit-appearance: none;
   appearance: none;
   text-align: left;
 }
 
-.clb-share input[type="date"]::-webkit-date-and-time-value {
+.clb-access input[type="date"]::-webkit-date-and-time-value {
   text-align: left;
 }
 
-.clb-share input::placeholder {
+.clb-access input::placeholder {
   color: var(--s-muted);
   opacity: 0.7;
 }
 
-.clb-share input:focus,
-.clb-share select:focus {
+.clb-access input:focus,
+.clb-access select:focus {
   outline: none;
   border-color: var(--s-pink);
   box-shadow: 0 0 0 3px var(--s-pink-dim);
 }
 
-.clb-share select option {
+.clb-access select option {
   background: var(--s-surface);
   color: var(--s-text);
 }
 
-.clb-share__form-foot {
+.clb-access__form-foot {
   grid-column: 1 / -1;
   display: flex;
   align-items: center;
@@ -242,7 +245,7 @@
   min-width: 0;
 }
 
-.clb-share__note {
+.clb-access__note {
   margin: 0;
   flex: 1 1 220px;
   min-width: 0;
@@ -253,34 +256,34 @@
 
 /* ---------- Buttons ----------------------------------------------------- */
 
-.clb-share .clb-btn {
+.clb-access .clb-btn {
   max-width: 100%;
   text-align: center;
 }
 
-.clb-share .clb-btn:disabled {
+.clb-access .clb-btn:disabled {
   opacity: 0.55;
   cursor: not-allowed;
   transform: none;
 }
 
-.clb-share__btn-sm {
+.clb-access__btn-sm {
   padding: 0.5em 1.05em;
   font-size: 0.8rem;
 }
 
-.clb-share__btn-danger {
+.clb-access__btn-danger {
   color: var(--s-danger);
   border-color: rgba(255, 93, 108, 0.35);
 }
 
-.clb-share__btn-danger:hover {
+.clb-access__btn-danger:hover {
   background: var(--s-danger-dim);
 }
 
 /* ---------- Rows -------------------------------------------------------- */
 
-.clb-share__list {
+.clb-access__list {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
@@ -290,7 +293,7 @@
   min-width: 0;
 }
 
-.clb-share__row {
+.clb-access__row {
   min-width: 0;
   padding: clamp(0.75rem, 3vw, 1rem);
   border: 1px solid var(--s-border);
@@ -299,12 +302,12 @@
   transition: border-color 0.2s var(--s-ease);
 }
 
-.clb-share__row:hover {
+.clb-access__row:hover {
   border-color: rgba(245, 243, 255, 0.2);
 }
 
 /* avatar + name + badges: wraps instead of overflowing */
-.clb-share__row-top {
+.clb-access__row-top {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
@@ -312,7 +315,7 @@
   min-width: 0;
 }
 
-.clb-share__avatar {
+.clb-access__avatar {
   flex-shrink: 0;
   width: var(--s-avatar);
   height: var(--s-avatar);
@@ -327,7 +330,7 @@
   font-weight: 700;
 }
 
-.clb-share__who {
+.clb-access__who {
   flex: 1 1 160px;
   min-width: 0;
   display: flex;
@@ -335,8 +338,8 @@
   gap: 0.15rem;
 }
 
-.clb-share__who strong,
-.clb-share__who span {
+.clb-access__who strong,
+.clb-access__who span {
   display: block;
   max-width: 100%;
   overflow: hidden;
@@ -344,17 +347,17 @@
   white-space: nowrap;
 }
 
-.clb-share__who strong {
+.clb-access__who strong {
   font-size: 0.92rem;
   font-weight: 600;
 }
 
-.clb-share__who span {
+.clb-access__who span {
   color: var(--s-muted);
   font-size: 0.78rem;
 }
 
-.clb-share__badges {
+.clb-access__badges {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
@@ -363,7 +366,7 @@
   min-width: 0;
 }
 
-.clb-share__badge {
+.clb-access__badge {
   padding: 0.28rem 0.65rem;
   border: 1px solid var(--s-border);
   border-radius: 999px;
@@ -376,25 +379,25 @@
   white-space: nowrap;
 }
 
-.clb-share__badge--active {
+.clb-access__badge--active {
   color: var(--s-green);
   border-color: rgba(74, 222, 128, 0.35);
   background: var(--s-green-dim);
 }
 
-.clb-share__badge--pending {
+.clb-access__badge--pending {
   color: var(--s-gold);
   border-color: var(--s-gold-dim);
   background: var(--s-gold-dim);
 }
 
-.clb-share__badge--preset {
+.clb-access__badge--preset {
   color: var(--s-pink);
   border-color: var(--s-pink-dim);
   background: var(--s-pink-dim);
 }
 
-.clb-share__controls {
+.clb-access__controls {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
@@ -405,7 +408,7 @@
   border-top: 1px solid var(--s-border);
 }
 
-.clb-share__controls select {
+.clb-access__controls select {
   flex: 1 1 200px;
   width: auto;
   min-width: 0;
@@ -415,7 +418,7 @@
 
 /* ---------- Activity log ------------------------------------------------ */
 
-.clb-share__logs {
+.clb-access__logs {
   max-height: min(240px, 50vh);
   margin: 0.85rem 0 0;
   padding: 0.5rem 0.85rem;
@@ -428,7 +431,7 @@
   min-width: 0;
 }
 
-.clb-share__logs li {
+.clb-access__logs li {
   display: flex;
   flex-wrap: wrap;
   gap: 0.2rem 0.75rem;
@@ -439,34 +442,34 @@
   line-height: 1.5;
 }
 
-.clb-share__logs li:last-child {
+.clb-access__logs li:last-child {
   border-bottom: none;
 }
 
-.clb-share__log-time {
+.clb-access__log-time {
   color: var(--s-muted);
 }
 
-.clb-share__log-action {
+.clb-access__log-action {
   color: var(--s-pink);
   font-weight: 600;
   text-transform: capitalize;
 }
 
-.clb-share__log-path {
+.clb-access__log-path {
   min-width: 0;
   color: var(--s-muted);
   overflow-wrap: anywhere;
   word-break: break-all;
 }
 
-.clb-share__logs-empty {
+.clb-access__logs-empty {
   color: var(--s-muted);
 }
 
 /* ---------- Empty states & hints --------------------------------------- */
 
-.clb-share__empty {
+.clb-access__empty {
   margin: 0;
   padding: 1.1rem;
   border: 1px dashed var(--s-border);
@@ -477,7 +480,7 @@
   text-align: center;
 }
 
-.clb-share__hint {
+.clb-access__hint {
   margin: 0;
   color: var(--s-muted);
   font-size: 0.78rem;
@@ -486,23 +489,23 @@
 
 /* ---------- Invites for me --------------------------------------------- */
 
-.clb-share__invite-text {
+.clb-access__invite-text {
   flex: 1 1 220px;
   min-width: 0;
   font-size: 0.88rem;
   line-height: 1.6;
 }
 
-.clb-share__invite-text span {
+.clb-access__invite-text span {
   color: var(--s-muted);
 }
 
-.clb-share__invite-text .clb-share__badge {
+.clb-access__invite-text .clb-access__badge {
   display: inline-block;
   vertical-align: middle;
 }
 
-.clb-share__invite-actions {
+.clb-access__invite-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
@@ -517,7 +520,7 @@
 /* ---------- Tablet / large phone --------------------------------------- */
 
 @media (max-width: 768px) {
-  .clb-share__lead {
+  .clb-access__lead {
     max-width: none;
   }
 }
@@ -525,31 +528,31 @@
 /* ---------- Phone ------------------------------------------------------- */
 
 @media (max-width: 640px) {
-  .clb-share__form {
+  .clb-access__form {
     grid-template-columns: minmax(0, 1fr);
     gap: 0.9rem;
   }
 
   /* 16px stops iOS from zooming the page when an input is focused */
-  .clb-share input[type="email"],
-  .clb-share input[type="date"],
-  .clb-share select {
+  .clb-access input[type="email"],
+  .clb-access input[type="date"],
+  .clb-access select {
     min-height: 44px;
     font-size: 16px;
   }
 
   /* avatar sits at the top, aligned with the first line of text */
-  .clb-share__row-top {
+  .clb-access__row-top {
     align-items: flex-start;
   }
 
   /* avatar + name stay on the first line */
-  .clb-share__who {
+  .clb-access__who {
     flex: 1 1 calc(100% - var(--s-avatar) - var(--s-avatar-gap));
   }
 
   /* everything below the name uses the FULL row width (no left indent) */
-  .clb-share__badges {
+  .clb-access__badges {
     flex: 1 1 100%;
     width: 100%;
     margin: 0;
@@ -557,7 +560,7 @@
   }
 
   /* "Leave" button: full width, centered text, same height as other buttons */
-  .clb-share__badges .clb-btn {
+  .clb-access__badges .clb-btn {
     flex: 1 1 100%;
     width: 100%;
     margin: 0;
@@ -566,46 +569,46 @@
   }
 
   /* invite text takes the first line, buttons below at full width */
-  .clb-share__invite-text {
+  .clb-access__invite-text {
     flex: 1 1 calc(100% - var(--s-avatar) - var(--s-avatar-gap));
   }
 
-  .clb-share__invite-actions {
+  .clb-access__invite-actions {
     flex: 1 1 100%;
     width: 100%;
     margin: 0;
     padding-left: 0;
   }
 
-  .clb-share__invite-actions .clb-btn {
+  .clb-access__invite-actions .clb-btn {
     flex: 1 1 0;
     justify-content: center;
   }
 
   /* controls: select on its own line, buttons share the next line */
-  .clb-share__controls select {
+  .clb-access__controls select {
     flex: 1 1 100%;
     min-height: 44px;
   }
 
-  .clb-share__controls .clb-btn {
+  .clb-access__controls .clb-btn {
     flex: 1 1 calc(50% - 0.3rem);
     justify-content: center;
     min-height: 40px;
   }
 
-  .clb-share__form-foot .clb-btn {
+  .clb-access__form-foot .clb-btn {
     flex: 1 1 100%;
     justify-content: center;
     min-height: 44px;
   }
 
-  .clb-share__note {
+  .clb-access__note {
     flex-basis: 100%;
   }
 
   /* touch-friendly tap area for the footer actions */
-  .clb-share__btn-sm {
+  .clb-access__btn-sm {
     min-height: 40px;
   }
 }
@@ -613,43 +616,43 @@
 /* ---------- Small phone ------------------------------------------------- */
 
 @media (max-width: 480px) {
-  .clb-share {
+  .clb-access {
     --s-avatar: 36px;
     --s-avatar-gap: 0.7rem;
   }
 
-  .clb-share__avatar {
+  .clb-access__avatar {
     font-size: 0.92rem;
   }
 
-  .clb-share__panel,
-  .clb-share__row {
+  .clb-access__panel,
+  .clb-access__row {
     border-radius: 12px;
   }
 
-  .clb-share__section-title {
+  .clb-access__section-title {
     font-size: 0.95rem;
   }
 
-  .clb-share__lead,
-  .clb-share__alert {
+  .clb-access__lead,
+  .clb-access__alert {
     font-size: 0.82rem;
   }
 
   /* long names and emails may wrap instead of being cut off */
-  .clb-share__who strong,
-  .clb-share__who span {
+  .clb-access__who strong,
+  .clb-access__who span {
     white-space: normal;
     overflow: visible;
     text-overflow: clip;
     overflow-wrap: anywhere;
   }
 
-  .clb-share__logs {
+  .clb-access__logs {
     padding: 0.4rem 0.7rem;
   }
 
-  .clb-share__logs li {
+  .clb-access__logs li {
     flex-direction: column;
     gap: 0.1rem;
   }
@@ -658,39 +661,39 @@
 /* ---------- Tiny phone (≤ 360px) --------------------------------------- */
 
 @media (max-width: 360px) {
-  .clb-share {
+  .clb-access {
     --s-avatar: 32px;
     --s-avatar-gap: 0.6rem;
     --s-pad: 0.75rem;
   }
 
-  .clb-share__avatar {
+  .clb-access__avatar {
     font-size: 0.85rem;
   }
 
-  .clb-share__head h2 {
+  .clb-access__head h2 {
     font-size: 1.1rem;
   }
 
-  .clb-share__who strong {
+  .clb-access__who strong {
     font-size: 0.86rem;
   }
 
-  .clb-share__who span,
-  .clb-share__invite-text,
-  .clb-share__note,
-  .clb-share__hint {
+  .clb-access__who span,
+  .clb-access__invite-text,
+  .clb-access__note,
+  .clb-access__hint {
     font-size: 0.76rem;
   }
 
-  .clb-share__badge {
+  .clb-access__badge {
     padding: 0.25rem 0.55rem;
     font-size: 0.66rem;
   }
 
   /* every action button gets its own full-width line */
-  .clb-share__controls .clb-btn,
-  .clb-share__invite-actions .clb-btn {
+  .clb-access__controls .clb-btn,
+  .clb-access__invite-actions .clb-btn {
     flex: 1 1 100%;
   }
 }
@@ -698,13 +701,13 @@
 /* ---------- Very short landscape phones -------------------------------- */
 
 @media (max-height: 480px) and (orientation: landscape) {
-  .clb-share__logs {
+  .clb-access__logs {
     max-height: 40vh;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .clb-share * {
+  .clb-access * {
     transition-duration: 0.001ms !important;
   }
 }
